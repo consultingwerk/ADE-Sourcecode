@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2013, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : ResizeError
@@ -27,6 +27,7 @@ class OpenEdge.Core.Collections.ResizeError serializable inherits ApplicationErr
     end constructor.
     
     constructor public ResizeError ():
+        /* Default constructor */
     end constructor.
     
     constructor public ResizeError (input poErr as Error, input pcArgs1 as character, input pcArgs2 as character):
@@ -36,6 +37,7 @@ class OpenEdge.Core.Collections.ResizeError serializable inherits ApplicationErr
     end constructor.
     
     constructor public ResizeError (input pcArgs1 as character, input pcArgs2 as character):
+        {&_proparse_ prolint-nowarn(varusage)}
         define variable oUnknown as Error no-undo.
         this-object(oUnknown,pcArgs1,pcArgs2).
     end constructor.

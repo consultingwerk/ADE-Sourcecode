@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014, 2015, 2018 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2014, 2015, 2018, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : PushNotificationMessageBuilder
@@ -383,7 +383,7 @@ class OpenEdge.Mobile.PushNotificationMessageBuilder abstract inherits ConfigBui
         @return PushNotificationMessageBuilder This builder object */
     method public PushNotificationMessageBuilder AddStringFilter(input pcFilterName as character,
                                                                  input pcFilterValue as character,
-                                                                 input poOperand as PushNotificationFilterOperandEnum).
+                                                                 input poOperand as PushNotificationFilterOperandEnum):
         Logger:Warn(substitute('AddStringFilter: Filter is not supported in &1', this-object:GetClass():TypeName)).
         return this-object.
     end method.
@@ -399,7 +399,7 @@ class OpenEdge.Mobile.PushNotificationMessageBuilder abstract inherits ConfigBui
         @return PushNotificationMessageBuilder This builder object */
     method  public PushNotificationMessageBuilder AddArrayFilter(input pcFilterName as character,
                                                                  input poFilterValue as JsonConstruct,
-                                                                 input poOperand as PushNotificationFilterOperandEnum).
+                                                                 input poOperand as PushNotificationFilterOperandEnum):
         Logger:Warn(substitute('AddArrayFilter: Filter is Not supported in &1', this-object:GetClass():TypeName)).
         return this-object.
     end method.
@@ -416,7 +416,7 @@ class OpenEdge.Mobile.PushNotificationMessageBuilder abstract inherits ConfigBui
         @return PushNotificationMessageBuilder This builder object */
     method public PushNotificationMessageBuilder AddPointerFilter(input pcFilterName as character,
                                                                   input poFilterValue as JsonObject,
-                                                                  input poOperand as PushNotificationFilterOperandEnum).
+                                                                  input poOperand as PushNotificationFilterOperandEnum):
         Logger:Warn(substitute('AddPointerFilter: Filter is Not supported in &1', this-object:GetClass():TypeName)).
         return this-object.
     end method.
@@ -433,7 +433,7 @@ class OpenEdge.Mobile.PushNotificationMessageBuilder abstract inherits ConfigBui
         @return PushNotificationMessageBuilder This builder object */
     method public PushNotificationMessageBuilder AddGeoFilter(input pcFilterName as character,
                                                               input poFilterValue as JsonObject,
-                                                              input poOperand as PushNotificationFilterOperandEnum).    
+                                                              input poOperand as PushNotificationFilterOperandEnum):
         Logger:Warn(substitute('AddGeoFilter: Filter is Not supported in &1', this-object:GetClass():TypeName)).
         return this-object.
     end method.
@@ -452,7 +452,7 @@ class OpenEdge.Mobile.PushNotificationMessageBuilder abstract inherits ConfigBui
         @return PushNotificationMessageBuilder This builder object */
     method public PushNotificationMessageBuilder AddObjectFilter(input pcFilterName as character,
                                                                  input poFilterValue as JsonConstruct,
-                                                                 input poOperand as PushNotificationFilterOperandEnum).
+                                                                 input poOperand as PushNotificationFilterOperandEnum):
         Logger:Warn(substitute('AddObjectFilter: Filter is Not supported in &1', this-object:GetClass():TypeName)).
         return this-object.
     end method.
@@ -502,7 +502,7 @@ class OpenEdge.Mobile.PushNotificationMessageBuilder abstract inherits ConfigBui
         @return PushNotificationMessageBuilder This builder object */
     method public PushNotificationMessageBuilder AddNumericFilter(input pcFilterName as character,
                                                                   input pdFilterValue as decimal,
-                                                                  input poOperand as PushNotificationFilterOperandEnum).
+                                                                  input poOperand as PushNotificationFilterOperandEnum):
         Logger:Warn(substitute('AddNumericFilter: Filter is Not supported in &1', this-object:GetClass():TypeName)).
         return this-object.
     end method.
@@ -518,7 +518,7 @@ class OpenEdge.Mobile.PushNotificationMessageBuilder abstract inherits ConfigBui
         @return PushNotificationMessageBuilder This builder object */
     method public PushNotificationMessageBuilder AddDateFilter(input pcFilterName as character,
                                                                input ptFilterValue as datetime,
-                                                               input poOperand as PushNotificationFilterOperandEnum).
+                                                               input poOperand as PushNotificationFilterOperandEnum):
         Logger:Warn(substitute('AddDateFilter: Filter is Not supported in &1', this-object:GetClass():TypeName)).
         return this-object.
     end method.
@@ -532,7 +532,7 @@ class OpenEdge.Mobile.PushNotificationMessageBuilder abstract inherits ConfigBui
         @return PushNotificationMessageBuilder This builder object */
     method public PushNotificationMessageBuilder AddLogicalFilter(input pcFilterName as character,
                                                                   input plFilterValue as logical,
-                                                                  input poOperand as PushNotificationFilterOperandEnum).
+                                                                  input poOperand as PushNotificationFilterOperandEnum):
         Logger:Warn(substitute('AddLogicalFilter: Filter is Not supported in &1', this-object:GetClass():TypeName)).
         return this-object.
     end method. 

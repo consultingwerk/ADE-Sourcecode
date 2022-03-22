@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2018 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2018, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : KeyValuePair
@@ -28,6 +28,7 @@ class OpenEdge.Core.KeyValuePair serializable:
        
        Private since we don't want to allow an object without a key */
     constructor private KeyValuePair ():
+        /* Default constructor */
     end constructor.
     
     /* Constructor

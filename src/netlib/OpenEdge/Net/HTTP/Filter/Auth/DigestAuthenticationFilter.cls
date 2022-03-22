@@ -1,13 +1,13 @@
 /************************************************
-Copyright (c) 2014, 2015, 2017-2018 by Progress Software Corporation. All rights reserved.
-*************************************************/ 
+Copyright (c) 2014, 2015, 2017-2018, 2021 by Progress Software Corporation. All rights reserved.
+*************************************************/
 /*------------------------------------------------------------------------
     File        : DigestAuthenticationFilter
-    Purpose     : Sets the credentials for the Digest challenge. These will be 
+    Purpose     : Sets the credentials for the Digest challenge. These will be
                   encoded per http://tools.ietf.org/html/rfc2617.
     Author(s)   : pjudge
     Created     : Mon Jul 07 13:30:12 EDT 2014
-    Notes       : 
+    Notes       :
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
@@ -20,7 +20,7 @@ using OpenEdge.Net.HTTP.HttpHeaderBuilder.
 using OpenEdge.Net.HTTP.IAuthenticatedRequest.
 using OpenEdge.Net.HTTP.IHttpRequest.
 
-class OpenEdge.Net.HTTP.Filter.Auth.DigestAuthenticationFilter inherits AuthenticationRequestFilter: 
+class OpenEdge.Net.HTTP.Filter.Auth.DigestAuthenticationFilter inherits AuthenticationRequestFilter:
     // Holder for per-nonce counts
     define static private temp-table NonceCount no-undo
         field ParentFilter as int64
@@ -46,12 +46,13 @@ class OpenEdge.Net.HTTP.Filter.Auth.DigestAuthenticationFilter inherits Authenti
 
     /** Build the actual authentication. To be implemented by concrete classes. */
     method override protected void AddAuthentication():
+        {&_proparse_ prolint-nowarn(varusage)}
         define variable cDomain as character no-undo.
         define variable cRealm as character no-undo.
-        define variable cURI as character no-undo.
         define variable cNonce as character no-undo.
         define variable cClientNonce as character no-undo.
         define variable cOpaque as character no-undo.
+        {&_proparse_ prolint-nowarn(varusage)}
         define variable lStale as logical no-undo.
         define variable cAlgorithm as character no-undo.
         define variable cQualityOfProtection as character no-undo.
@@ -106,7 +107,7 @@ class OpenEdge.Net.HTTP.Filter.Auth.DigestAuthenticationFilter inherits Authenti
                iMax = num-entries(cChallenge)
                .
         do iLoop = 1 to iMax:
-            assign cEntry     = entry(iLoop, cChallenge) 
+            assign cEntry     = entry(iLoop, cChallenge)
                    pos        = index(cEntry, '=':u)
                    paramValue = trim(trim(substring(cEntry, pos + 1)), StringConstant:DOUBLE_QUOTE)
                    cEntry     = trim(substring(cEntry, 1, pos - 1))
@@ -135,7 +136,9 @@ class OpenEdge.Net.HTTP.Filter.Auth.DigestAuthenticationFilter inherits Authenti
                .
         case cAlgorithm:
             when 'MD5-sess':u then
+                {&_proparse_prolint-nowarn(digest)}
                 assign rHash1 = md5-digest(substitute('&1:&2:&3':u,
+                                    {&_proparse_prolint-nowarn(digest)}
                                     hex-encode(md5-digest(substitute('&1:&2:&3':u,
                                                     oCredentials:UserName,
                                                     cRealm,
@@ -144,6 +147,7 @@ class OpenEdge.Net.HTTP.Filter.Auth.DigestAuthenticationFilter inherits Authenti
                                     cClientNonce)).
             when 'MD5':u or
             when '':u then
+                {&_proparse_prolint-nowarn(digest)}
                 assign rHash1 = md5-digest(substitute('&1:&2:&3':u,
                                                     oCredentials:UserName,
                                                     cRealm,
@@ -153,36 +157,42 @@ class OpenEdge.Net.HTTP.Filter.Auth.DigestAuthenticationFilter inherits Authenti
         
         case cQualityOfProtection:
             when '':u then
+                {&_proparse_prolint-nowarn(digest)}
                 assign rHash2    = md5-digest(substitute('&1:&2':u,
                                                 oRequest:Method,
                                                 oRequest:URI:RelativeURI))
+                       {&_proparse_prolint-nowarn(digest)}
                        rResponse = md5-digest(substitute('&1:&2:&3':u,
                                                 hex-encode(rHash1),
                                                 cNonce,
                                                 hex-encode(rHash2) )).
             when 'auth':u then
-                assign rHash2    = md5-digest(substitute('&1:&2':u, 
+                {&_proparse_prolint-nowarn(digest)}
+                assign rHash2    = md5-digest(substitute('&1:&2':u,
                                                 oRequest:Method,
                                                 oRequest:URI:RelativeURI))
+                       {&_proparse_prolint-nowarn(digest)}
                        rResponse = md5-digest(substitute('&1:&2:&3:&4:&5:&6':u,
-                                                hex-encode(rHash1), 
-                                                cNonce, 
-                                                MathUtil:IntToHex(nonceCount, 8), 
-                                                cClientNonce, 
-                                                cQualityOfProtection, 
+                                                hex-encode(rHash1),
+                                                cNonce,
+                                                MathUtil:IntToHex(nonceCount, 8),
+                                                cClientNonce,
+                                                cQualityOfProtection,
                                                 hex-encode(rHash2))).
             when 'auth-int':u then
             do:
+                {&_proparse_prolint-nowarn(digest)}
                 assign rHash2    = md5-digest(substitute('&1:&2:&3':u,
                                                 oRequest:Method,
                                                 oRequest:URI:RelativeURI,
                                                 oRequest:ContentMD5  ))
+                       {&_proparse_prolint-nowarn(digest)}
                        rResponse = md5-digest(substitute('&1:&2:&3:&4:&5:&6':u,
-                                                hex-encode(rHash1), 
-                                                cNonce, 
-                                                MathUtil:IntToHex(nonceCount, 8), 
-                                                cClientNonce, 
-                                                cQualityOfProtection, 
+                                                hex-encode(rHash1),
+                                                cNonce,
+                                                MathUtil:IntToHex(nonceCount, 8),
+                                                cClientNonce,
+                                                cQualityOfProtection,
                                                 hex-encode(rHash2))).
             end.
         end case.
@@ -208,7 +218,7 @@ class OpenEdge.Net.HTTP.Filter.Auth.DigestAuthenticationFilter inherits Authenti
            request-digest = <"> 32LHEX <">
            LHEX             =  "0" | "1" | "2" | "3" |
                                "4" | "5" | "6" | "7" |
-                               "8" | "9" | "a" | "b" |              
+                               "8" | "9" | "a" | "b" |
                                "c" | "d" | "e" | "f"           */
         assign cCredentials = substitute('Digest username="&1",realm="&2",nonce="&3",uri="&4",response="&5"':u,
                                     oCredentials:UserName,
@@ -244,13 +254,13 @@ class OpenEdge.Net.HTTP.Filter.Auth.DigestAuthenticationFilter inherits Authenti
     method private integer NextNonceCount(input pNonce as character):
         define buffer nc for NonceCount.
         
-        if can-find(nc where 
+        if can-find(nc where
                     nc.ParentFilter eq int64(this-object) and
                     nc.Nonce        eq pNonce) then
             find nc where
                  nc.ParentFilter eq int64(this-object) and
                  nc.Nonce        eq pNonce
-                 .
+                 no-error.
         if not available nc then
         do:
             create nc.

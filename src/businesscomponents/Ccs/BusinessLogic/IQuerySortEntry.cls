@@ -30,8 +30,6 @@
     Notes       :
   ----------------------------------------------------------------------*/
 
-USING Ccs.BusinessLogic.* FROM PROPATH .
-
 INTERFACE Ccs.BusinessLogic.IQuerySortEntry:
 
     /*------------------------------------------------------------------------------
@@ -45,7 +43,7 @@ INTERFACE Ccs.BusinessLogic.IQuerySortEntry:
         Purpose: Returns the sort order for this query sort entry
         Notes:
     ------------------------------------------------------------------------------*/
-    DEFINE PUBLIC PROPERTY SortOrder AS SortOrderEnum NO-UNDO
+    DEFINE PUBLIC PROPERTY SortOrder AS Ccs.BusinessLogic.SortOrderEnum NO-UNDO
     GET.
 
 END INTERFACE .

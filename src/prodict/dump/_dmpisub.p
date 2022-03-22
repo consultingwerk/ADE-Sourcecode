@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000,2007 by Progress Software Corporation. All rights*
+* Copyright (C) 2000,2007-2021 by Progress Software Corporation. All rights*
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -14,6 +14,7 @@ History:
                 20000926-011 Needed to add parameters to FileAreaMatch call
     vap         01/29/02     Added batch-mode support (IZ# 1525)
     fernando    02/27/2007   Added case for critical field change - OE00147106
+    tmasood     08/03/2021   Generate incrdump.e in temp-dir if write access are not provided
                             
 -----------------------------------------------------------------------------*/
 
@@ -33,6 +34,7 @@ DEFINE        VARIABLE name  AS CHARACTER NO-UNDO.
 DEFINE        VARIABLE fname AS CHARACTER NO-UNDO.
 DEFINE        VARIABLE type  AS CHARACTER NO-UNDO.
 DEFINE        VARIABLE i     AS INTEGER   NO-UNDO.
+DEFINE SHARED VARIABLE errFileName  AS CHARACTER NO-UNDO.
 
 FUNCTION fileAreaMatch RETURNS LOGICAL (INPUT db1FileNo AS INT,
                                         INPUT db2FileNo AS INT,
@@ -169,7 +171,7 @@ IF which BEGINS "table_check" AND
                         INPUT DICTDB2._File._Db-recid) THEN
    DO:
      s_errorsLogged = TRUE.
-     OUTPUT STREAM err-log TO {&errFileName} APPEND NO-ECHO.
+     OUTPUT STREAM err-log TO errFileName APPEND NO-ECHO.
      PUT STREAM err-log UNFORMATTED new_lang[12] +
      '"' + LDBNAME("DICTDB") + "." + DICTDB._File._File-name + '"' +
      new_lang[13] +

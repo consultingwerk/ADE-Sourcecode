@@ -1,47 +1,48 @@
 /************************************************
-Copyright (c) 2015-2016, 2018 by Progress Software Corporation. All rights reserved.
-*************************************************/  
+Copyright (c) 2015-2016, 2018, 2021-2022 by Progress Software Corporation. All rights reserved.
+*************************************************/
 /*------------------------------------------------------------------------
    Purpose     : An HttpRequest that adds request context information
-   Syntax      : 
-   Description : 
+   Syntax      :
+   Description :
    Author(s)   : mbanks
    Created     : Fri Apr 24 14:07:54 EDT 2015
    Notes       : The assumption is that this is created on each web request
                  DO NOT KEEP ALIVE BETWEEN REQUESTS.
-   @since      : 11.6    
+   @since      : 11.6
  ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
-using OpenEdge.Core.Assert from propath.
+using OpenEdge.Core.Assert.
 using OpenEdge.Core.Collections.IStringKeyedMap.
-using OpenEdge.Core.Collections.IStringStringMap from propath.
+using OpenEdge.Core.Collections.IStringStringMap.
 using OpenEdge.Core.Collections.StringKeyedMap.
-using OpenEdge.Core.Collections.StringStringMap from propath.
-using OpenEdge.Core.WidgetHandle from propath.
+using OpenEdge.Core.Collections.StringStringMap.
 using OpenEdge.Core.Memptr.
-using OpenEdge.Net.HTTP.Cookie from propath.
-using OpenEdge.Net.HTTP.HttpHeader from propath.
+using OpenEdge.Core.WidgetHandle.
+using OpenEdge.Net.HTTP.Cookie.
+using OpenEdge.Net.HTTP.Filter.Payload.MessageWriter.
+using OpenEdge.Net.HTTP.Filter.Writer.EntityWriterBuilder.
+using OpenEdge.Net.HTTP.HttpHeader.
 using OpenEdge.Net.HTTP.HttpHeaderBuilder.
-using OpenEdge.Net.URI from propath.
-using OpenEdge.Web.IWebRequest from propath.
-using Progress.Json.ObjectModel.ObjectModelParser from propath.
-using Progress.Lang.AppError from propath.
-using Progress.Lang.Object from propath.
-using OpenEdge.Core.StringConstant.
-using OpenEdge.Net.HTTP.NullHeader.
+using OpenEdge.Net.URI.
+using OpenEdge.Web.IWebRequest.
+using Progress.Json.ObjectModel.ObjectModelParser.
+using Progress.Lang.AppError.
+using Progress.Lang.Object.
 
-class OpenEdge.Web.WebRequest implements IWebRequest: 
+class OpenEdge.Web.WebRequest implements IWebRequest:
     define private variable mUri as URI no-undo.
     define private variable mCookies as IStringKeyedMap no-undo.
    
-    define private variable BaseReadOnlyMessage as character no-undo 
-        init "&1.&2 property is read-only". 
+    define private variable BaseReadOnlyMessage as character no-undo
+        init "&1.&2 property is read-only".
     
-    define private variable BaseNotImplementedMessage as character no-undo 
-        init "&1.&2 &3 is not implemented". 
+    define private variable BaseNotImplementedMessage as character no-undo
+        init "&1.&2 &3 is not implemented".
        
     /** The HTTP version supported. Typically HTTP/1.1  */
+    {&_proparse_ prolint-nowarn(varusage)}
     define public property Version as character no-undo
         get():
             return web-context:get-cgi-value("ENV":U, "SERVER_PROTOCOL":U).
@@ -52,6 +53,7 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
     
     /** The message's content type (eg text/html). For more detail, see
         http://www.w3.org/Protocols/rfc2616/rfc2616-sec3.html#sec3.7 */
+    {&_proparse_ prolint-nowarn(varusage)}
     define public property ContentType as character no-undo
         get():
             return web-context:get-cgi-value("ENV":U, "CONTENT_TYPE":U).
@@ -62,50 +64,71 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
     
     /** The message's content type encoding (eg charset='utf-8'). For more detail, see
         http://www.w3.org/Protocols/rfc2616/rfc2616-sec3.html#sec3.7 */
-    define public property CharacterEncoding as character no-undo 
+    {&_proparse_ prolint-nowarn(varusage)}
+    define public property CharacterEncoding as character no-undo
         get():
             return web-context:get-cgi-value("ENV":U, "CHARACTER_ENCODING":U).
-        end get. 
+        end get.
         set(cProp as char):
             undo, throw new AppError(GetReadOnlyMessage(),?).
         end set.
   
     /**  An MD5 hash of the message's content. */
-    define public property ContentMD5 as raw no-undo 
+    {&_proparse_ prolint-nowarn(varusage)}
+    define public property ContentMD5 as raw no-undo
         get():
             if length(this-object:ContentMD5) eq 0 then
-                assign this-object:ContentMD5 = md5-digest(web-context:form-long-input). 
+                {&_proparse_prolint-nowarn(digest)}
+                assign this-object:ContentMD5 = md5-digest(web-context:form-long-input).
             
             return this-object:ContentMD5.
-        end. 
-        set(cval as raw):
+        end.
+        set(rVal as raw):
             undo, throw new AppError(GetPropNotImplementedMessage(),?).
         end.
+    
+    // holder for the entity, so we only need to extract this once
+    define private variable mEntity as Progress.Lang.Object no-undo.
+    // holder for the RAW/bytes-only entity, so we only need ot create it once
+    var private class Memptr mRawEntity.
     
     /** Object containing the message body/entity. The object can be of any type,
         which may depend on the content type.
         
-        The Entity is the 'programmer-readable' version of the message body: it's 
-        the formatted, strongly-typed version */
-    define public property Entity as Object no-undo 
+        One of a Progress.Json.ObjectModel.JsonObject, OpenEdge.Core.WidgetHandle or OpenEdge.Core.Memptr is returned. These
+        objects are created without the use of the EntityWriterBuilder, and so do not depend on any registered
+        writers.
+        
+        A JsonObject is returned if the content-type is "text/json" or "application/json".
+        A WidgetHandle is returned if the content-type is "text/xml" or "application/xml"
+        A Memptr is returned for all other content-types, and also if no body is present.
+        
+        A cached instance is returned, since the message body bytes cannot change between calls. */
+    {&_proparse_ prolint-nowarn(varusage)}
+    define public property Entity as Object no-undo
         get():
-            if web-context:is-xml then
-                return new WidgetHandle(web-context:x-document).
-            else 
-            if web-context:is-json then
-                return new ObjectModelParser():Parse(web-context).        
-            else
-            if get-size(web-context:form-long-input) ne ? then
-                /* ideally this should use one of the content-type writers to get a real type */
-                return new Memptr(web-context:form-long-input).
-            else
-                return new Memptr(0).
-        end. 
-        set(prop as Object):
+            if not valid-object(mEntity) then
+            do:
+                if web-context:is-xml then
+                    assign mEntity = new WidgetHandle(web-context:x-document).
+                else
+                if web-context:is-json then
+                    assign mEntity = new ObjectModelParser():Parse(web-context).
+                else
+                if get-size(web-context:form-long-input) ne ? then
+                    /* ideally this should use one of the content-type writers to get a real type */
+                    assign mEntity = new Memptr(web-context:form-long-input).
+                else
+                    assign mEntity = Memptr:Empty.
+            end.
+            return mEntity.
+        end.
+        set(oProp as Object):
             undo, throw new AppError(GetReadOnlyMessage(),?).
         end set.
         
-    /**  The length (in bytes/characters) of the payload/entity. */    
+    /**  The length (in bytes/characters) of the payload/entity. */
+    {&_proparse_ prolint-nowarn(varusage)}
     define public property ContentLength as integer no-undo
         get():
             return integer(web-context:get-cgi-value("ENV":U, "CONTENT_LENGTH":U)).
@@ -115,28 +138,30 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
         end set.
 
     /** Returns the default cookie path   */
-    define public property DefaultCookiePath as character no-undo 
+    define public property DefaultCookiePath as character no-undo
         get():
-             return web-context:get-cgi-value("ENV":U, "SERVLET_DEFAULT_COOKIE_PATH":U).  
+             return web-context:get-cgi-value("ENV":U, "SERVLET_DEFAULT_COOKIE_PATH":U).
         end.
    
     /** Returns the default cookie domain   */
-    define public property DefaultCookieDomain as character no-undo     
+    define public property DefaultCookieDomain as character no-undo
         get():
-            return web-context:get-cgi-value("ENV":U, "SERVLET_DEFAULT_COOKIE_DOMAIN":U) .  
-        end.    
-
+            return web-context:get-cgi-value("ENV":U, "SERVLET_DEFAULT_COOKIE_DOMAIN":U) .
+        end.
+    
     /** The message's Transfer-Encoding. For more detail, see
-        http://www.w3.org/Protocols/rfc2616/rfc2616-sec3.html#sec3.6 */  
-    define public property TransferEncoding as character no-undo 
+        http://www.w3.org/Protocols/rfc2616/rfc2616-sec3.html#sec3.6 */
+    {&_proparse_ prolint-nowarn(varusage)}
+    define public property TransferEncoding as character no-undo
         get():
-            return web-context:get-cgi-value("ENV":U, "HTTP_TRANSFER_ENCODING":U). 
+            return web-context:get-cgi-value("ENV":U, "HTTP_TRANSFER_ENCODING":U).
         end.
         set(cProp as char):
             undo, throw new AppError(GetReadOnlyMessage(),?).
         end set.
     
     /** (mandatory) GET/PUT/POST etc, Maps to MethodEnum, although there are extension methods too */
+    {&_proparse_ prolint-nowarn(varusage)}
     define public property Method as character no-undo
         get():
             return web-context:get-cgi-value("ENV":U, "REQUEST_METHOD":U).
@@ -146,25 +171,19 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
         end set.
     
     /** (mandatory) The URI to request eg. http://progress.com/ */
+    {&_proparse_ prolint-nowarn(varusage)}
     define public property URI as URI no-undo
         get():
-            define variable cScheme as character no-undo.
-            define variable cHost   as character no-undo.
-            define variable iPort   as integer no-undo.
-            define variable cPath   as character no-undo.
-            
             /* use a private member so that set can throw readonly error */
             if not valid-object(mURI) then
-            do:
-                assign
-                    cScheme = web-context:get-cgi-value("ENV":U, "REQUEST_SCHEME":U)
-                    cHost = web-context:get-cgi-value("ENV":U, "SERVER_NAME":U)
-                    /** PAS will always have a port number */
-                    iPort = int(web-context:get-cgi-value("ENV":U, "SERVER_PORT":U))
-                    cPath = web-context:get-cgi-value("ENV":U, "REQUEST_URI":U).         
-                
-                mURI = new URI(cScheme,cHost,iPort,cPath,createQueryMapFromContext(),?).
-            end.
+                assign mURI = new URI(web-context:get-cgi-value("ENV":U, "REQUEST_SCHEME":U),
+                                      web-context:get-cgi-value("ENV":U, "SERVER_NAME":U),
+                                      /** PAS will always have a port number */
+                                      integer(web-context:get-cgi-value("ENV":U, "SERVER_PORT":U)),
+                                      web-context:get-cgi-value("ENV":U, "REQUEST_URI":U),
+                                      createQueryMapFromContext(),
+                                      ?)
+                       .
             return mURI.
         end get.
         set(newURI as URI):
@@ -173,7 +192,7 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
     
     /** IP address of the interface on which the request was received */
     define public property LocalAddress as character no-undo
-        get(): 
+        get():
             return web-context:get-cgi-value("ENV":U, "LOCAL_ADDR":U).
         end get.
     
@@ -202,7 +221,7 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
         end get.
     
     /** Port of the client or last proxy that sent the request */
-    define public property RemotePort as integer no-undo    
+    define public property RemotePort as integer no-undo
         get():
             return integer(web-context:get-cgi-value("ENV":U, "REMOTE_PORT":U)).
         end get.
@@ -213,7 +232,7 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
             return web-context:get-cgi-value("ENV":U, "REMOTE_USER":U).
         end get.
 
-    /** The part of this request's URL that specifies the OE transport */   
+    /** The part of this request's URL that specifies the OE transport */
     define public property TransportPath as character no-undo
         get():
             return web-context:get-cgi-value("ENV":U, "SERVLET_PATH":U).
@@ -247,15 +266,15 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
     define public property ContextNames as character no-undo
         get():
             return web-context:get-cgi-list("ENV":U).
-        end.    
+        end.
        
     /** Return the server software  */
-    define public property ServerSoftware as character no-undo 
+    define public property ServerSoftware as character no-undo
         get():
             return web-context:get-cgi-value('ENV':u, "SERVER_SOFTWARE":U).
         end.
     
-    /** Returns a comma-delimited list of path parameter names, for URI mappings */ 
+    /** Returns a comma-delimited list of path parameter names, for URI mappings */
     define public property PathParameterNames as character no-undo initial ?
         get():
             if this-object:PathParameterNames eq ? then
@@ -285,7 +304,7 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
         end get.
         private set.
 
-    /* Returns the URI template used to find the handler for this request. May be empty */ 
+    /* Returns the URI template used to find the handler for this request. May be empty */
     define public property UriTemplate as character no-undo initial ?
         get():
             if this-object:UriTemplate eq ? then
@@ -296,13 +315,13 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
         private set.
 
     /** Returns all the headers
-        Note: As of current this is not cached 
+        Note: As of current this is not cached
               The assumption is that you will not call this multiple times per request
-              since there is a getHeader(name) (which does not use this).      
+              since there is a getHeader(name) (which does not use this).
         @param HttpHeader[] An array of headers
         @return integer The number of headers returned */
     method public integer GetHeaders(output poHeaders as HttpHeader extent):
-        define variable cList        as character no-undo. 
+        define variable cList        as character no-undo.
         define variable i            as integer no-undo.
         define variable iNumHeaders  as integer no-undo.
         define variable cEntry       as character no-undo.
@@ -312,7 +331,7 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
         do i = 1 to num-entries(cList):
             assign cEntry = entry(i,cList).
             if cEntry begins "HTTP_":U then
-                assign cHeaderNames = cHeaderNames + ",":U 
+                assign cHeaderNames = cHeaderNames + ",":U
                                     + replace(substring(cEntry, 6), '_':u, '-':u).
         end.
         
@@ -340,8 +359,8 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
         assign stringMap = new StringStringMap()
                cQueryString = web-context:get-cgi-value("ENV":U, "QUERY_STRING":U).
          
-        do i = 1 to num-entries(cQueryString,"&":U):           
-            cQuery = entry(i,cQueryString,"&":U).  
+        do i = 1 to num-entries(cQueryString,"&":U):
+            cQuery = entry(i,cQueryString,"&":U).
             assign iPos  = index(cQuery, '=':u).
             if iPos eq 0 then
                 assign iPos = index(cQuery, ';':u).
@@ -359,12 +378,13 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
             end.
             stringMap:Put(OpenEdge.Net.URI:Decode(cProp),
                           OpenEdge.Net.URI:Decode(cValue)).
-        end. 
-        return stringMap. 
-    end.
+        end.
+        return stringMap.
+    end method.
     
     /** Removes headers is not implemented .
-        @param character The name of the header to remove */    
+        @param character The name of the header to remove */
+    {&_proparse_ prolint-nowarn(varusage)}
     method public void RemoveHeader(pcName as character):
         undo, throw new AppError(GetMethodNotImplementedMessage(),?).
     end method.
@@ -375,6 +395,7 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
     end method.
     
     /** Set header is not implemented  */
+    {&_proparse_ prolint-nowarn(varusage)}
     method public void SetHeaders(poHeader as HttpHeader extent):
         undo, throw new AppError(GetMethodNotImplementedMessage(),?).
     end method.
@@ -384,17 +405,18 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
         @param character The header name
         @param character The header value
         @return HttpHeader The header actual header */
+    {&_proparse_ prolint-nowarn(varusage)}
     method public HttpHeader SetHeader(input pName as character,
                                        input pValue as character):
         undo, throw new AppError(GetMethodNotImplementedMessage(),?).
     end method.
     
-    /** Remove all headers is not implemented .  */    
+    /** Remove all headers is not implemented .  */
     method public void ClearHeaders():
         undo, throw new AppError(GetMethodNotImplementedMessage(),?).
     end method.
     
-    /** Indicates whether a header exists for this message or not. 
+    /** Indicates whether a header exists for this message or not.
                             
         @param character The name of a header to check
         @return logical True if this message contains the header */
@@ -417,7 +439,7 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
     
     /** Gets a character header value
     
-        @param character The name of the header 
+        @param character The name of the header
         @return character the value of the header. */
     method private character GetHeaderValue(pcName as character):
         define variable cgiName     as character no-undo.
@@ -430,29 +452,31 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
     end method.
     
     /** Set cookie is not implemented  */
+    {&_proparse_ prolint-nowarn(varusage)}
     method public void SetCookie(poCookie as Cookie):
         undo, throw new AppError(GetMethodNotImplementedMessage(),?).
     end method.
     
     /** Set cookie is not implemented  */
+    {&_proparse_ prolint-nowarn(varusage)}
     method public void SetCookies(poCookie as Cookie extent):
         undo, throw new AppError(GetMethodNotImplementedMessage(),?).
     end method.
         
-    /** Remove cookie is not implemented 
+    /** Remove cookie is not implemented
         @param Cookie The cookie to remove. */
     method public void RemoveCookie(poCookie as Cookie):
         undo, throw new AppError(GetMethodNotImplementedMessage(),?).
-    end method.    
+    end method.
     
-    /** Removes all cookies is not implemented */ 
+    /** Removes all cookies is not implemented */
     method public void ClearCookies():
         undo, throw new AppError(GetMethodNotImplementedMessage(),?).
     end method.
         
     /** Returns all the cookies for this message
                                         
-        @param Cookie[] An array of cookies 
+        @param Cookie[] An array of cookies
         @return integer The number of cookies returned */
     method public integer GetCookies(output poCookies as Cookie extent):
         if not valid-object(mCookies) then
@@ -465,7 +489,7 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
     
     /** Indicates whether a cookie exists for this message
                                                 
-        @param Cookie The cookie to check 
+        @param Cookie The cookie to check
         @return logical True if this message contains the cookie */
     method public logical HasCookie(poCookie as Cookie):
         Assert:NotNull(poCookie, 'Cookie').
@@ -474,7 +498,7 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
     
      /** Indicates whether a cookie exists for this message
         
-        @param character The cookie's name to check 
+        @param character The cookie's name to check
         @return logical TRUE if this message contains the cookie */
     method public logical HasCookie(input pcName as character):
         Assert:NotNullOrEmpty(pcName, 'Cookie name').
@@ -486,22 +510,23 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
     
     /** Returns a cookie by name from this message. Typically
         returns the first cookie it finds by name, oif more than
-        one exist 
+        one exist
         
-        @param character The cookie's name to check 
+        @param character The cookie's name to check
         @return Cookie The (first) cookie found by name */
     method public Cookie GetCookie(input pcName as character):
         if not valid-object(mCookies) then
             LoadCookies().
         
-        return cast(mCookies:Get(pcName), Cookie).            
+        return cast(mCookies:Get(pcName), Cookie).
     end method.
     
     /** Removes cookies from this message for a given name
     
         @param character The name of the cookie(s) to remove. */
-    method public void RemoveCookie(input pcName as character ):
-        undo, throw new AppError(GetMethodNotImplementedMessage(),?).        
+    {&_proparse_ prolint-nowarn(varusage)}
+    method public void RemoveCookie(input pcName as character):
+        undo, throw new AppError(GetMethodNotImplementedMessage(),?).
     end method.
     
     /** get the named path value from the URI (see IWebRequest) */
@@ -512,7 +537,7 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
         cgiName = "URI_":U + caps( cgiName ).
         paramValue = web-context:get-cgi-value( "ENV":U, cgiName ).
         return paramValue.
-    end.    
+    end method.
     
     /** Get a value from the request context */
     method public longchar GetContextValue(pcName as character):
@@ -525,7 +550,7 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
             assign lcValue = web-context:get-cgi-value( "ENV":U, pcName ).
         
         return lcValue.
-    end method.     
+    end method.
     
     /** return read only message for property - must be called from setter **/
     method private char GetReadOnlyMessage( ):
@@ -533,9 +558,9 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
         define variable cClass as character no-undo.
         cProp = program-name(2).
         cClass = entry(2,cProp," ":U).
-        cProp = substr(entry(1,cProp," ":U),9). 
+        cProp = substr(entry(1,cProp," ":U),9).
         return substitute(BaseReadOnlyMessage,cClass,cProp).
-    end method.        
+    end method.
    
     /** return not implemented message for property - must be called from setter and/or getter **/
     method private char GetPropNotImplementedMessage( ):
@@ -543,9 +568,9 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
         define variable cClass as character no-undo.
         cProp = program-name(2).
         cClass = entry(2,cProp," ":U).
-        cProp = substr(entry(1,cProp," ":U),9). 
+        cProp = substr(entry(1,cProp," ":U),9).
         return substitute(BaseNotImplementedMessage,cClass,cProp,"property").
-    end method.       
+    end method.
      
    /** return not implemented message for method- must be called from the method **/
     method private char GetMethodNotImplementedMessage( ):
@@ -553,7 +578,7 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
         define variable cClass as character no-undo.
         cMethod = program-name(2).
         cClass = entry(2,cMethod," ":U).
-        cMethod = entry(1,cMethod," ":U). 
+        cMethod = entry(1,cMethod," ":U).
         return substitute(BaseNotImplementedMessage,cClass,cMethod,"method").
     end method.
     
@@ -570,7 +595,7 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
         define variable chrPos as integer no-undo.
         
         assign defaultDomain = this-object:DefaultCookieDomain.
-        if defaultDomain eq ?  then 
+        if defaultDomain eq ?  then
            assign defaultDomain = "":u.
         
         assign defaultPath = this-object:DefaultCookiePath.
@@ -591,4 +616,51 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
             mCookies:Put(cName,  new Cookie(cName,defaultDomain,defaultPath,cValue)).
         end.
     end method.
+
+    /** Returns a 'strongly-typed' object, converted based on the ContentType using the writers in the
+        EntityWriterRegistry.
+        
+        A new instance is returned on each call, since the EntityWriterRegistry may have been modified from call to call.
+        
+        @return Object An object of an appropriate type for the request's ContentType. */
+    @since(rel='12.5.0').
+    method public Object GetTypedEntity():
+        var MessageWriter mw = EntityWriterBuilder:Build(this-object):Writer.
+        
+        if not valid-object(mw) then
+            return Memptr:Empty.
+        
+        mw:Open().
+        
+        if web-context:is-xml then
+            mw:Write(web-context:x-document).
+        else
+        if get-size(web-context:form-long-input) ne ? then
+            mw:Write(web-context:form-long-input).
+        // if there's no body, an appropriate object will be returned from the message writer
+        // so no need for an "else" here
+        
+        mw:Close().
+        
+        return mw:Entity.
+    end method.
+    
+    /** Returns the bytes for the entity - unconverted - regardless of the ContentType.
+        
+        A cached instance is of Memptr returned, since the bytes cannot change between calls.
+        
+        @return Memptr The entity/body as bytes, uncoverted even for XML or JSON. */
+    @since(rel='12.5.0').
+    method public class Memptr GetRawEntity():
+        if not valid-object(mRawEntity) then
+        do:
+            if get-size(web-context:form-long-input) eq ? then
+                assign mRawEntity = Memptr:Empty.
+            else
+                assign mRawEntity = new Memptr(web-context:form-long-input).
+        end.
+        
+        return mRawEntity.
+    end method.
+    
 end class.

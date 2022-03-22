@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2018 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2018, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : MultipartFormEntityWriter
@@ -61,9 +61,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.MultipartFormEntityWriter inherits Multip
         define variable headersRead as logical no-undo.
         define variable msgPartData as ByteBucket no-undo.
         define variable startAt as datetime no-undo.
-        define variable fileUploadDirectory as character no-undo.
         define variable formFields as character no-undo.
-        define variable uploadFileName as character no-undo.
         define variable fieldName as character no-undo.
         define variable partValue as character no-undo.
         define variable appError as Progress.Lang.Error no-undo.

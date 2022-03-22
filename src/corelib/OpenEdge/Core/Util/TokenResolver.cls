@@ -1,41 +1,55 @@
 /* *************************************************************************************************************************
-Copyright (c) 2018-2019 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2018-2019, 2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : TokenResolver
     Purpose     : Resolves certain known token names into useful values
-    Syntax      : 
-    Description : 
+    Syntax      :
+    Description :
     Author(s)   : pjudge
     Created     : Wed Nov 16 13:02:52 EST 2016
     Notes       : * Token substitutions are allowed for file names
                     the token format is ${<token>}, where
-                    token = group "." arg
-                    groups = session | env | guid | t[ime] | web | ver[sion]
+                    token = group-name "." arg
+                    
+                    group-name = session | env | guid | t[ime] | web | ver[sion]
                              cp | req[uest] | name | err
-                   
+                    
                     If a token cannot be resovled, or resolves to a value of
-                    ? (unknown) then the token name is used.  
+                    ? (unknown) then the token name is used.
                   
                   * Group args for SESSION
                     - any readable attribute on the session handle may be used
-                   
+                  
                   * Group args for ENV
                     - any env var available via OE-GETENV() may be used
                     
                   * Group args for VERSION
-                    - Correlates to the SESSION:LOCAL-VERSION-INFO 
+                    - Correlates to the SESSION:LOCAL-VERSION-INFO
                     - MAJOR, MINOR, MAINT
                     
                   * Group args for GUID
                     - a default-format GUID is used
                   
+                  * Group args for UUID
+                    - a 22-character UUID is used
+                  
                   * Group args for T (T= time).
                     - Values are taken from the time at which the file name is being built.
                     - The args are based on http://en.cppreference.com/w/c/chrono/strftime
+                    
+                    Can be used together with T.MHS or T.MTIME.
+                    Unformatted DATE string using Day, Month, Year values
+                    DMY  : Shorthand for "${T.DD}${T.MM}${T.YYYY}"
+                    MDY  : Shorthand for "${T.MM}${T.DD}${T.YYYY}"
+                    YMD  : Shorthand for "${T.YYYY}${T.MM}${T.DD}"
+                    
+                    HMS  : Shorthand for "${T.HH}${T.MM}${T.SS}"
+                    MTIME: The time since midnight, in milliseconds
+                    
                     TODAY: An ISO-DATE formatted DATE value is used
                     NOW  } An ISO-DATE formatted DATETIME-TZ value is used
-                    ISO  } 
+                    ISO  }
                     HTTP : The datetime formatted as per https://tools.ietf.org/html/rfc7231#section-7.1.1.1
                     YYYY : The current year, incl century
                     YY   : The current year, sans century
@@ -44,7 +58,7 @@ Copyright (c) 2018-2019 by Progress Software Corporation and/or one of its subsi
                     MM   : The integer month value, with leading 0 if needed
                     M    : The integer month value with no leading 0
                     DD   : The integer day value, with leading 0 if needed
-                    D    : The integer month value, with no leading 0 
+                    D    : The integer month value, with no leading 0
                     HH   : The hour value, in 24-hour clock format (ie 18 for 6pm)
                     H    : The hour value, in 12-hour clock format (ie 6 for 6pm)
                     MMM  : The minute value, with leading 0
@@ -62,25 +76,25 @@ Copyright (c) 2018-2019 by Progress Software Corporation and/or one of its subsi
                    are taken from the session:current-request-info
                    TPT      : The adapter type (transport) for this request
                    CCID     : The client context id
-                   ID       : The current request id 
+                   ID       : The current request id
                    SESSION  : The current session id
-                   THREAD   : (PASOE) the current thread id 
+                   THREAD   : (PASOE) the current thread id
                  
                  * Group args for WEB
                     WEBAPP["." webapp-type]
                         webapp-type
-                            NAME : the context/webapp name (default) 
-                            PATH : the fully-qualified path of the webapp 
+                            NAME : the context/webapp name (default)
+                            PATH : the fully-qualified path of the webapp
                             
                     SVC
                     any other cgi value
                     
                  * Group args for CP (client principal)
                    credential-arg "." db-name
-                   credential-arg 
+                   credential-arg
                        The current user will be used (from the request info or the security-policy)
                        UID    : The current user id
-                       QUID   : The qualified user id (user@domain) 
+                       QUID   : The qualified user id (user@domain)
                        DOMAIN : The domain name of the current user
                        PROP "." property-name   : Returns the value of a property in the CP
                         property-name : The name of a property to return
@@ -90,45 +104,45 @@ Copyright (c) 2018-2019 by Progress Software Corporation and/or one of its subsi
                  * Group args for NAME
                    tokenArg = format-expression "." logger-name
                    - logger-name : a named-hierarchy dotted-name
-                                           
+                   
                    - named-hierarchy
                           something like OpenEdge.Net.DataObject.DataObjectHandler (a logger name) will become
                           O.N.D.DataObjectHandler       (default or .1K)
-                          o.n.d.DataObjectHandler       (.1L) 
-                          OE.N.DO.DataObjectHandler     (.1C) 
-                          OE.N.DO.DOH                   (.0C) 
-                          
+                          o.n.d.DataObjectHandler       (.1L)
+                          OE.N.DO.DataObjectHandler     (.1C)
+                          OE.N.DO.DOH                   (.0C)
+                   
                    - format-expression
                         keep-expr case-expr
                         keep-expr:
                             number of significant entries to keep (from right)
-                            0   : All entries will be trimmed (ie zero kept) 
+                            0   : All entries will be trimmed (ie zero kept)
                             1   : Only the last/only will be keep whole (default)
-                            2..n: The number of entries (from the right) to keep 
+                            2..n: The number of entries (from the right) to keep
                         case-expr
                             U   : trimmed elements are upper-cased
                             L   : trimmed elements are lower-cased
                             K   : trimmed elements are left alone (default)
-                            C   : trimmed elements are Camel-cased (caps only written) 
- 
+                            C   : trimmed elements are Camel-cased (caps only written)
+                 
                  * Group args for ERROR
                     N          : message number n (defaults to 1 if not an integer or none provided)
                     SEV        : error severity
                     RETVAL     : return value, if an AppError
                     STACK      : the callstack, if enabled
-                    TYPE       : the error type (class) 
- 
+                    TYPE       : the error type (class)
  ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
 using Ccs.Common.Support.IDateTimeTzHolder.
-using OpenEdge.Core.Session.
+using Ccs.Common.Support.IHandleHolder.
 using OpenEdge.Core.String.
 using OpenEdge.Core.StringConstant.
 using OpenEdge.Core.TimeStamp.
 using OpenEdge.Core.Util.Token.
 using OpenEdge.Core.Util.TokenResolver.
 using OpenEdge.Core.Util.TokenResolverEventArgs.
+using OpenEdge.Core.WidgetHandle.
 using OpenEdge.Security.Principal.
 using Progress.Lang.AppError.
 
@@ -136,7 +150,7 @@ class OpenEdge.Core.Util.TokenResolver:
     
     /* Event published after a token is resolved by this resolver. Allows a listener to override the value */
     define static public event TokenResolved signature void (input pSender as Progress.Lang.Object,
-                                                             input pArgs as TokenResolverEventArgs). 
+                                                             input pArgs as TokenResolverEventArgs).
     
     // Long/full names of the month, for use with ${t.BB} tokens
     define static public property MONTH_LONG as character extent 12 no-undo
@@ -207,7 +221,7 @@ class OpenEdge.Core.Util.TokenResolver:
                 
                 //set no-error here to stop errors propagating onwards
                 assign tokenVal = pError:GetMessage(max(1, idx))
-                       no-error.                
+                       no-error.
             end.
         end case.
         
@@ -243,7 +257,7 @@ class OpenEdge.Core.Util.TokenResolver:
             assign pTokenArg = '1K':u.
         
         assign numKeep = ?
-               numKeep = integer(substring(pTokenArg, 1, 1)) 
+               numKeep = integer(substring(pTokenArg, 1, 1))
                no-error.
         if numKeep eq ? then
             assign numKeep = 1.
@@ -268,7 +282,7 @@ class OpenEdge.Core.Util.TokenResolver:
                                       + lc(substring(singleEntry, 1, 1)).
                 
                 when 'C':u then     //camelCase
-                do:                                
+                do:
                     /* Loop through entire input string */
                     assign numChars   = length(singleEntry)
                            tokenValue = tokenValue
@@ -288,7 +302,7 @@ class OpenEdge.Core.Util.TokenResolver:
                                       + substring(singleEntry, 1, 1).
             end case.
             assign delim = '.':u.
-        end.                                                   
+        end.
 
         return tokenValue.
     end method.
@@ -336,15 +350,46 @@ class OpenEdge.Core.Util.TokenResolver:
         
         case pTokenArg:
             // predefined
-            when 'now':u or
-            when 'iso':u then
+            when 'NOW':u or
+            when 'ISO':u then
                 assign tokenValue = iso-date(pTimestamp).
             
-            when 'http':u then
-                assign tokenValue = TimeStamp:ToHttpDateFromABL(pTimestamp). 
+            // Day/Month/Year combos
+            when 'DMY':u then
+                assign tokenValue = string(day(pTimestamp), '99':u)
+                                  + string(month(pTimestamp), '99':u)
+                                  + string(year(pTimestamp)).
             
-            when 'today':u then
+            when 'MDY':u then
+                assign tokenValue = string(month(pTimestamp), '99':u)
+                                  + string(day(pTimestamp), '99':u)
+                                  + string(year(pTimestamp)).
+            
+            when 'YMD':u then
+                assign tokenValue = string(year(pTimestamp))
+                                  + string(month(pTimestamp), '99':u)
+                                  + string(day(pTimestamp), '99':u).
+            
+            when 'HTTP':u then
+                assign tokenValue = TimeStamp:ToHttpDateFromABL(pTimestamp).
+            
+            when 'TODAY':u then
                 assign tokenValue = iso-date(date(pTimestamp)).
+            
+            when 'HMS':u then
+                assign tokenValue = string(interval(pTimestamp, date(pTimestamp), 'hour':u),
+                                           '99':u)
+                                  + string(interval(pTimestamp, date(pTimestamp), 'minutes':u)
+                                               - 60  * interval(pTimestamp, date(pTimestamp), 'hours':u),
+                                           '99':u)
+                                  + string(interval(pTimestamp, date(pTimestamp), 'seconds':u)
+                                               - 60  * interval(pTimestamp, date(pTimestamp), 'minutes':u),
+                                           '99':u)
+                                  .
+            
+            // milliseconds since midnight
+            when 'MTIME':u then
+                assign tokenValue = string(mtime(pTimestamp)).
             
             // years
             when 'YYYY':u then
@@ -353,68 +398,70 @@ class OpenEdge.Core.Util.TokenResolver:
                 assign tokenValue = string(year(pTimestamp) mod 100, '99':u).
             
             // Months
-            when 'B':u then 
+            when 'B':u then
                 assign tokenValue = pMonthShort[month(pTimestamp)].
             when 'BB':u then
                 assign tokenValue = pMonthLong[month(pTimestamp)].
-                
+             
             // Months (M and MM)
             when 'M':u or
             when 'MM':u then
                 assign tokenValue = string(month(pTimestamp), formatString).
             
             // Days
-            when 'D':u or   
+            when 'D':u or
             when 'DD':u then
                 assign tokenValue = string(day(pTimestamp), formatString).
             
             // Hours
-            when 'H':u or   
+            when 'H':u or
             when 'HH':u then
                 assign tokenValue = string(interval(pTimestamp, date(pTimestamp), 'hour':u),
                                          formatString).
+            
             // Minutes
             when 'MMM':u then
-                    assign tokenValue = string(interval(pTimestamp, date(pTimestamp), 'minutes':u) 
+                    assign tokenValue = string(interval(pTimestamp, date(pTimestamp), 'minutes':u)
                                                - 60  * interval(pTimestamp, date(pTimestamp), 'hours':u),
-                                               '99':u). 
+                                               '99':u).
             
             // Seconds
             when 'SS':u then
-                    assign tokenValue = string(interval(pTimestamp, date(pTimestamp), 'seconds':u) 
+                    assign tokenValue = string(interval(pTimestamp, date(pTimestamp), 'seconds':u)
                                                - 60  * interval(pTimestamp, date(pTimestamp), 'minutes':u),
-                                               '99':u). 
+                                               '99':u).
             // Milliseconds
             when 'SSS':u then
-                    assign tokenValue = string(interval(pTimestamp, date(pTimestamp), 'milliseconds':u) 
+                    assign tokenValue = string(interval(pTimestamp, date(pTimestamp), 'milliseconds':u)
                                                - 1000 * interval(pTimestamp, date(pTimestamp), 'seconds':u),
-                                               '999':u). 
+                                               '999':u).
             
             // Timezone
             when 'Z':u then
                 assign tokenValue = string(timezone(pTimestamp), '+999':u).
             
             // Weekday
-            when 'A':u then 
+            when 'A':u then
                 assign tokenValue = pWeekdayShort[weekday(pTimestamp)].
             when 'AA':u then
                 assign tokenValue = pWeekdayLong[weekday(pTimestamp)].
-            when 'W':u then 
+            when 'W':u then
                 assign tokenValue = string(weekday(pTimestamp)).
             
             // AM/PM
             when 'P':u or
             when 'PP':u then
             do:
+                {&_proparse_ prolint-nowarn(overflow)}
                 assign timeValue = interval(pTimestamp, date(pTimestamp), 'hour':u).
-                if timeValue ge 12 then                        
+                if timeValue ge 12 then
                     assign tokenValue = 'PM':u.
                 else
                     assign tokenValue = 'AM'.
-                // A -> A or P; AA -> AM or PM    
+                // A -> A or P; AA -> AM or PM
                 assign tokenValue = substring(tokenValue, 1, length(pTokenArg)).
             end.
-        end.
+        end case.
         
         return tokenValue.
     end method.
@@ -428,7 +475,7 @@ class OpenEdge.Core.Util.TokenResolver:
         define variable loop as integer no-undo.
         define variable cnt as integer no-undo.
         
-        if    pTokenArg eq '':u 
+        if    pTokenArg eq '':u
            or pTokenArg eq ?
            then
             assign extent(args) = 1.
@@ -442,14 +489,14 @@ class OpenEdge.Core.Util.TokenResolver:
             end.
         end.
         return args.
-    end method. 
+    end method.
 
     /* Resolves a CP-based token arg, based on the client-principal.
         
        It is the CALLER's responsibility to clean up the C-P object represented by this handle
        
        @param character The token argument for ${CP.*} tokens
-       @param handle     A user represented by a client-principal 
+       @param handle     A user represented by a client-principal
        @return character The resolved string  */
     method static public character ResolveUser(input pTokenArg as character,
                                                input pUser as handle):
@@ -461,7 +508,7 @@ class OpenEdge.Core.Util.TokenResolver:
             return ?.
         
         if not pUser:type eq 'Client-Principal':u then
-            return ?. 
+            return ?.
         
         assign tokenValue = ?
                args       = SplitTokenArg(pTokenArg)
@@ -482,7 +529,7 @@ class OpenEdge.Core.Util.TokenResolver:
                     assign tokenValue = pUser:tenant-name(args[2]).
             end.    //tenant
             when 'uid':u then
-                assign tokenValue = pUser:user-id. 
+                assign tokenValue = pUser:user-id.
             when 'quid':u then
                 assign tokenValue = pUser:qualified-user-id.
             when 'domain':u then
@@ -496,8 +543,8 @@ class OpenEdge.Core.Util.TokenResolver:
                        dynCall:call-name = args[1]
                        dynCall:in-handle = pUser
                        .
-                dynCall:invoke no-error.
-                assign tokenValue = dynCall:return-value. 
+                dynCall:invoke() no-error.
+                assign tokenValue = dynCall:return-value.
             end.    //other properties
         end case.
         
@@ -506,6 +553,62 @@ class OpenEdge.Core.Util.TokenResolver:
             if valid-object(dynCall) then
                 delete object dynCall no-error.
         end finally.
+    end method.
+    
+    /* Resolves a session value: using an attribute of the SESSION handle.
+       
+       @param character The token argument for ${SESSION.*} tokens
+       @param character Context for the session token resolution
+       @return character The resolved string  */
+    {&_proparse_ prolint-nowarn(varusage)}
+    method static public character ResolveSession(input pTokenArg as character,
+                                                  input pSessionCtx as character):
+        define variable dynCall as handle no-undo.
+        define variable args as character extent no-undo.
+        define variable tokenVal as character no-undo initial ?.
+        define variable cnt as integer no-undo.
+        
+        if pTokenArg eq ?
+        then
+            return tokenVal.
+        
+        assign args = SplitTokenArg(pTokenArg)
+               cnt  = extent(args)
+               .
+        if cnt eq ?
+        or args[1] eq '':u
+        then
+            return tokenVal.
+        
+        // we can get the rest dynamically.
+        if not valid-handle(dynCall) then
+            create call dynCall.
+        else
+            dynCall:clear().
+        
+        assign dynCall:call-type = get-attr-call-type
+               dynCall:call-name = pTokenArg
+               dynCall:in-handle = session:handle
+               .
+        dynCall:invoke() no-error.
+        assign tokenVal = substitute('&1':u, dynCall:return-value).
+        
+        return tokenVal.
+        finally:
+            if valid-object(dynCall) then
+                delete object dynCall no-error.
+            
+            assign error-status:error = false.
+        end finally.
+    end method.
+    
+    /* Resolves a single token into appropriate values, optionally using some input context
+       @param Token (required) The token
+       @param Progress.Lang.Object (optional) Context used to resolve the token. eg a TimeStamp for times */
+    method static public void ResolveToken(input pToken as Token,
+                                           input pContext as Progress.Lang.Object):
+        if valid-object(pToken) then
+            assign pToken:Value = ResolveToken(pToken:Group, pToken:Arg, pContext).
     end method.
     
     /* Resolves a single token into appropriate values, optionally using some input context
@@ -517,90 +620,82 @@ class OpenEdge.Core.Util.TokenResolver:
     method static public character ResolveToken(input pTokenGroup as character,
                                                 input pTokenArg as character,
                                                 input pContext as Progress.Lang.Object):
-        define variable tokenVal as character no-undo.
-        define variable dynCall as handle no-undo.
         define variable dotPos as integer no-undo.
+        define variable tea as TokenResolverEventArgs no-undo.
         
-        assign tokenVal = ?. 
+        assign tea             = new TokenResolverEventArgs(pTokenGroup, pTokenArg)
+               tea:SourceValue = pContext
+               .
+        // see if anyone wants to change this token, or handle tokens we don't know about
+        TokenResolver:TokenResolved:Publish(get-class(TokenResolver), tea).
         
+        // if the value is still ?, resolve as best we can
+        if tea:TokenValue eq ? then
         case pTokenGroup:
             when 'session':u then
-            do:
-                // we can get the rest dynamically.
-                if not valid-handle(dynCall) then
-                    create call dynCall.
-                else
-                    dynCall:clear().
-                
-                assign dynCall:call-type = get-attr-call-type
-                       dynCall:call-name = pTokenArg
-                       dynCall:in-handle = session:handle
-                       .
-                dynCall:invoke no-error.
-                assign tokenVal = substitute('&1':u, dynCall:return-value). 
-            end.   // session
+                assign tea:TokenValue = ResolveSession(pTokenArg, session:startup-parameters).
             
             when 't':u or
             when 'time':u then
             case true:
                 when not valid-object(pContext) then
-                    assign tokenVal  = ResolveTime(pTokenArg, now).
+                    assign tea:TokenValue  = ResolveTime(pTokenArg, now).
                 when type-of(pContext, TimeStamp) then
-                    assign tokenVal  = ResolveTime(pTokenArg,
-                                                   cast(pContext, TimeStamp):ToDateTimeTz() ).
+                    assign tea:TokenValue  = ResolveTime(pTokenArg, cast(pContext, TimeStamp):ToDateTimeTz() ).
                 when type-of(pContext, IDateTimeTzHolder) then
-                    assign tokenVal  = ResolveTime(pTokenArg,
-                                                   cast(pContext, IDateTimeTzHolder):Value ).
+                    assign tea:TokenValue  = ResolveTime(pTokenArg, cast(pContext, IDateTimeTzHolder):Value ).
             end case.
             
             when 'guid':u then
-                assign tokenVal = guid.
+                assign tea:TokenValue = guid.
+            
+            when 'uuid':u then
+                assign tea:TokenValue = substring(base64-encode(generate-uuid), 1, 22).
             
             when 'env':u then
-            do:
                 case pTokenArg:
                     when 'CATALINA_BASE':u then
                     do:
                         if mInstanceRoot eq '':u then
-                            assign tokenVal      = os-getenv(pTokenArg)
-                                   mInstanceRoot = tokenVal
+                        assign tea:TokenValue = os-getenv(pTokenArg)
+                               mInstanceRoot  = tea:TokenValue
                                    .
                         else
-                            assign tokenVal = mInstanceRoot. 
+                        assign tea:TokenValue = mInstanceRoot.
                     end.
                     otherwise
-                        assign tokenVal = os-getenv(pTokenArg).
+                    assign tea:TokenValue = os-getenv(pTokenArg).
                 end case.
-            end.    //env
             
             when 'version':u or
             when 'ver':u then
             case pTokenArg:
                 when 'major':u then
-                    assign tokenVal = session:local-version-info:OEMajorVersion.
+                    assign tea:TokenValue = session:local-version-info:OEMajorVersion.
                 when 'minor':u then
-                    assign tokenVal = session:local-version-info:OEMinorVersion.
+                    assign tea:TokenValue = session:local-version-info:OEMinorVersion.
                 when 'maint':u then
-                    assign tokenVal = session:local-version-info:OEMaintVersion.
-            end.    // version
+                    assign tea:TokenValue = session:local-version-info:OEMaintVersion.
+            end case.    // version
             
             when 'request':u or
             when 'req':u then
+            if valid-object(session:current-request-info) then
             case pTokenArg:
                 when 'tpt':u then
-                    assign tokenVal = string(session:current-request-info:AdapterType).
+                    assign tea:TokenValue = string(session:current-request-info:AdapterType).
                when 'ccid':u then
-                    assign tokenVal = session:current-request-info:ClientContextId.
+                    assign tea:TokenValue = session:current-request-info:ClientContextId.
                 when 'id':u then
-                    assign tokenVal = session:current-request-info:RequestId.
+                    assign tea:TokenValue = session:current-request-info:RequestId.
                 when 'session':u then
-                    assign tokenVal = string(session:current-request-info:SessionId).
+                    assign tea:TokenValue = string(session:current-request-info:SessionId).
                 when 'thread':u then
-                    assign tokenVal = string(session:current-request-info:ThreadId).
+                    assign tea:TokenValue = string(session:current-request-info:ThreadId).
                 when 'agent':u then
-                    assign tokenVal = string(session:current-request-info:AgentId).
+                    assign tea:TokenValue = string(session:current-request-info:AgentId).
                 when 'proc':u then
-                    assign tokenVal = session:current-request-info:ProcedureName.
+                    assign tea:TokenValue = session:current-request-info:ProcedureName.
             end case.
             
             when 'web':u then
@@ -608,42 +703,36 @@ class OpenEdge.Core.Util.TokenResolver:
             case pTokenArg:
                 // the file-system path to the webapp
                 when 'webapp.path':u then
-                    assign tokenVal = web-context:get-cgi-value('env':u, 'BASE_PATH':u).
+                    assign tea:TokenValue = web-context:get-cgi-value('env':u, 'BASE_PATH':u).
                 // the webapp name
                 when 'webapp':u or
                 when 'webapp.name':u then
                 do:
                     // we want a name here not a path. for that, use webapp.path
-                    assign tokenVal = trim(web-context:get-cgi-value('env':u, 'CONTEXT_PATH':u), '/':u).
-                    if tokenVal eq '':u then
-                        assign tokenVal = 'ROOT':u.
+                    assign tea:TokenValue = trim(web-context:get-cgi-value('env':u, 'CONTEXT_PATH':u), '/':u).
+                    if tea:TokenValue eq '':u then
+                        assign tea:TokenValue = 'ROOT':u.
                 end.
                 
                 otherwise
-                    assign tokenVal = web-context:get-cgi-value('env':u, caps(pTokenArg)).
+                    assign tea:TokenValue = web-context:get-cgi-value('env':u, caps(pTokenArg)).
             end case.  // web
             
             when 'cp':u then
                 if     valid-object(pContext)
                    and type-of(pContext, Principal)
                 then
-                    assign tokenVal = ResolveUser(pTokenArg, cast(pContext, Principal):Token).
+                    assign tea:TokenValue = ResolveUser(pTokenArg, cast(pContext, Principal):Token).
             
             when 'name':u then
                 if valid-object(pContext) then
-                    //tokenArg = format-expression "." logger-name 
-                    assign dotPos   = index(pTokenArg, '.':u)
-                           tokenVal = ResolveName(substring(pTokenArg, 1, dotPos - 1), string(pContext))
+                    //tokenArg = format-expression "." logger-name
+                    assign dotPos         = index(pTokenArg, '.':u)
+                           tea:TokenValue = ResolveName(substring(pTokenArg, 1, dotPos - 1), string(pContext))
                            .
         end case.   // token-group
         
-        return tokenVal.
-        finally:
-            if valid-object(dynCall) then
-                delete object dynCall no-error.
-            
-            assign error-status:error = false.
-        end finally.
+        return tea:TokenValue.
     end method.
     
     /* Extracts any tokens from a string, and returns them as an array of token objects
@@ -697,35 +786,32 @@ class OpenEdge.Core.Util.TokenResolver:
         define variable loop as integer no-undo.
         define variable cnt as integer no-undo.
         define variable resolvedString as character no-undo.
-        define variable tokenEventArgs as TokenResolverEventArgs no-undo.
+        define variable tokenCtx as Progress.Lang.Object no-undo.
         define variable currentTime as datetime-tz no-undo.
         define variable currentUser as handle no-undo.
-        define variable dotPos as integer no-undo.
+        define variable pos as integer no-undo.
         define variable logicalDb as character no-undo.
         
-        assign /* use a variable to fix the time used in the filename. if we use now or time, we may flip 
+        assign /* use a variable to fix the time used in the filename. if we use now or time, we may flip
                   to the next (milli)second during the execution of this loop */
                currentTime    = now
-               
                tokens         = TokenResolver:Parse(pcBaseString)
                cnt            = extent(tokens)
                resolvedString = pcBaseString
                .
         do loop = 1 to cnt:
-            assign tokenEventArgs = new TokenResolverEventArgs(tokens[loop]:Group, tokens[loop]:Arg).
-            
-            case tokenEventArgs:TokenGroup:
+            case tokens[loop]:Group:
                 when 't':u or
                 when 'time':u then
-                    assign tokenEventArgs:SourceValue = new TimeStamp(currentTime).
+                    assign tokenCtx = new TimeStamp(currentTime).
                 
                 when 'cp':u then
                 do:
-                    if num-entries(tokenEventArgs:TokenArg, '.':u) gt 1 then
+                    if num-entries(tokens[loop]:Arg, '.':u) gt 1 then
                     do:
-                        assign logicalDb = entry(2, tokenEventArgs:TokenArg, '.':u).
-                        if     valid-handle(currentUser) 
-                           and lookup(logicalDb, currentUser:db-list) eq 0 
+                        assign logicalDb = entry(2, tokens[loop]:Arg, '.':u).
+                        if     valid-handle(currentUser)
+                           and lookup(logicalDb, currentUser:db-list) eq 0
                         then
                             delete object currentUser no-error.
                         
@@ -738,27 +824,26 @@ class OpenEdge.Core.Util.TokenResolver:
                     
                     if valid-handle(currentUser) then
                         // the C-P represented by currentUser is manually cleaned up in this method's finally block
-                        assign tokenEventArgs:SourceValue = new Principal(currentUser).
+                        assign tokenCtx = new Principal(currentUser).
                 end.    //cp
                 
                 when 'name':u then
-                    assign dotPos                     = index(tokenEventArgs:TokenArg, '.':u)
-                           tokenEventArgs:SourceValue = new String(substring(tokenEventArgs:TokenArg, dotPos + 1))
-                           .
+                do:
+                    // use the value from the "dots" first.
+                    assign pos = index(tokens[loop]:Arg, '.':u).
+                    if pos gt 0 then
+                        assign tokenCtx = new String(substring(tokens[loop]:Arg, pos + 1)).
+                end.
             end case.
             
             // resolve the individual token
-            assign tokenEventArgs:TokenValue = ResolveToken(tokenEventArgs:TokenGroup,
-                                                            tokenEventArgs:TokenArg,
-                                                            tokenEventArgs:SourceValue).
+            ResolveToken(tokens[loop], tokenCtx).
             
-            // see if anyone wants to change this token, or handle tokens we don't know about
-            TokenResolved:Publish(get-class(TokenResolver), tokenEventArgs).
-            
-            if not tokenEventArgs:TokenValue eq ? then
+            if not tokens[loop]:Value eq ? then
                 assign resolvedString = replace(resolvedString,
-                                                '$':u + StringConstant:CURLY_OPEN + string(tokens[loop]) + StringConstant:CURLY_CLOSE, 
-                                                tokenEventArgs:TokenValue).  
+                                                '$':u + StringConstant:CURLY_OPEN + string(tokens[loop]) + StringConstant:CURLY_CLOSE,
+                                                tokens[loop]:Value
+                                                ).
         end.
         
         return resolvedString.

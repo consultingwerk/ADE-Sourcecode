@@ -1,12 +1,10 @@
-
+/* *************************************************************************************************************************
+Copyright (c) 2018, 2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : reqdiagpush.p
     Purpose     : 
-
-    Syntax      :
-
     Description : 
-
     Author(s)   : mbanks
     Created     : Thu Feb 22 13:14:25 EST 2018
     Notes       :
@@ -22,29 +20,28 @@ using OpenEdge.Net.HTTP.RequestBuilder.
 using OpenEdge.Net.URI.
 using Progress.Json.ObjectModel.JsonObject. 
 
-define variable oRequest    as IHttpRequest  no-undo.
-define variable oResponse   as IHttpResponse no-undo.
-define variable oJsonEntity as JsonObject    no-undo.
-define variable JsonString  as longchar      no-undo.
+define variable oRequest  as IHttpRequest  no-undo.
+define variable oResponse as IHttpResponse no-undo.
 
 session:debug-alert = true.
 
-define input parameter HttpUrl as char.
-define input parameter AgentPID as int64.
-define input parameter ABLSessionID as char.
-define input parameter RequestStart as datetime.
-define input parameter RequestLength as int64.
-define input parameter Transport as char.
-define input parameter APIEntryPt as char.
-define input parameter TestRun as char.
-define input parameter PerfData as longchar.
+define input parameter HttpUrl       as character no-undo.
+define input parameter AgentPID      as int64     no-undo.
+define input parameter ABLSessionID  as character no-undo.
+define input parameter RequestStart  as datetime  no-undo.
+define input parameter RequestLength as int64     no-undo.
+define input parameter Transport     as character no-undo.
+define input parameter APIEntryPt    as character no-undo.
+define input parameter TestRun       as character no-undo.
+define input parameter PerfData      as longchar  no-undo.
                  
 define variable requestJson as JsonObject no-undo.
 
-assign 
-    requestJson = new JsonObject().                  
+assign requestJson = new JsonObject().
+
 requestJson:Add( 'AgentPID', AgentPID ).
 requestJson:Add( 'ABLSessionID', ABLSessionID ).
+requestJson:Add( 'RequestStart', RequestStart ).
 requestJson:Add( 'RequestLength', RequestLength ).
 requestJson:Add( 'Transport', Transport ).
 requestJson:Add( 'EntryPt', APIEntryPt ).
@@ -55,19 +52,22 @@ oRequest = RequestBuilder:Post( HttpUrl, requestJson )
     :ContentType( 'application/json' )
     :AcceptJson()
     :Request.
-/* For Fiddler 
-def var oClient as IHttpClient no-undo.
-oClient = new OpenEdge.Net.HTTP.ProxyHttpClient(
-    ClientBuilder:Build():Client,
-    URI:Parse('http://localhost:8888')
-    ). 
-oResponse = oClient:Execute(oRequest).
+
+/* For Fiddler (proxy):
+    def var oClient as IHttpClient no-undo.
+    oClient = new OpenEdge.Net.HTTP.ProxyHttpClient(
+        ClientBuilder:Build():Client,
+        URI:Parse('http://localhost:8888')
+        ). 
+    oResponse = oClient:Execute(oRequest).
 */
+
 oResponse = ClientBuilder:Build():Client:Execute(oRequest).
 
-/* Verify that the request to the diagnostic server is successful.
-If it is not then write the message in the agent log
-*/
+/**
+ * Verify that the request to the diagnostic server is successful.
+ * If it is not then write the message in the agent log.
+ */
 
 if oResponse:StatusCode NE 201 then 
 do:
@@ -76,6 +76,6 @@ do:
 end.
 
 
-CATCH e AS Progress.Lang.Error :
+catch e as Progress.Lang.Error :
     message e:GetMessage(1). 
-END CATCH.
+end catch.

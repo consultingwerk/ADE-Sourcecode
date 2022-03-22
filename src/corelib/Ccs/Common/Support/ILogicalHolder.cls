@@ -30,11 +30,8 @@
     Notes       :
   ----------------------------------------------------------------------*/
 
-USING Ccs.Common.Support.* FROM PROPATH .
-USING Progress.Lang.*      FROM PROPATH .
-
 INTERFACE Ccs.Common.Support.ILogicalHolder
-    INHERITS IPrimitiveHolder:
+    INHERITS Ccs.Common.Support.IPrimitiveHolder:
 
     /*------------------------------------------------------------------------------
         Purpose: Returns the LOGICAL value held by this holder class

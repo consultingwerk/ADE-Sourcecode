@@ -14,11 +14,13 @@ Copyright (c)  2013, 2016, 2018, 2021 by Progress Software Corporation. All righ
   ---------------------------------------------------------------------- */
 block-level on error undo, throw.
 
-using Ccs.Common.Support.IDateTimeTzHolder.
-using OpenEdge.Core.TimeStamp.
-using Progress.Lang.Object.
+using Ccs.Common.Support.IDateTimeTzHolder from propath.
+using OpenEdge.Core.TimeStamp from propath.
+using OpenEdge.Core.TimeStampConstants from propath.
+using Progress.Lang.Object from propath.
 
 class OpenEdge.Core.TimeStamp serializable : 
+    
     /* (mandatory) The format of the data as passed into the constructor. One of DATE, DATETIME or DATETIME-TZ */
     define public property Format as character no-undo get. private set.
     
@@ -287,16 +289,24 @@ class OpenEdge.Core.TimeStamp serializable :
     end method.
     
 
-    /* Returns the time interval between unix epoch and this date
+    /* Returns the time interval in seconds between unix epoch and this date
             where unix epoch is an ABL date constructed as
                 datetime(1,1,1970,0,0,0,0)
        
        @return int64 The seconds since the unix epoch  */
     method public int64 SecondsSinceUnixEpoch():
-        var datetime-tz epoch = datetime(1,1,1970,0,0,0,0).
         var datetime-tz thisDate = ToDateTimeTz().
-        return interval(thisDate, epoch, "seconds") .
+        return interval(thisDate, TimeStampConstants:UnixEpoch, "seconds").
     end method.
     
+    /* Returns the time interval in milliseconds between unix epoch and this date
+            where unix epoch is an ABL date constructed as
+                datetime(1,1,1970,0,0,0,0)
+       
+       @return int64 The number of milliseconds since the unix epoch  */
+    method public int64 MillisecondsSinceUnixEpoch():
+        var datetime-tz thisDate = ToDateTimeTz().
+        return interval(thisDate, TimeStampConstants:UnixEpoch, "milliseconds").
+    end method.    
     
 end class.

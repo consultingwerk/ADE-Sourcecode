@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016, 2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : MemptrValueWriter
@@ -106,7 +106,7 @@ class OpenEdge.Web.DataObject.Writer.MemptrValueWriter inherits ArgumentValueWri
         
         case true:
             when not valid-object(pData) then
-                .   /* no-op */
+                /* no-op */ .
                 
             when type-of(pData, ILongcharHolder) then
                this-object:Write(cast(pData, ILongcharHolder):Value).

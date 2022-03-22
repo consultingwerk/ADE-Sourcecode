@@ -8,12 +8,12 @@ Use this template to create a new dialog-box. Alter this default template or cre
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &Scoped-define FRAME-NAME Connect
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Connect 
-/*********************************************************************
-* Copyright (C) 2000,2009 by Progress Software Corporation. All rights*
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/************************************************************************
+* Copyright (C) 2000,2009 by Progress Software Corporation.             *
+* All rights reserved. Prior versions of this work may contain portions *
+* contributed by participants of Possenet.                              *
+*                                                                       *
+*************************************************************************/
 /*----------------------------------------------------------------------------
 
 File: _dbconng.w  
@@ -70,7 +70,7 @@ Modified:
                         (sometimes people just enter pf-file. In this
                         case we need to ignore the other parameters)
     rkamboj   08/08/11  fixed issue of login when special chracter in password 
-                        at the time of db connect. Applied set-db-client method.
+                        at the time of db connect. Applied set-db-client method.                   
 
 ----------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress UIB.             */
@@ -366,7 +366,7 @@ ASSIGN
    NO-DISPLAY NO-ENABLE 1 2                                             */
 ASSIGN 
        Pass_Phrase:HIDDEN IN FRAME Connect           = TRUE.
-
+       
 /* SETTINGS FOR FILL-IN Pass_word IN FRAME Connect
    NO-DISPLAY NO-ENABLE 1 2                                             */
 ASSIGN 
@@ -889,14 +889,13 @@ PROCEDURE Pressed_OK :
           connect VALUE(args) VALUE(p_Unix_Parms) NO-ERROR.
           run adecomm/_setcurs.p ("").
        END.
-
-       IF Pass_Phrase OR 
-          (ERROR-STATUS:ERROR AND ERROR-STATUS:GET-NUMBER(1) = 15271) THEN DO:
+       
+       IF Pass_Phrase OR (ERROR-STATUS:ERROR AND ERROR-STATUS:GET-NUMBER(1) = 15271) THEN DO:
           /* if missing or incorrect passphrase for a database
              with encryption enabled and manual start, prompt
              for the passphrase now.
           */
-          DEFINE VARIABLE cpassPhrase AS CHAR NO-UNDO.
+          DEFINE VARIABLE cpassPhrase     AS CHARACTER NO-UNDO.
 
           RUN _passphrase.p (OUTPUT cpassPhrase).
 
@@ -908,7 +907,7 @@ PROCEDURE Pressed_OK :
                  need to try to connect again.
               */
               connect VALUE(args) VALUE("-KeyStorePassPhrase " + QUOTER(cpassPhrase)) VALUE(p_Unix_Parms) NO-ERROR.
-          END.
+          END.    
        END.
        if  NUM-DBS > num then ASSIGN currentdb = LDBNAME(num + 1).
        if p_UserId <> "" and connected(currentdb) and DB_Type = "PROGRESS"then
@@ -1063,6 +1062,7 @@ END PROCEDURE.
 PROCEDURE seruser:
     
 END PROCEDURE.
+
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 

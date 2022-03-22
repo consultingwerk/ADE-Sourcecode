@@ -1,13 +1,13 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2019 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2019, 2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : LogFilterBuilder
     Purpose     : Builder for Filter filters (writers, formatters)
-    Description : 
+    Description :
     Author(s)   : pjudge
     Created     : 2016-11-14
-    Notes       : 
+    Notes       :
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
@@ -56,7 +56,7 @@ class OpenEdge.Logging.Filter.LogFilterBuilder inherits ConfigBuilder:
         @param  character The Filter type for which to build the logger
         @return LogFilterBuilder The entity writer builder to use  */
     method static public LogFilterBuilder Build(input pcFilterType as character):
-        return LogFilterBuilder:Build(pcFilterType, LogFilterBuilderRegistry:Registry). 
+        return LogFilterBuilder:Build(pcFilterType, LogFilterBuilderRegistry:Registry).
     end method.
     
     /** Returns log writer build for a logging type.
@@ -81,13 +81,13 @@ class OpenEdge.Logging.Filter.LogFilterBuilder inherits ConfigBuilder:
         // Look for a builder for the filter name
         assign oBuilderType = poWriters:Get(pcFilterType).
         
-        // Look for a default builder 
+        // Look for a default builder
         if not valid-object(oBuilderType) then
             assign oBuilderType = poWriters:Get('*':u).
         if valid-object(oBuilderType) then
             Assert:IsType(oBuilderType, get-class(LogFilterBuilder)).
         else
-        // Default is this class 
+        // Default is this class
             assign oBuilderType = get-class(LogFilterBuilder).
         
         oBuilder = dynamic-new string(oBuilderType:TypeName) (pcFilterType).
@@ -102,7 +102,7 @@ class OpenEdge.Logging.Filter.LogFilterBuilder inherits ConfigBuilder:
     constructor public LogFilterBuilder (input pcFilterType as character):
         Assert:NotNull(pcFilterType, 'Filter type').
         assign this-object:FilterType = pcFilterType.
-    end method.
+    end constructor.
     
     /** Adds or overwrites an option for the logger filter.
         
@@ -119,7 +119,7 @@ class OpenEdge.Logging.Filter.LogFilterBuilder inherits ConfigBuilder:
            set, the JSON value overwrites the current value. */
         if valid-object(poValue) then
             assign names = poValue:GetNames()
-                   cnt   = extent(names) 
+                   cnt   = extent(names)
                    .
         do loop = 1 to cnt:
             case poValue:GetType(names[loop]):
@@ -140,7 +140,7 @@ class OpenEdge.Logging.Filter.LogFilterBuilder inherits ConfigBuilder:
                 
                 when JsonDataType:NULL then
                     SetOption(names[loop], string(?)).
-            end case. 
+            end case.
         end.
         return this-object.
     end method.
@@ -281,7 +281,7 @@ class OpenEdge.Logging.Filter.LogFilterBuilder inherits ConfigBuilder:
         SetOption('format':u, pcFormat).
         
         return this-object.
-    end method.    
+    end method.
     
     /** Sets the logging level for the logger
         
@@ -297,10 +297,10 @@ class OpenEdge.Logging.Filter.LogFilterBuilder inherits ConfigBuilder:
     end method.
     
     /** Returns a filter writer from a registry; either the optional one set via loggerFilterRegistry or
-        the default LoggerFilterRegistry:Registry. It's the caller's responsibility to invoke and 
-        use the filter type returned. 
+        the default LoggerFilterRegistry:Registry. It's the caller's responsibility to invoke and
+        use the filter type returned.
         
-        @param character The filter type name 
+        @param character The filter type name
         @return Progress.Lang.Class The type of the filter writer. */
     method protected class Progress.Lang.Class GetFilterType(input filterTypeName as character):
         define variable localFilterType as class Progress.Lang.Class no-undo.

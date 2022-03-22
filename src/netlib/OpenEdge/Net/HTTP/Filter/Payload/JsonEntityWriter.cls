@@ -1,11 +1,11 @@
 /************************************************
-Copyright (c) 2015-2019 by Progress Software Corporation. All rights reserved.
-*************************************************/ 
+Copyright (c) 2015-2019, 2021 by Progress Software Corporation. All rights reserved.
+*************************************************/
 /*------------------------------------------------------------------------
     File        : JsonEntityWriter
-    Purpose     : 
-    Syntax      : 
-    Description : 
+    Purpose     :
+    Syntax      :
+    Description :
     Author(s)   : pjudge
     Created     : Thu Jan 29 10:47:13 EST 2015
     Notes       : - Write() operations are destructive (they replace the existing
@@ -41,10 +41,10 @@ class OpenEdge.Net.HTTP.Filter.Payload.JsonEntityWriter inherits MessageWriter:
     // we may parse multiple inputs; keep this around
     define private variable moParser as ObjectModelParser no-undo.
     
-    /* Default constructor */    
+    /* Default constructor */
     constructor public JsonEntityWriter():
         this-object(get-class(JsonConstruct)).
-    end constructor. 
+    end constructor.
     
     /** Default constructor. */
     constructor protected JsonEntityWriter(input pType as class Progress.Lang.Class):
@@ -52,7 +52,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.JsonEntityWriter inherits MessageWriter:
     end constructor.
     
     /* Opens the writer */
-    method override public void Open():       
+    method override public void Open():
         super:Open().
         
         assign moParser = new ObjectModelParser().
@@ -78,6 +78,10 @@ class OpenEdge.Net.HTTP.Filter.Payload.JsonEntityWriter inherits MessageWriter:
         cookie:Add('domain':u, pCookie:Domain).
         cookie:Add('expires':u, pCookie:ExpiresAt).
         cookie:Add('httpOnly':u, pCookie:HttpOnly).
+        if valid-object(pCookie:SameSite) then
+            cookie:Add('sameSite':u, string(pCookie:SameSite)).
+        else
+            cookie:AddNull('sameSite':u).
         cookie:Add('secure':u, pCookie:Secure).
         
         return cookie.
@@ -92,6 +96,8 @@ class OpenEdge.Net.HTTP.Filter.Payload.JsonEntityWriter inherits MessageWriter:
         assign hdr = new JsonObject().
         hdr:Add('name':u, pHeader:Name).
         hdr:Add('value':u, pHeader:GetBaseValue() + pHeader:GetParameterValues()).
+
+        return hdr.
     end method.
     
     /* Writes a tuple (key-value pair) as a JSON property & value
@@ -153,8 +159,8 @@ class OpenEdge.Net.HTTP.Filter.Payload.JsonEntityWriter inherits MessageWriter:
     
     /** Write data to/from the message
         
-        @param Progress.Lang.Object Data to write 
-        @return int64 The number ofbytes written 
+        @param Progress.Lang.Object Data to write
+        @return int64 The number ofbytes written
         @throws P.L.AppError if an type is not supported */
     method override public int64 Write(input poData as Object):
         define variable oBody as class Memptr no-undo.
@@ -237,7 +243,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.JsonEntityWriter inherits MessageWriter:
                 return this-object:Write(cast(poData, ICharacterHolder):Value).
             
             when type-of(poData, IPrimitiveArrayHolder) then
-                assign this-object:Entity = JsonConverter:ToArray(cast(poData, IPrimitiveArrayHolder)). 
+                assign this-object:Entity = JsonConverter:ToArray(cast(poData, IPrimitiveArrayHolder)).
             
             when type-of(poData, IHandleHolder) then
                 return this-object:WriteHandle(cast(poData, IHandleHolder):Value).
@@ -259,7 +265,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.JsonEntityWriter inherits MessageWriter:
     
     /** Write data to/from the message
         
-        @param longchar Data to write 
+        @param longchar Data to write
         @return int64 The number ofbytes written */
     method override public int64 Write(input pcData as longchar):
         define variable iBytesWritten as integer no-undo.
@@ -278,10 +284,10 @@ class OpenEdge.Net.HTTP.Filter.Payload.JsonEntityWriter inherits MessageWriter:
     
     /** Write data to/from the message
         
-        @param memptr Data to write 
+        @param memptr Data to write
         @return int64 The number ofbytes written */
     method override public int64 Write( input pmData as memptr):
-        define variable iBytesWritten as integer no-undo.
+        define variable iBytesWritten as int64 no-undo.
         
         assign iBytesWritten = get-size(pmData).
         Assert:IsZeroOrPositive(iBytesWritten, 'Data size').
@@ -296,7 +302,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.JsonEntityWriter inherits MessageWriter:
     
     /** Write data to/from the message
         
-        @param handle Data to write 
+        @param handle Data to write
         @return int64 The number ofbytes written */
     method public int64 WriteHandle(input phData as handle):
         return this-object:Write(phData).
@@ -304,9 +310,10 @@ class OpenEdge.Net.HTTP.Filter.Payload.JsonEntityWriter inherits MessageWriter:
     
     /** Write data to/from the message
         
-        @param handle Data to write 
+        @param handle Data to write
         @return int64 The number ofbytes written */
     method override public int64 Write(input phData as handle):
+        {&_proparse_ prolint-nowarn(varusage)}
         define variable lOk as logical no-undo.
         define variable oData as JsonObject no-undo.
         
@@ -332,7 +339,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.JsonEntityWriter inherits MessageWriter:
     
     /** Write data to/from the message
         
-        @param character Data to write 
+        @param character Data to write
         @return int64 The number ofbytes written */
     method override public int64 Write(input pcData as character):
         define variable iBytesWritten as integer no-undo.

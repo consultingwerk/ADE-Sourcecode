@@ -7,9 +7,9 @@
 { adecomm/adestds.i }
 { adecomm/commeng.i }
 
-DEFINE OUTPUT PARAMETER pPassPhrase AS CHAR NO-UNDO.
+DEFINE OUTPUT PARAMETER pPassPhrase  AS CHARACTER NO-UNDO.
 
-DEFINE VARIABLE passphrase  AS CHAR FORMAT "x(300)" LABEL "Passphrase"
+DEFINE VARIABLE passphrase  AS CHARACTER FORMAT "x(300)" LABEL "Passphrase"
     VIEW-AS FILL-IN SIZE 30 BY 1.
 
 &IF "{&WINDOW-SYSTEM}" BEGINS "MS-WIN" &THEN
@@ -56,7 +56,6 @@ FORM
 ON HELP OF FRAME passphrase_frame ANYWHERE DO:
     APPLY "CHOOSE" TO help_btn.
 END.
-
 
 DO ON ENDKEY UNDO, LEAVE:
 

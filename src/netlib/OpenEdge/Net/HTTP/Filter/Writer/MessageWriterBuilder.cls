@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2015, 2017 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015, 2017, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : MessageWriterBuilder
@@ -107,7 +107,7 @@ class OpenEdge.Net.HTTP.Filter.Writer.MessageWriterBuilder inherits ConfigBuilde
         
         assign this-object:ContentType    = pcContentType
                this-object:WriterRegistry = poRegistry.
-    end method.
+    end constructor.
     
     /** Specifies the Entity object to use for the message body   
         

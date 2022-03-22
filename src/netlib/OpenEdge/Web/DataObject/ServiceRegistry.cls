@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2018, 2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : ServiceRegistry
@@ -72,7 +72,7 @@ class OpenEdge.Web.DataObject.ServiceRegistry abstract:
         end get.
     
     // The root uri (ie / ) 
-    define static public property ROOT_SERVICE_URI as character
+    define static public property ROOT_SERVICE_URI as character no-undo
         get():
             return DataObjectService:ROOT_SERVICE_URI.
         end get.
@@ -139,14 +139,14 @@ class OpenEdge.Web.DataObject.ServiceRegistry abstract:
        @param character The service version to retrieve
        @return DataObjectService  A data service 'header' */
     method static public DataObjectService GetService(input pServiceName as character,
-                                                      input pVersion as character).
+                                                      input pVersion as character):
         return Registry:GetService(pServiceName, pVersion).
     end method.
     
     /* Returns all registered services
        
        @return DataObjectService[] extent An array of registered services. indeterminate if none. */
-    method static public DataObjectService extent GetServices().
+    method static public DataObjectService extent GetServices():
         return Registry:GetServices().
     end method.
     

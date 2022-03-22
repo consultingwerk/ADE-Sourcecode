@@ -1,14 +1,14 @@
 /************************************************
-Copyright (c) 2016-2020 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2016-2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : LoggerBuilder
     Purpose     : A factory for creating loggers
-    Syntax      : 
-    Description : 
+    Syntax      :
+    Description :
     Author(s)   : pjudge
     Created     : Wed Nov 16 21:43:11 EST 2016
-    Notes       : 
+    Notes       :
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
@@ -87,7 +87,7 @@ class OpenEdge.Logging.LoggerBuilder inherits ConfigBuilder:
             if not valid-object(LoggerBuilder:Registry) then
             do:
                 assign LoggerBuilder:Registry = new BuilderRegistry(get-class(LoggerBuilder)).
-                // Use the config file as a default (with a 'name' of *) 
+                // Use the config file as a default (with a 'name' of *)
                 LoggerBuilder:Registry:Put('*':u, get-class(ConfigFileLoggerBuilder)).
             end.
             
@@ -99,7 +99,7 @@ class OpenEdge.Logging.LoggerBuilder inherits ConfigBuilder:
     define static private temp-table Logger no-undo
         field LoggerName     as character
         field LoggerInstance as Progress.Lang.Object
-        field CachedAt       as datetime 
+        field CachedAt       as datetime
         
         index idx1 as primary unique LoggerName
         .
@@ -127,7 +127,7 @@ class OpenEdge.Logging.LoggerBuilder inherits ConfigBuilder:
         assign this-object:LoggerType = pcLoggerType.
     end constructor.
     
-    /** Returns a logger (ILogWriter). 
+    /** Returns a logger (ILogWriter).
         
         @param P.L.Class The typename for which to find a logger
         @return ILogWriter An instance of the default logger */
@@ -140,7 +140,7 @@ class OpenEdge.Logging.LoggerBuilder inherits ConfigBuilder:
         return LoggerBuilder:Build(poLoggerType:TypeName):Logger.
     end method.
     
-    /** Returns a logger (ILogWriter). 
+    /** Returns a logger (ILogWriter).
         
         @param handle The procedure for which to find a logger
         @return ILogWriter An instance of the default logger */
@@ -165,7 +165,7 @@ class OpenEdge.Logging.LoggerBuilder inherits ConfigBuilder:
     
     /** Returns a logger (ILogWriter)
         
-        @param character The logger name 
+        @param character The logger name
         @return ILogWriter An instance of the default logger */
     method static public ILogWriter GetLogger(input pcLoggerType as character):
         if pcLoggerType eq '':u or pcLoggerType eq ? then
@@ -200,7 +200,7 @@ class OpenEdge.Logging.LoggerBuilder inherits ConfigBuilder:
                 assign dotPos       = r-index(pcLoggerType, '.':u)
                        searchLogger = pcLoggerType
                        .
-            // if there's only one entry then we've checked already    
+            // if there's only one entry then we've checked already
             do while not valid-object(builderType) and dotPos gt 0:
                 assign searchLogger = substring(searchLogger, 1, dotPos - 1)
                        dotPos       = r-index(searchLogger, '.':u)
@@ -234,7 +234,7 @@ class OpenEdge.Logging.LoggerBuilder inherits ConfigBuilder:
     
     /* Sets the log level for this logger.
        
-       @param  LogLevelEnum the level to log at  
+       @param  LogLevelEnum the level to log at
        @return LoggerBuilder This builder object  */
     method public LoggerBuilder LogAt(input poLevel as LogLevelEnum):
         Assert:NotNull(poLevel, 'Log level').
@@ -260,18 +260,19 @@ class OpenEdge.Logging.LoggerBuilder inherits ConfigBuilder:
         
         // if the AddFilter method is called from manual Build():AddFilter():AddFilter() code
         // then we want to remove any cached instance of this logger.
-        // However, if AddFilter() is called from a GetLogger() call in another builder, we let the builder 
+        // However, if AddFilter() is called from a GetLogger() call in another builder, we let the builder
         // do the cache checks
         
         // start at 2 to avoid this method.
         assign loop = 2.
+        CALLING-LOOP:
         do while not program-name(loop) eq ?:
             assign progName = program-name(loop).
             // skip any overrides
             if progName eq pMethodName + ' ':u + OpenEdge.Logging.LoggerBuilder:LOGGER_BUILDER_TYPE_NAME then
             do:
                 assign loop = loop + 1.
-                next.
+                next CALLING-LOOP.
             end.
             
             if   num-entries(progName, StringConstant:SPACE) eq 2
@@ -279,11 +280,11 @@ class OpenEdge.Logging.LoggerBuilder inherits ConfigBuilder:
             then
                 LoggerBuilder:RemoveFromCache(this-object:LoggerType).
             
-            leave.
+            leave CALLING-LOOP.
         end.
     end method.
     
-    /* Adds a filter to the logger being built, with options in Json form 
+    /* Adds a filter to the logger being built, with options in Json form
        
        @param  character The filter name to add
        @param  JsonObject The filter options
@@ -299,7 +300,7 @@ class OpenEdge.Logging.LoggerBuilder inherits ConfigBuilder:
         else
         do:
             assign filterList = new List().
-            SetOption('filters', filterList). 
+            SetOption('filters', filterList).
         end.
         
         filterList:Add(new KeyValuePair(pFilterName, pFilterOptions)).
@@ -317,7 +318,7 @@ class OpenEdge.Logging.LoggerBuilder inherits ConfigBuilder:
     
     /* Adds a filter to the logger being built
        
-       @param  ILoggerFilter The filter to add  
+       @param  ILoggerFilter The filter to add
        @return LoggerBuilder This builder object  */
     method public LoggerBuilder AddFilter(input pFilter as ILoggerFilter):
         define variable filterList as IList no-undo.
@@ -331,7 +332,7 @@ class OpenEdge.Logging.LoggerBuilder inherits ConfigBuilder:
         else
         do:
             assign filterList = new List().
-            SetOption('filters', filterList). 
+            SetOption('filters', filterList).
         end.
         
         filterList:Add(pFilter).
@@ -420,6 +421,7 @@ class OpenEdge.Logging.LoggerBuilder inherits ConfigBuilder:
         release pLogger.
         
         if can-find(pLogger where pLogger.LoggerName eq pLoggerName) then
+        {&_proparse_ prolint-nowarn(findnoerror)}
             find pLogger
            where pLogger.LoggerName eq pLoggerName.
         
@@ -465,7 +467,7 @@ class OpenEdge.Logging.LoggerBuilder inherits ConfigBuilder:
             then
             do:
                 // we should have at least 1 extent here but protect with a NO-ERROR
-                assign filterIsStackWriter =    cast(logWriter, Logger):LogFilters[1]:GetClass() 
+                assign filterIsStackWriter =    cast(logWriter, Logger):LogFilters[1]:GetClass()
                                              eq LoggerFilterRegistry:Registry:Get(LoggerFilterRegistry:STACK_WRITER_FORMAT)
                        no-error.
                 
@@ -503,7 +505,7 @@ class OpenEdge.Logging.LoggerBuilder inherits ConfigBuilder:
         if LoggerBuilder:IsCached(this-object:LoggerType) then
             return LoggerBuilder:GetCachedInstance(this-object:LoggerType).
         
-        // now try to build a logger from the set of filters 
+        // now try to build a logger from the set of filters
         assign logWriter = BuildFilterLogger().
         
         if not valid-object(logWriter) then
@@ -558,7 +560,7 @@ class OpenEdge.Logging.LoggerBuilder inherits ConfigBuilder:
         
         assign filterIter = cast(filterConfig, IList):Iterator().
         if cast(filterConfig, IList):Size eq 0 then
-            return ?. 
+            return ?.
         
         assign extent(filterList) = cast(filterConfig, IList):Size.
         
@@ -620,19 +622,19 @@ class OpenEdge.Logging.LoggerBuilder inherits ConfigBuilder:
     end method.
     
     /* Logs error/messages that are written before a logger instance is successfully built.
-       ONLY for use by the LoggerBuilder (hence protected). This is intentionally a very 
-       primitive log writer.
+       ONLY for use by the LoggerBuilder, Logger and other classes in this package(hence PACKAGE-PROTECTED).
+       This is intentionally a very primitive log writer.
        
-       Messages are written to the first location found by the algorithm below 
-       1. If a log-manager exists, write there. This will always be the case on a server (PASOE or Classic A/S & WS) 
+       Messages are written to the first location found by the algorithm below
+       1. If a log-manager exists, write there. This will always be the case on a server (PASOE or Classic A/S & WS)
        2. The session's temp-dir in a file called loggerbuilder.log
        
        Messages are APPENDED to the output file
        
        @param character    The message to write
        @param LogLevelEnum The level of the message */
-    method static protected void LogMessage(input pMessage as character,
-                                            input pLevel as LogLevelEnum):
+    method static package-protected void LogMessage(input pMessage as character,
+                                                    input pLevel as LogLevelEnum):
         define variable logfile as character no-undo.
         
         if not valid-object(pLevel) then

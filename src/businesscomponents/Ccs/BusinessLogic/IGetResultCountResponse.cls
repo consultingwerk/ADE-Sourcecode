@@ -31,15 +31,13 @@
     Notes       :
   ----------------------------------------------------------------------*/
 
-USING Ccs.BusinessLogic.* FROM PROPATH .
-
 INTERFACE Ccs.BusinessLogic.IGetResultCountResponse:
 
     /*------------------------------------------------------------------------------
         Purpose: Returns the result counts per requested table
         Notes:
     ------------------------------------------------------------------------------*/
-    DEFINE PUBLIC PROPERTY ResultCounts AS IGetTableResultCountResponse EXTENT NO-UNDO
+    DEFINE PUBLIC PROPERTY ResultCounts AS Ccs.BusinessLogic.IGetTableResultCountResponse EXTENT NO-UNDO
     GET.
 
 END INTERFACE.

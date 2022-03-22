@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016, 2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016, 2018, 2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : FileOperationHandler
@@ -36,6 +36,7 @@ class OpenEdge.Web.DataObject.FileOperationHandler implements ISupportLogging, I
     /* A reference to the Logger in use by an implementer */
     define public property Logger as ILogWriter no-undo get. set.
 
+    {&_proparse_ prolint-nowarn(varusage)}
     define private variable mcInstanceRoot as character no-undo.
     
     constructor public FileOperationHandler():
@@ -99,14 +100,6 @@ class OpenEdge.Web.DataObject.FileOperationHandler implements ISupportLogging, I
                                              input poRequest   as IWebRequest):
         define variable cResolvedFile as character no-undo.
         define variable cSourceFile   as character no-undo.
-        define variable iLoop         as integer   no-undo.
-        define variable iMax          as integer   no-undo.
-        define variable cEntry        as character no-undo.
-        define variable cName         as character no-undo.
-        define variable cValue        as character no-undo.
-        define variable cDelim        as character no-undo.
-        define variable startPos as integer no-undo.
-        define variable endPos as integer no-undo.
         
         Assert:NotNull(poRequest, 'Web request ').
         Assert:NotNull(poOperation, 'Mapped operation').
@@ -134,9 +127,6 @@ class OpenEdge.Web.DataObject.FileOperationHandler implements ISupportLogging, I
                                   input poResponse  as IHttpResponse):  
         define variable mFileContent  as memptr               no-undo.
         define variable iStatusCode   as integer              no-undo.
-        define variable oEntity       as Progress.Lang.Object no-undo.
-        define variable oEntityWriter as MessageWriter        no-undo.
-        define variable iBytesWritten as int64                no-undo.
         
         Assert:NotNull(poRequest,   'Web request ').
         Assert:NotNull(poResponse,  'Web Response').
@@ -162,7 +152,7 @@ class OpenEdge.Web.DataObject.FileOperationHandler implements ISupportLogging, I
         /* Read the file off disk */
         copy-lob from file file-info:full-pathname to mFileContent.
         
-        assign poResponse:Entity = new Memptr(mFileContent).
+        assign poResponse:Entity = new memptr(mFileContent).
         
         return iStatusCode.
         finally:

@@ -716,6 +716,7 @@ class OpenEdge.Core.Json.JsonConverter:
                .
         PROP-LOOP:
         do loop = 1 to cnt:
+            {&_proparse_ prolint-nowarn(overflow)}
             assign propName   = string(names[loop])
                    methodName = 'Add':u
                    srcType    = pSource:GetType(propName)
@@ -746,26 +747,36 @@ class OpenEdge.Core.Json.JsonConverter:
                 when JsonDataType:NUMBER  then
                     // Because GetJsonText() returns a LONGCHAR, the reflection fails. It is extremely unlikely
                     // that a number would have >2GB's worth of digits, so just STRING() it.
+                    {&_proparse_ prolint-nowarn(overflow)}
                     dynamic-invoke(pTarget, methodName + 'Number':u, propName, string(pSource:GetJsonText(propName))).
             end case.
         end.
     end method.
     
-    /* This method converts a JSON property to an instance of an IPRimitiveHolder.
-    
-       If the inputs are invalid, an object represeting the unknown value is returned.
-       If the property value cannot be converted, an object represeting the unknown value is returned.
-       Thie methods will try to convert JSON Strings into date/time/tz or memptr values before returning a string
-       JSON objects and arrayas are returned as Json text values (ie flattened)
+    /* This method converts a JSON property to an instance of an IPrimitiveHolder.
+       
+       Input JSON data types:
+           NULL -> OE.Core.String(?)
+           OBJECT, ARRAY -> OE.Core.String(GetJsonText)
+           BOOLEAN -> OE.Core.LogicalValue(<val>)
+           NUMBER -> if the value has a '.', OE.Core.Decimal(<val>), else OE.Core.Integer(<val>)
+           STRING ->
+                If the value looks like YYYY-MM-DD, try to parse and return OE.Core.DateHolder
+                If the value looks like YYYY-MM-DDTHH:MM:SS.SSS, try to parse and return OE.Core.DateTimeHolder
+                If the value looks like YYYY-MM-DDTHH:MM:SS.SSS+HH:MM, try to parse and return OE.Core.DateTimeTzHolder
+                If the value looks like a base64-encoded value (last 2 chars are ==), return as OE.Core.Memptr
+                If the 'looks like' or parsing fail, return OE.Core.String(<val>)
+        
+       If the property value cannot be converted, an object represeting the unknown value is returned (same as NULL).
        
        @param JsonObject The object
        @param character The property name
        @return IPrimitiveHolder The representative value */
     method static public IPrimitiveHolder ToScalar(input pObject as JsonObject,
                                                    input pName as character):
-        define variable strValue as character no-undo.
-        define variable pos as integer no-undo.
-        define variable cnt as integer no-undo.
+        define variable strValue as longchar no-undo.
+        define variable pos as int64 no-undo.
+        define variable cnt as int64 no-undo.
         define variable dtzVal as datetime-tz no-undo.
         define variable mData as memptr no-undo.
         
@@ -774,11 +785,11 @@ class OpenEdge.Core.Json.JsonConverter:
            or pName eq ?
            or not pObject:Has(pName)
         then
-            return new String(StringConstant:UNKNOWN).
+            return String:Unknown().
         
         case pObject:GetType(pName):
             when JsonDataType:NULL    then
-                return new String(StringConstant:UNKNOWN).
+                return String:Unknown().
             when JsonDataType:BOOLEAN then
                 return new LogicalValue(pObject:GetLogical(pName)).
             when JsonDataType:NUMBER  then
@@ -799,8 +810,12 @@ class OpenEdge.Core.Json.JsonConverter:
                 /* This value could be a
                    - string
                    - iso-date / time / -tz
-                   - memptr / base64-encoded value */
-                assign strValue = pObject:GetJsonText(pName)
+                   - memptr / base64-encoded value 
+                   
+                   DO NOT USE GetJsonText here since any encoded values - like slashes in a URL
+                   will be returned. Ie http://localhost is http:\/\/localhost when GetJsonText is
+                   called, and not the correct un-encoded value. */
+                assign strValue = pObject:GetLongchar(pName)
                        cnt      = length(strValue, 'raw':u)
                        pos      = index(strValue, '-':u)
                        .
@@ -809,6 +824,7 @@ class OpenEdge.Core.Json.JsonConverter:
                 case cnt:
                     // DATE YYYY-MM-DD
                     when 10 then
+                    do:
                         if index(strValue, '-':u, pos + 1) gt 0 then
                         do:
                             assign dtzVal = datetime-tz(integer(substring(strValue, 6, 2)),
@@ -820,11 +836,15 @@ class OpenEdge.Core.Json.JsonConverter:
                             if not error-status:error then
                                 return new DateHolder(date(dtzVal)).
                             else
-                                assign error-status:error = no.
+                                return new String(strValue).
                         end.
+                        else
+                            return new String(strValue).
+                    end.
                     // DATETIME YYYY-MM-DDTHH:MM:SS.SSS
                     //          12345678901234567890123
                     when 23 then
+                    do:
                         if     index(strValue, '-':u, pos + 1) gt 0
                            and index(strValue, 'T':u, pos + 1) gt 0
                         then
@@ -840,21 +860,32 @@ class OpenEdge.Core.Json.JsonConverter:
                             if not error-status:error then
                                 return new DateTimeHolder(datetime(date(dtzVal), mtime(dtzVal))).
                             else
-                                assign error-status:error = no.
+                                return new String(strValue).
                         end.
+                        else
+                            return new String(strValue).
+                    end.
                     // DATETIME-TZ YYYY-MM-DDTHH:MM:SS.SSS+HH:MM
                     when 29 then
+                    do:
                         if     index(strValue, '-':u, pos + 1) gt 0
                            and index(strValue, 'T':u, pos + 1) gt 0
                         then
                         do:
-                            assign dtzVal = TimeStamp:ToABLDateTimeTzFromISO(strValue)
+                            {&_proparse_ prolint-nowarn(overflow)}
+                            assign dtzVal = TimeStamp:ToABLDateTimeTzFromISO(string(strValue))
                                    no-error.
                             if not error-status:error then
                                 return new DateTimeTzHolder(dtzVal).
                             else
-                                assign error-status:error = no.
+                                return new String(strValue).
                         end.
+                        else
+                            return new String(strValue).
+                    end.
+                    // not a date, just a string
+                    otherwise
+                        return new String(strValue).
                 end case.
                 else
                 // base64-encoded
@@ -874,24 +905,38 @@ class OpenEdge.Core.Json.JsonConverter:
             end.
         end case.
         
-        return new String(StringConstant:UNKNOWN).
+        return String:Unknown().
+        finally:
+            assign error-status:error = no.
+        end finally.
     end method.
     
     /* This method converts a JSON array element to an instance of an IPrimitiveHolder.
     
-       If the inputs are invalid, or the index is not in range, an object represeting the unknown value is returned.
-       If the property value cannot be converted, an object represeting the unknown value is returned.
-       Thie methods will try to convert JSON Strings into date/time/tz or memptr values before returning a string
-       JSON objects and arrayas are returned as Json text values (ie flattened)
+       If the inputs are invalid, or the index is not in range, a OE.Core.String object represeting the unknown value is returned.
+       
+       Input JSON data types:
+           NULL -> OE.Core.String(?)
+           OBJECT, ARRAY -> OE.Core.String(GetJsonText)
+           BOOLEAN -> OE.Core.LogicalValue(<val>)
+           NUMBER -> if the value has a '.', OE.Core.Decimal(<val>), else OE.Core.Integer(<val>)
+           STRING ->
+                If the value looks like YYYY-MM-DD, try to parse and return OE.Core.DateHolder
+                If the value looks like YYYY-MM-DDTHH:MM:SS.SSS, try to parse and return OE.Core.DateTimeHolder
+                If the value looks like YYYY-MM-DDTHH:MM:SS.SSS+HH:MM, try to parse and return OE.Core.DateTimeTzHolder
+                If the value looks like a base64-encoded value (last 2 chars are ==), return as OE.Core.Memptr
+                If the 'looks like' or parsing fail, return OE.Core.String(<val>)
+        
+       If the property value cannot be converted, an object represeting the unknown value is returned (same as NULL).
        
        @param JsonArray The object
        @param integer The element index
        @return IPrimitiveHolder The representative value */
     method static public IPrimitiveHolder ToScalar(input pArray as JsonArray,
                                                    input pIdx as integer):
-        define variable strValue as character no-undo.
-        define variable pos as integer no-undo.
-        define variable cnt as integer no-undo.
+        define variable strValue as longchar no-undo.
+        define variable pos as int64 no-undo.
+        define variable cnt as int64 no-undo.
         define variable dtzVal as datetime-tz no-undo.
         define variable mData as memptr no-undo.
         
@@ -899,11 +944,11 @@ class OpenEdge.Core.Json.JsonConverter:
            or pIdx eq ?
            or pArray:Length lt pIdx
         then
-            return new String(StringConstant:UNKNOWN).
+            return String:Unknown().
         
         case pArray:GetType(pIdx):
             when JsonDataType:NULL    then
-                return new String(StringConstant:UNKNOWN).
+                return String:Unknown().
             when JsonDataType:BOOLEAN then
                 return new LogicalValue(pArray:GetLogical(pIdx)).
             when JsonDataType:NUMBER  then
@@ -924,8 +969,11 @@ class OpenEdge.Core.Json.JsonConverter:
                    - string
                    - iso-date
                    - memptr / base64-encoded value
-                */
-                assign strValue = pArray:GetJsonText(pIdx)
+                   
+                   DO NOT USE GetJsonText here since any encoded values - like slashes in a URL
+                   will be returned. Ie http://localhost is http:\/\/localhost when GetJsonText is
+                   called, and not the correct un-encoded value. */
+                assign strValue = pArray:GetLongchar(pIdx)
                        cnt      = length(strValue, 'raw':u)
                        pos      = index(strValue, '-':u)
                        .
@@ -946,8 +994,10 @@ class OpenEdge.Core.Json.JsonConverter:
                             if not error-status:error then
                                 return new DateHolder(date(dtzVal)).
                             else
-                                assign error-status:error = no.
+                                return new String(strValue).
                         end.
+                        else
+                            return new String(strValue).
                     end.
                     // DATETIME YYYY-MM-DDTHH:MM:SS.SSS
                     //          12345678901234567890123
@@ -968,8 +1018,10 @@ class OpenEdge.Core.Json.JsonConverter:
                             if not error-status:error then
                                 return new DateTimeHolder(datetime(date(dtzVal), mtime(dtzVal))).
                             else
-                                assign error-status:error = no.
+                                return new String(strValue).
                         end.
+                        else
+                            return new String(strValue).
                     end.
                     // DATETIME-TZ YYYY-MM-DDTHH:MM:SS.SSS+HH:MM
                     when 29 then
@@ -978,13 +1030,19 @@ class OpenEdge.Core.Json.JsonConverter:
                            and index(strValue, 'T':u, pos + 1) gt 0
                         then
                         do:
-                            assign dtzVal = TimeStamp:ToABLDateTimeTzFromISO(strValue) no-error.
+                            {&_proparse_ prolint-nowarn(overflow)}
+                            assign dtzVal = TimeStamp:ToABLDateTimeTzFromISO(string(strValue)) no-error.
                             if not error-status:error then
                                 return new DateTimeTzHolder(dtzVal).
                             else
-                                assign error-status:error = no.
+                                return new String(strValue).
                         end.
+                        else
+                            return new String(strValue).
                     end.
+                    // not a date, just a string
+                    otherwise
+                        return new String(strValue).
                 end case.
                 else
                 // base64-encoded
@@ -995,7 +1053,8 @@ class OpenEdge.Core.Json.JsonConverter:
                     if not error-status:error then
                         return new OpenEdge.Core.Memptr(mData).
                     else
-                        assign error-status:error = no.
+                        return new String(strValue).
+                    
                     finally:
                         set-size(mData) = 0.
                     end finally.
@@ -1005,7 +1064,10 @@ class OpenEdge.Core.Json.JsonConverter:
             end.
         end case.
         
-        return new String(StringConstant:UNKNOWN).
+        return String:Unknown().
+        finally:
+            assign error-status:error = no.
+        end finally.
     end method.
 
     /* Converts a JSON array to an instance of a IObjectArrayHolder

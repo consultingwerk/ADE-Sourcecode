@@ -1,6 +1,6 @@
 &if false &then
 /* *************************************************************************************************************************
-Copyright (c) 2016-2017 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2017, 2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : doh_execute_invoke.i
@@ -17,24 +17,31 @@ Copyright (c) 2016-2017 by Progress Software Corporation and/or one of its subsi
                     &OPER-ARG= arguments for this operation
   ----------------------------------------------------------------------*/
 &endif
+
 &if defined(OPER-ARG) eq 0 &then
 &scoped-define OPER-ARG oOperArg
 &endif
+
 &if defined(METHOD) eq 0 &then
 &scoped-define METHOD oMethod 
 &endif
+
 &if defined(ENTITY-INSTANCE) eq 0 &then
 &scoped-define ENTITY-INSTANCE poEntity
 &endif
+
 &if defined(PARAM-LIST) eq 0 &then
 &scoped-define PARAM-LIST oParamList
 &endif
+
 &if defined(RETURN-TYPE) eq 0 &then
 &scoped-define RETURN-TYPE {&VAR-DATA-TYPE}
 &endif
+
 &if defined(VALUE-WRITER}) eq 0 &then
 &scoped-define VALUE-WRITER oValueWriter
 &endif
+
 when Progress.Reflect.DataType:{&RETURN-TYPE} then 
 case {&METHOD}:ReturnExtent:
     when 0 then

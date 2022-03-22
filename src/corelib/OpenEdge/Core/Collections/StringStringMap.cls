@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2014, 2019-2020 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014, 2019-2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : StringStringMap
@@ -176,7 +176,7 @@ class OpenEdge.Core.Collections.StringStringMap implements IStringStringMap:
         end.
         
         return true.
-    end.
+    end method.
     
     /* Returns true if this map contains all of the values in a collection.
        
@@ -190,7 +190,7 @@ class OpenEdge.Core.Collections.StringStringMap implements IStringStringMap:
         end.
         else
             return ContainsValue(StringConstant:UNKNOWN).
-    end.
+    end method.
     
     /* Returns TRUS if there's at least one value in the map that equals the input value.
        
@@ -478,7 +478,7 @@ class OpenEdge.Core.Collections.StringStringMap implements IStringStringMap:
         then
             find pMap
            where pMap.ParentMap eq int64(this-object)
-             and pMap.Key eq pKey.
+             and pMap.Key eq pKey no-error.
         
         return (available pMap).
     end method.
@@ -497,7 +497,7 @@ class OpenEdge.Core.Collections.StringStringMap implements IStringStringMap:
         then
             find first pMap
            where pMap.ParentMap eq int64(this-object)
-             and pMap.ValHash   eq pVal.
+             and pMap.ValHash   eq pVal no-error.
         
         return (available pMap).
     end method.

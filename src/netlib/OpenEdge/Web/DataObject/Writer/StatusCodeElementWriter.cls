@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2018, 2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
  /*------------------------------------------------------------------------
     File        : StatusCodeElementWriter
@@ -56,21 +56,22 @@ class OpenEdge.Web.DataObject.Writer.StatusCodeElementWriter inherits ResponseEl
                 this-object:Write(cast(pElemValue, KeyValuePair):Value).
             
             when type-of(pElemValue, StatusCodeEnum) then
-                assign this-object:Response:StatusCode = int64(cast(pElemValue, StatusCodeEnum)).
+                // Enum value is normally an int64 but StatusCode is expeced to be an integer.
+                assign this-object:Response:StatusCode = integer(cast(pElemValue, StatusCodeEnum)).
             
             when type-of(pElemValue, ICharacterHolder) then
                 assign this-object:Response:StatusCode = integer(StatusCodeEnum:GetEnum(
-                                                                    string(cast(pElemValue, ICharacterHolder):Value))).
+                                                                 string(cast(pElemValue, ICharacterHolder):Value))).
             
             when type-of(pElemValue, ILongcharHolder) then
                 assign this-object:Response:StatusCode = integer(StatusCodeEnum:GetEnum(
-                                                            string(cast(pElemValue, ILongcharHolder):Value))).
+                                                                 string(cast(pElemValue, ILongcharHolder):Value))).
             
             when type-of(pElemValue, IMemptrHolder) then
                 assign this-object:Response:StatusCode = get-long(cast(pElemValue, IMemptrHolder):Value, 1).
             
             when type-of(pElemValue, IIntegerHolder) then
-                    assign this-object:Response:StatusCode = cast(pElemValue, IIntegerHolder):Value.
+                assign this-object:Response:StatusCode = cast(pElemValue, IIntegerHolder):Value.
             
             when type-of(pElemValue, IInt64Holder) then
                 assign this-object:Response:StatusCode = integer(cast(pElemValue, IInt64Holder):Value). 

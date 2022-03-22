@@ -1,5 +1,5 @@
  /************************************************
-Copyright (c) 2013,2017 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2013, 2017, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : SaxReader
@@ -76,6 +76,7 @@ class OpenEdge.Core.XML.SaxReader:
     define private variable mhParserProc as handle no-undo.
     
     constructor public SaxReader():
+        /* Default constructor */
     end constructor.
     
     destructor public SaxReader():

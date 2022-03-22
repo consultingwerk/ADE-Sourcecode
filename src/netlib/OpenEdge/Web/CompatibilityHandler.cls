@@ -1,5 +1,5 @@
 /*************************************************************************
-Copyright (c)  2015, 2018 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2015, 2018, 2021 by Progress Software Corporation. All rights reserved.
 **************************************************************************/ 
 /*------------------------------------------------------------------------
    Purpose     : Provide dispatching for WebSpeed for the PAS Web transport
@@ -48,7 +48,7 @@ class OpenEdge.Web.CompatibilityHandler implements Progress.Web.IWebHandler, ISu
     
     /* Keep track of web-handler.p  */
     define protected property ProcedureHandle as handle no-undo
-        get ().
+        get ():
             if not valid-handle(mProcHandle) then 
                 assign mProcHandle = StartProcedure().
             
@@ -61,8 +61,8 @@ class OpenEdge.Web.CompatibilityHandler implements Progress.Web.IWebHandler, ISu
             assign mProcHandle = pProcHandle.
         end set.
     
-    /* default constructor */
     constructor public CompatibilityHandler():
+        /* Default constructor */
     end constructor.
     
     /**

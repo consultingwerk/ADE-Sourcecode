@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2013, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------------
     File        : Collection
@@ -65,6 +65,8 @@ class OpenEdge.Core.Collections.Collection serializable inherits AbstractTTColle
         assign itemRowid = ?. 
         
         if can-find(pbCollection where pbCollection.objectref eq obj) then
+            /* Intentional lack of no-error on find. */
+            {&_proparse_ prolint-nowarn(findnoerror)}
             find pbCollection where pbCollection.objectref eq obj.
         if available pbCollection then 
             return.
@@ -76,8 +78,10 @@ class OpenEdge.Core.Collections.Collection serializable inherits AbstractTTColle
         end.
         
         if not itemRowid eq ? then
+            /* Intentional lack of no-error on find. */
+            {&_proparse_ prolint-nowarn(findnoerror)}
             find pbCollection where rowid(pbCollection) eq itemRowid.
-    end.
+    end method.
     
     /* Two Collections are defined to be equal if they are the same size and
        all of the elements in this collection are in the to-compare collection

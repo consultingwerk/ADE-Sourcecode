@@ -30,9 +30,6 @@
     Notes       :
   ----------------------------------------------------------------------*/
 
-USING Ccs.Common.Support.* FROM PROPATH .
-USING Progress.Lang.*      FROM PROPATH .
-
 INTERFACE Ccs.Common.Support.IPrimitiveHolder:
 
 END INTERFACE.

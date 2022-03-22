@@ -1,12 +1,12 @@
 /************************************************
-Copyright (c) 2018 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2018, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : MDC
-    Purpose     : Mapped Diagnostic Context object: A set of key/value pairs consumed by logger filters 
+    Purpose     : Mapped Diagnostic Context object: A set of key/value pairs consumed by logger filters
     Author(s)   : pjudge
     Created     : 2018-11-19
-    Notes       : - The context values can be tokenised via ${mdc.<context-key>} tokens 
+    Notes       : - The context values can be tokenised via ${mdc.<context-key>} tokens
                     and are resolved by the OpenEdge.Logging.Format.MDCTokenFormat
                     format filter.
   ----------------------------------------------------------------------*/
@@ -28,6 +28,7 @@ class OpenEdge.Logging.MDC:
     /* Default constructor.
        PRIVATE since we never want this class instantiated. */
     constructor private MDC():
+        // nothing doing
     end constructor.
     
     /* Adds a context value to the MDC context

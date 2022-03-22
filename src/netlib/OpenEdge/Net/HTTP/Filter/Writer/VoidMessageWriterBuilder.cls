@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2017 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2017, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : VoidMessageWriterBuilder
@@ -31,6 +31,6 @@ class OpenEdge.Net.HTTP.Filter.Writer.VoidMessageWriterBuilder inherits MessageW
     constructor public VoidMessageWriterBuilder(input pcContentType as character,
                                                 input poRegistry as BuilderRegistry):
         super(pcContentType, poRegistry).
-    end method.
+    end constructor.
     
 end class.

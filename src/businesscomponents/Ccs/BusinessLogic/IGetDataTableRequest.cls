@@ -32,8 +32,6 @@
     Notes       :
   ----------------------------------------------------------------------*/
 
-USING Ccs.BusinessLogic.* FROM PROPATH .
-
 INTERFACE Ccs.BusinessLogic.IGetDataTableRequest:
 
     /*------------------------------------------------------------------------------
@@ -64,7 +62,7 @@ INTERFACE Ccs.BusinessLogic.IGetDataTableRequest:
         Purpose: Returns the abstract query defintion for this request
         Notes:   Typically used as an alternative to the QueryString
     ------------------------------------------------------------------------------*/
-    DEFINE PUBLIC PROPERTY QueryDefinition AS IQueryDefinition NO-UNDO
+    DEFINE PUBLIC PROPERTY QueryDefinition AS Ccs.BusinessLogic.IQueryDefinition NO-UNDO
     GET.
 
     /*------------------------------------------------------------------------------

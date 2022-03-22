@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2015, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : SetCookieSetHeaderFilter
@@ -39,7 +39,8 @@ class OpenEdge.Net.HTTP.Filter.Header.SetCookieSetHeaderFilter implements IHttpM
 	end method.
 	
 	method public void Write( input-output pcData as longchar ):
-	    assign mcCookie = pcData.
+	    {&_proparse_ prolint-nowarn(overflow)}
+	    assign mcCookie = string(pcData).
 	end method.
 
     method public void Write( input-output pcData as character ):
@@ -52,7 +53,7 @@ class OpenEdge.Net.HTTP.Filter.Header.SetCookieSetHeaderFilter implements IHttpM
 
 	method public void Write( input pmData as memptr ):
         Assert:IsPositive(get-size(pmData), 'Data').
-        assign mcCookie= get-string(pmData, 1).
+        assign mcCookie = get-string(pmData, 1).
 	end method.
 
 	method public void Flush():

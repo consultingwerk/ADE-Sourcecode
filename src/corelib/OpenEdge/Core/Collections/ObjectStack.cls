@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2013, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : ObjectStack
@@ -27,6 +27,7 @@ class OpenEdge.Core.Collections.ObjectStack serializable inherits Stack:
     end constructor.
 
     constructor public ObjectStack():
+        /* Default constructor */
     end constructor.
     
     method public void Push(poValue as Object):

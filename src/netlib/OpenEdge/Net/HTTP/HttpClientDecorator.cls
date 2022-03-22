@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2015, 2019 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015, 2019, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : HttpClientDecorator
@@ -25,41 +25,44 @@ using OpenEdge.Net.HTTP.IHttpClient.
 using OpenEdge.Net.HTTP.IHttpRequest.
 using OpenEdge.Net.HTTP.IHttpResponse.
 using OpenEdge.Net.HTTP.ResponseBuilder.
+using OpenEdge.Core.IAdaptable.
 
-class OpenEdge.Net.HTTP.HttpClientDecorator abstract implements IHttpClient:
+class OpenEdge.Net.HTTP.HttpClientDecorator abstract 
+implements IHttpClient, IAdaptable:
+    
     /* the decorated client. this can be a decoration or an actual http client */
     define protected property DecoratedHttpClient as IHttpClient no-undo get. private set.
 
-	define public property ClientName as character no-undo 
-	get():
-	    return DecoratedHttpClient:ClientName.
-	end get.
-	private set.
+    define public property ClientName as character no-undo 
+    get():
+        return DecoratedHttpClient:ClientName.
+    end get.
+    private set.
 
-	define public property ClientVersion as character no-undo 
+    define public property ClientVersion as character no-undo 
     get():
         return DecoratedHttpClient:ClientVersion.
     end get.
     private set.
 
-	define public property Options as ClientOptions no-undo 
-	get():
-	    return DecoratedHttpClient:Options.
+    define public property Options as ClientOptions no-undo 
+    get():
+        return DecoratedHttpClient:Options.
     end get.
-	private set. 
-	
-	constructor public HttpClientDecorator(input poHttpClient as IHttpClient):
-	    Assert:NotNull(poHttpClient, 'Http client').
+    private set. 
+    
+    constructor public HttpClientDecorator(input poHttpClient as IHttpClient):
+        Assert:NotNull(poHttpClient, 'Http client').
 
-	    assign this-object:DecoratedHttpClient = poHttpClient.
+        assign this-object:DecoratedHttpClient = poHttpClient.
     end constructor.
     
-	/** Executes an HTTP request.
-	
-	    This method wraps the Execute(Req,Resp) call in the same way that the
-	    HttpClient does. If does so in order to ensure that the Execute(req, resp)
-	    is always called, because we don't want to force each decorator to have
-	    to implement this call.
+    /** Executes an HTTP request.
+    
+        This method wraps the Execute(Req,Resp) call in the same way that the
+        HttpClient does. If does so in order to ensure that the Execute(req, resp)
+        is always called, because we don't want to force each decorator to have
+        to implement this call.
         
         @param  HttpRequest Request parameters (URL, method, etc)
         @return HttpResponse Includes status and payload */
@@ -73,8 +76,26 @@ class OpenEdge.Net.HTTP.HttpClientDecorator abstract implements IHttpClient:
         return oResponse.
     end method.
 
-	method public void Execute( input poRequest as IHttpRequest, input poResponse as IHttpResponse):
-		DecoratedHttpClient:Execute(poRequest, poResponse).
-	end method.
-	
+    method public void Execute( input poRequest as IHttpRequest, input poResponse as IHttpResponse):
+        DecoratedHttpClient:Execute(poRequest, poResponse).
+    end method.
+    
+    /* Returns an adapter for this client
+       
+       @param P.L.Class The type we want to adapt this message to
+       @return P.L.Object The adapter. Will typically be of the type specified by the input argument */
+    @since(rel='12.5.0').
+    method public Progress.Lang.Object GetAdapter(input pAdaptTo as class Progress.Lang.Class):
+        Assert:NotNull(pAdaptTo, 'Adapter').
+        
+        if this-object:GetClass():IsA(pAdaptTo) then
+            return this-object.
+        
+        if valid-object(DecoratedHttpClient)
+        and type-of(DecoratedHttpClient, IAdaptable)
+        then
+            return cast(DecoratedHttpClient, IAdaptable):GetAdapter(pAdaptTo).
+        
+        return ?.
+    end method.    
 end class.

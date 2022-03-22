@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2014, 2017 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014, 2017, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
    File        : AssertionFailedError
@@ -14,9 +14,19 @@ BLOCK-LEVEL ON ERROR UNDO, THROW.
 
 CLASS OpenEdge.Core.AssertionFailedError INHERITS Progress.Lang.AppError serializable: 
     DEFINE VARIABLE exceptionMessage AS CHARACTER NO-UNDO.    
-		
+	
+    CONSTRUCTOR PUBLIC AssertionFailedError (INPUT failMessage as LONGCHAR):
+        {&_proparse_ prolint-nowarn(overflow)}
+        THIS-OBJECT(STRING(failMessage), 0).
+    END CONSTRUCTOR.
+
+    CONSTRUCTOR PUBLIC AssertionFailedError (INPUT failMessage as LONGCHAR, INPUT val AS INTEGER):
+        {&_proparse_ prolint-nowarn(overflow)}
+        THIS-OBJECT(STRING(failMessage), val).
+    END CONSTRUCTOR.
+
     CONSTRUCTOR PUBLIC AssertionFailedError (INPUT failMessage AS CHARACTER):
-        this-object(failMessage, 0).
+        THIS-OBJECT(failMessage, 0).
     END CONSTRUCTOR.
     
     CONSTRUCTOR PUBLIC AssertionFailedError (INPUT failMessage AS CHARACTER, INPUT val AS INTEGER):

@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2014, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : AuthenticationRequestEventArgs
@@ -39,6 +39,6 @@ class OpenEdge.Net.HTTP.AuthenticationRequestEventArgs:
         assign this-object:Request = poRequest
                this-object:Realm   = pcRealm
                this-object:Cancel  = false.
-    end method.
+    end constructor.
     
 end class.

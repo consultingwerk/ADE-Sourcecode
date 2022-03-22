@@ -1,5 +1,5 @@
  /************************************************
-Copyright (c) 2020 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2020-2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : AnnotationWriter
@@ -79,8 +79,8 @@ class OpenEdge.Core.Util.AnnotationWriter implements ISupportInitialize:
     define private variable mNonUserProperties as character no-undo
         initial 'program,data,method,constructor,destructor,property,event,procedure,function,user':u.
     
-    /* Default constructor */
     constructor public AnnotationWriter():
+        /* Default constructor */
     end constructor.
     
     /* Constructor.
@@ -150,13 +150,17 @@ class OpenEdge.Core.Util.AnnotationWriter implements ISupportInitialize:
         // look for slash-delimited files
         assign pAblProgram = replace(pAblProgram, StringConstant:BACKSLASH, '/':u).
         if can-find(first pSource where pSource.File-name eq pAblProgram) then
-             find first pSource where pSource.File-name eq pAblProgram.
+            /* Intentional lack of no-error on find. */
+            {&_proparse_ prolint-nowarn(findnoerror)}
+            find first pSource where pSource.File-name eq pAblProgram.
         else
         // look for backslash-delimited files
         do:
             assign pAblProgram = replace(pAblProgram, '/':u, StringConstant:BACKSLASH). 
             if can-find(first pSource where pSource.File-name eq pAblProgram) then
-                 find first pSource where pSource.File-name eq pAblProgram.
+                /* Intentional lack of no-error on find. */
+                {&_proparse_ prolint-nowarn(findnoerror)}
+                find first pSource where pSource.File-name eq pAblProgram.
         end.
     end method.
     
@@ -172,7 +176,6 @@ class OpenEdge.Core.Util.AnnotationWriter implements ISupportInitialize:
         define variable progData as JsonObject no-undo.
         define variable refName as character no-undo.
         define buffer lbSource for Source.
-        define buffer lbRef for Reference.
         
         FindSourceRecord(pAblProgram, buffer lbSource).
         assign annoData = new JsonObject()
@@ -187,17 +190,7 @@ class OpenEdge.Core.Util.AnnotationWriter implements ISupportInitialize:
             return annoData.
         end.
         
-        find  lbRef
-        where lbRef.Source-guid eq lbSource.Source-guid
-          and lbRef.Reference-type eq 'CLASS':u
-        no-error.
-        
-        if available lbRef then
-            assign refName = lbRef.Object-identifier. 
-        else
-            assign refName = replace(lbSource.File-name, StringConstant:BACKSLASH, '/':u)
-                   refName = entry(num-entries(refName, '/':u), refName, '/':u) 
-                   .
+        assign refName = GetRefName(buffer lbSource).
         annoData:Add(refName, progData).
         
         return annoData.
@@ -213,24 +206,17 @@ class OpenEdge.Core.Util.AnnotationWriter implements ISupportInitialize:
         define variable progArray as JsonArray no-undo.
         define variable refName as character no-undo.
         define buffer lbSource for Source.
-        define buffer lbRef for Reference.
+        
         
         assign annoData = new JsonObject().
+        {&_proparse_ prolint-nowarn(wholeindex)}
         for each lbSource
            where lbSource.File-num eq 1
               by lbSource.File-name:
-            find  lbRef
-            where lbRef.Source-guid eq lbSource.Source-guid
-              and lbRef.Reference-type eq 'CLASS':u
-            no-error.
             
-            assign progData = ExtractAnnotations(buffer lbSource, pUserMap).
-            if available lbRef then
-                assign refName = lbRef.Object-identifier. 
-            else
-                assign refName = replace(lbSource.File-name, StringConstant:BACKSLASH, '/':u)
-                       refName = entry(num-entries(refName, '/':u), refName, '/':u) 
-                       .
+            assign progData = ExtractAnnotations(buffer lbSource, pUserMap)
+                   refName  = GetRefName(buffer lbSource)
+                   .
             // in case we have dups
             if annoData:Has(refName) then
             do:
@@ -253,6 +239,37 @@ class OpenEdge.Core.Util.AnnotationWriter implements ISupportInitialize:
         return annoData.
     end method.
     
+    /* Gets the 'ref name' - the class/interface or procedure name
+       for a source xref.
+       
+       The ref name has one of two forms
+       1) For CLASS or INTERFACE xrefs, the type name
+       2) For all others, the file base name (ie foo.p rather than bar/foo.p)
+       
+       @param buffer Source The source record
+       @return character The type or procedure name. Is UNKNOWN if the source buffer is not available. */
+    method protected character GetRefName(buffer pSource for Source):
+        define variable refName as character no-undo.
+        define buffer lbRef for Reference.
+        
+        if not available pSource then
+            return ?.
+        
+        find  lbRef
+        where lbRef.Source-guid eq pSource.Source-guid
+          and (   lbRef.Reference-type eq 'CLASS':u
+               or lbRef.Reference-type eq 'INTERFACE':u )
+            no-error.
+        if available lbRef then
+                assign refName = lbRef.Object-identifier. 
+        else
+            assign refName = replace(pSource.File-name, StringConstant:BACKSLASH, '/':u)
+                   refName = entry(num-entries(refName, '/':u), refName, '/':u) 
+                   .
+        
+        return refName.
+    end method.
+    
     /* Extracts annotations for a single program 
        
        @param buffer Source The current program whose annotations to extract
@@ -265,23 +282,47 @@ class OpenEdge.Core.Util.AnnotationWriter implements ISupportInitialize:
         define variable groupData as JsonObject no-undo.
         define variable annotations as JsonObject no-undo.
         
-        define buffer lbSrc for Source. 
+        define buffer lbSrc for Source.
+        define buffer lbRef for Reference.
         
         assign annotations = new JsonObject()
                groupData   = new JsonObject()
                .
         annotations:Add('meta':u, groupData).
-            groupData:Add('version':u, '1.0.0':u).
+            groupData:Add('version':u, '1.1.0':u).
         
         if not available pSource then
             return annotations.
         
         groupData:Add('fileName':u, pSource.File-name).
-        annotations:AddNull('program':u).
         
-        assign pos = r-index(pSource.File-name, '.':u).
-        if substring(pSource.File-name, pos + 1) eq 'cls':u then
+        /* What kind of a program is this? */
+        find  lbRef
+        where lbRef.Source-guid eq pSource.Source-guid
+          and (   lbRef.Reference-type eq 'CLASS':u
+               or lbRef.Reference-type eq 'INTERFACE':u )
+        no-error.
+        if available lbRef then
+            groupData:Add('programType':u, lbRef.Reference-type).
+        else
         do:
+            // workaround for XREF not containing this info
+            find  lbRef 
+            where lbRef.Source-guid       eq pSource.Source-guid
+              and lbRef.Reference-type    eq 'STRING':u
+              and lbRef.Object-identifier eq 'Progress.Lang.Enum':u
+            no-error.
+            if available lbRef then
+                groupData:Add('programType':u, 'ENUM':u).
+            else
+                groupData:Add('programType':u, 'PROCEDURE':u).
+        end.
+        
+        annotations:AddNull('program':u).
+        // this is an OOABL type
+        if available lbRef then
+        do:
+            groupData:Add('typeName':u, lbRef.Object-identifier).
             groupData:AddNull('inherits':u).
             groupData:AddNull('implements':u).
             
@@ -335,6 +376,7 @@ class OpenEdge.Core.Util.AnnotationWriter implements ISupportInitialize:
         define variable propGroup as character no-undo.
         define variable annotGroup as JsonObject no-undo.
         define variable valueData as JsonObject no-undo.
+        {&_proparse_ prolint-nowarn(varusage)}
         define variable jsonData as JsonObject no-undo.
         define variable valueSet as JsonArray no-undo.
         define variable groupName as character extent 2 no-undo.
@@ -417,7 +459,7 @@ class OpenEdge.Core.Util.AnnotationWriter implements ISupportInitialize:
                                         else
                                             valueSet:Add(annoValue).
                                     end.
-                                end. /* case */
+                                end case. /* case */
                             else
                                 if pos eq 0 and annoValue eq "" then
                                     valueData:AddNull(annoKey). /* Just add a null value for this key. */
@@ -481,7 +523,7 @@ class OpenEdge.Core.Util.AnnotationWriter implements ISupportInitialize:
                 do:
                     find  lbCls
                     where lbCls.Source-guid eq lbReference.Source-guid
-                      and lbCls.Ref-seq     eq lbReference.Ref-seq.
+                      and lbCls.Ref-seq     eq lbReference.Ref-seq no-error.
                     
                     assign extent(listValue) = ?
                            listValue         = String:Split(lbCls.Inherited-list, StringConstant:SPACE)

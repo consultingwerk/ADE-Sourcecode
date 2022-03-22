@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2016-2018 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2016-2018, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : DefaultArgumentValueWriterBuilder
@@ -37,7 +37,7 @@ class OpenEdge.Web.DataObject.Writer.DefaultArgumentValueWriterBuilder inherits 
        @param Progress.Lang.Class The argument type for this Arg Writer */
     constructor public DefaultArgumentValueWriterBuilder(input poArgType as class Progress.Lang.Class):
         super(poArgType).
-    end method.
+    end constructor.
     
     /* Instantiates a new Arg Writer for the passed-in type 
        

@@ -338,6 +338,14 @@
       <_Event-level>2</_Event-level>
       <_Event-criteria></_Event-criteria>
     </audit-event>
+    <audit-event Event-id="11002">
+      <_Event-level>2</_Event-level>
+      <_Event-criteria></_Event-criteria>
+    </audit-event>
+    <audit-event Event-id="11003">
+      <_Event-level>2</_Event-level>
+      <_Event-criteria></_Event-criteria>
+    </audit-event>
     <audit-event Event-id="11100">
       <_Event-level>2</_Event-level>
       <_Event-criteria></_Event-criteria>
@@ -1358,6 +1366,14 @@
       <_Event-level>1</_Event-level>
       <_Event-criteria></_Event-criteria>
     </audit-event>
+    <audit-event Event-id="11852">
+      <_Event-level>1</_Event-level>
+      <_Event-criteria></_Event-criteria>
+    </audit-event>
+    <audit-event Event-id="11853">
+      <_Event-level>1</_Event-level>
+      <_Event-criteria></_Event-criteria>
+    </audit-event>
     <audit-event Event-id="11901">
       <_Event-level>2</_Event-level>
       <_Event-criteria></_Event-criteria>
@@ -1508,4 +1524,4 @@
     </audit-event>
   </Policy>
 </Policies>
-<!-- SealID=tdpC0fFFHph6FOHXQJe/jw;cwmTL2cxCRxmlPvPnufJqw== -->
+<!-- SealID=1NpySoL8x7SJFMmMMNMmGg;j6VA73KlS7NquCac6XF7SA== -->

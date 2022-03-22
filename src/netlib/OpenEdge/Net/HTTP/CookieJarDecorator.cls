@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2015, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : CookieJarDecorator
@@ -48,7 +48,7 @@ class OpenEdge.Net.HTTP.CookieJarDecorator abstract implements ICookieJar:
         @param URI The host/URI for which to return the cookies.
         @param Cookie[] Output array of the cookies 
         @return integer The number of cookies returned */
-    method public integer GetCookies(input poUri as URI, output poCookies as Cookie extent).
+    method public integer GetCookies(input poUri as URI, output poCookies as Cookie extent):
         return DecoratedCookieJar:GetCookies(input poUri, output poCookies).
     end method.
 
@@ -68,7 +68,7 @@ class OpenEdge.Net.HTTP.CookieJarDecorator abstract implements ICookieJar:
         @param Cookie The cookie to add */
     method public void AddCookie(input pcDomain as character,
                                  input pcPath   as character,
-                                 input poCookie as Cookie).
+                                 input poCookie as Cookie):
         DecoratedCookieJar:AddCookie(pcDomain, pcPath, poCookie).
     end method.
     

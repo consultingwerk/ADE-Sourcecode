@@ -68,7 +68,7 @@ function GetConfigFile returns character (input pParams as character):
             assign fileName = entry(2, entry(loop, pParams, StringConstant:SPACE), '=':u).
     end.
     
-    return fileName. 
+    return fileName.
 end function.
 
 /* ***************************  Main Block  *************************** */
@@ -110,7 +110,7 @@ CATCH e AS Error:
         if type-of(e, AppError) then
             LOG-MANAGER:WRITE-MESSAGE (cast(e, AppError):ReturnValue).
         LOG-MANAGER:WRITE-MESSAGE (e:CallStack).
-        LOG-MANAGER:CLOSE-LOG.
+        LOG-MANAGER:CLOSE-LOG().
     END.
     IF testConfig:ShowErrorMessage THEN
         MESSAGE e:GetMessage(1)

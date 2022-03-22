@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2013, 2018, 2020 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2013, 2018, 2020-2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : ArrayIterator
@@ -30,7 +30,7 @@ class OpenEdge.Core.Collections.ArrayIterator implements IListIterator:
        @param Array The array over which to iterate */
     constructor public ArrayIterator(input poIteratedArray as Array):
         this-object(poIteratedArray, 0).
-    end method.
+    end constructor.
     
     /* Constructor
        
@@ -44,7 +44,7 @@ class OpenEdge.Core.Collections.ArrayIterator implements IListIterator:
         assign CurrentExtent = pIndex
                IteratedArray = pIteratedArray
                .
-    end method.
+    end constructor.
     
     method public logical HasNext():
         return ((CurrentExtent + 1) le IteratedArray:Size).

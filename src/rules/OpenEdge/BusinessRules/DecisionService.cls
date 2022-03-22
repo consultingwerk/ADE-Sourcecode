@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2013, 2018-2019 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2013, 2018-2019,2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : DecisionService
@@ -171,51 +171,16 @@ class OpenEdge.BusinessRules.DecisionService use-widget-pool:
         
         moSaxReader:SaxReaderCharacters:Subscribe(this-object:SaxReaderCharactersHandler).
         moSaxReader:SaxReaderStartElement:Subscribe(this-object:SaxReaderStartElementHandler).
-        moSaxReader:SaxReaderEndElement:Subscribe(this-object:SaxReaderEndElementHandler).
-        
-        if not IsServiceAvailable() then 
-        do:
-            case moDecisionServiceSelector:
-                when DecisionServiceSelectorEnum:Default then
-                    assign cSub2 = ''.
-                when DecisionServiceSelectorEnum:Version then
-                    assign cSub2 = substitute('version &1 ', this-object:Version).
-                when DecisionServiceSelectorEnum:Date then
-                    assign cSub2 = substitute('effective at &1 ', this-object:EffectiveOn).
-            end case.
-            
-            /* Note that there is NO gap between &2 and the following word. This is
-               deliberate to avoid additional spaces when the default decision service
-               selector is used. */
-            oAppError = new AppError(
-                    substitute('Decision Service &1 &2is not available on the Business Rules server',
-                        quoter(this-object:Name), cSub2)
-                    , 0).
-            oAppError:AddMessage(
-                substitute('Business Rules server connection parameters: &1', 
-                    this-object:ServerConnection:ToString())
-                ,0).
-            undo, throw oAppError. 
-        end.
+        moSaxReader:SaxReaderEndElement:Subscribe(this-object:SaxReaderEndElementHandler).       
     end method.
     
     /** Returns true if the current Decision Service is deployed.
         
         @return logical Whether the decision service is deployed of not. */    
     method public logical IsServiceAvailable():
-        case moDecisionServiceSelector:
-            when DecisionServiceSelectorEnum:Default then
-                return this-object:ServerConnection:IsDecisionServiceAvailable(
-                        this-object:Name).
-            when DecisionServiceSelectorEnum:Version then
-                return this-object:ServerConnection:IsDecisionServiceAvailable(
-                        this-object:Name,
-                        this-object:Version).
-            when DecisionServiceSelectorEnum:Date then
-                return this-object:ServerConnection:IsDecisionServiceAvailable(
-                        this-object:Name,
-                        this-object:EffectiveOn).
-        end case.
+        /* The Admin service via SOAP which is being utilized by ABL is no longer in Corticon 6.0. 
+           So, stopping the ABL Rules API from making that call on the Admin API*/
+        return true.
     end method.
     
     /** Invokes the decision service with the passed-in payload. Accepts a table 

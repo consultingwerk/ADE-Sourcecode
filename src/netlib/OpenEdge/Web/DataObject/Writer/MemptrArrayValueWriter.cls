@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016, 2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016, 2018, 2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : MemptrArrayValueWriter
@@ -69,12 +69,12 @@ class OpenEdge.Web.DataObject.Writer.MemptrArrayValueWriter inherits ArgumentVal
         
         assign cnt = extent(pData).
         do loop = 1 to cnt:
-            mBackingList:Add(new Memptr(pData[loop])).
+            mBackingList:Add(new memptr(pData[loop])).
         end.
     end method.
     
     method override public void Write(input pData as memptr):
-        mBackingList:Add(new Memptr(pData)).
+        mBackingList:Add(new memptr(pData)).
     end method.
     
     method override public void Write(input pData as Progress.Lang.Object extent):
@@ -88,7 +88,7 @@ class OpenEdge.Web.DataObject.Writer.MemptrArrayValueWriter inherits ArgumentVal
     end method.
         
     method override public void Write(input pData as Progress.Lang.Object):
-        define variable oArray as JsonArray no-undo.
+        {&_proparse_ prolint-nowarn(varusage)}
         define variable mArray as memptr extent no-undo.
         
         case true:

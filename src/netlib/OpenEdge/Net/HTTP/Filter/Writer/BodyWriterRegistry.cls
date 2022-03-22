@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2015, 2018-2019 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015, 2018-2019, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : BodyWriterRegistry
@@ -44,10 +44,10 @@ class OpenEdge.Net.HTTP.Filter.Writer.BodyWriterRegistry:
     
         @param BuilderRegistry The registry to populate */
     method static private void InitializeRegistry(input poRegistry as BuilderRegistry):
+        {&_proparse_ prolint-nowarn(varusage)}
+        define variable opType as class Progress.Lang.Class no-undo.
         
-        DEFINE VARIABLE opType AS CLASS Progress.Lang.Class.
-        
-        ASSIGN
+        assign
           opType = get-class(JsonBodyWriter).
         /* JSON */
         poRegistry:Put('application/json':u,              opType).
@@ -60,7 +60,7 @@ class OpenEdge.Net.HTTP.Filter.Writer.BodyWriterRegistry:
         /* FORM DATA */
         poRegistry:Put('application/x-www-form-urlencoded':u, get-class(FormDataBodyWriter)).
         
-        ASSIGN
+        assign
           opType = get-class(XmlBodyWriter).
         /* XML */
         poRegistry:Put('text/xml':u,                               opType).
@@ -69,8 +69,8 @@ class OpenEdge.Net.HTTP.Filter.Writer.BodyWriterRegistry:
         poRegistry:Put('application/xml-external-parsed-entity':u, opType).
         poRegistry:Put('application/xml-dtd':u,                    opType).
 
-        ASSIGN
-          opType = GET-CLASS(BinaryBodyWriter).
+        assign
+          opType = get-class(BinaryBodyWriter).
         /* BINARY */
         poRegistry:Put('application/octet-stream':u, opType).
         poRegistry:Put('application/pdf':u,          opType).

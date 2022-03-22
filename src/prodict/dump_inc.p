@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000,2011,2020 by Progress Software Corporation. All *
+* Copyright (C) 2000,2011,2020,2021 by Progress Software Corporation. All *
 * rights reserved. Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -117,8 +117,6 @@ end catch.
 
 /* Definitions */ /*-------------------------------------------------------*/
 
-&GLOBAL-DEFINE errFileName "incrdump.e"
-
 &SCOPED-DEFINE VAR_PREFIX       DUMP_INC
 &SCOPED-DEFINE DEFAULT_DF       delta.df
 &SCOPED-DEFINE DEFAULT_INDEX    inactive
@@ -155,6 +153,7 @@ DEFINE VARIABLE dictdb-id    AS RECID     INITIAL ? NO-UNDO.
 DEFINE VARIABLE shdb2-id     AS RECID     INITIAL ? NO-UNDO.
 DEFINE VARIABLE dictdb2-id   AS RECID     INITIAL ? NO-UNDO.
 
+DEFINE NEW SHARED VARIABLE errFileName  AS CHARACTER INITIAL "incrdump.e" NO-UNDO.
 DEFINE VARIABLE errcode      AS INTEGER   INITIAL 0 NO-UNDO.
 /* For DataServer Use */
 
@@ -259,7 +258,7 @@ END.
 Procedure doDumpIncr:
 
 IF debug-mode GT 0 THEN
-   OUTPUT STREAM err-log TO {&errFileName} APPEND NO-ECHO.
+   OUTPUT STREAM err-log TO VALUE(errFileName) APPEND NO-ECHO.
 
 IF NUM-DBS LT 2 THEN DO:
  IF user-dbtype1 = "PROGRESS" AND user-dbtype2 = "PROGRESS" THEN DO:
@@ -416,10 +415,15 @@ IF NOT SESSION:BATCH-MODE THEN DO:
           VIEW-AS ALERT-BOX ERROR BUTTONS OK.
   RETURN.
 END.  /* NOT SESSION:BATCH-MODE */
-
+/* Check write access */
+FILE-INFO:FILE-NAME = errFileName.
+IF FILE-INFO:FULL-PATHNAME ne ? AND INDEX(FILE-INFO:FILE-TYPE, "W":u) = 0 THEN
+  ASSIGN errFileName = SESSION:TEMP-DIRECTORY + errFileName.
+FILE-INFO:FILE-NAME = ?.  
+  
 IF this-procedure:persistent THEN DO:
   IF debug-mode GT 0 THEN DO:
-    OUTPUT STREAM err-log TO {&errFileName} APPEND NO-ECHO.
+    OUTPUT STREAM err-log TO VALUE(errFileName) APPEND NO-ECHO.
     PUT STREAM err-log UNFORMATTED SUBSTITUTE(new_lang[23], STRING(NOW)) SKIP(1).
   END.
 END.
@@ -439,7 +443,7 @@ ELSE DO:
 
 
 IF debug-mode GT 0 THEN DO:
-    OUTPUT STREAM err-log TO {&errFileName} APPEND NO-ECHO.
+    OUTPUT STREAM err-log TO VALUE(errFileName) APPEND NO-ECHO.
     PUT STREAM err-log UNFORMATTED SUBSTITUTE(new_lang[23], STRING(NOW)) SKIP(1).
   END.
 

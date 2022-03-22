@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2019 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2019, 2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : ProcedureOperationHandler
@@ -52,8 +52,6 @@ class OpenEdge.Web.DataObject.ProcedureOperationHandler inherits OperationHandle
                                            input poOperation as MappedOperation, 
                                            input poEntity as Progress.Lang.Object ):    
         define variable iMax as integer no-undo.
-        define variable iLoop as integer no-undo.
-        define variable iArgIdx as integer no-undo.
         define variable execTime as datetime extent 2 no-undo.
         define variable oOperArg as OperationArgument no-undo.
         define variable hDynCall as handle no-undo.
@@ -204,7 +202,7 @@ class OpenEdge.Web.DataObject.ProcedureOperationHandler inherits OperationHandle
         
         /* RUNIT */
         assign execTime[1] = now.
-        hDynCall:Invoke().
+        hDynCall:invoke().
         assign execTime[2] = now.
         
         Logger:Trace(substitute('Execution time for &1:&2 = &3 (ms)', 

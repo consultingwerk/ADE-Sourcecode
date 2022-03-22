@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2019 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2019, 2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
  /*------------------------------------------------------------------------
     File        : ArgumentValueWriter
@@ -63,7 +63,7 @@ class OpenEdge.Web.DataObject.Writer.ArgumentValueWriter abstract
         
         Assert:NotNull(poValue, 'Value holder').
         assign this-object:Value = poValue.
-    end method.
+    end constructor.
     
     /** Constructor.
         
@@ -247,11 +247,13 @@ class OpenEdge.Web.DataObject.Writer.ArgumentValueWriter abstract
         Logger:Warn(substitute('Write (rowid[]) method not implemented in &1', this-object:GetClass():TypeName)). 
     end method.
     
+    {&_proparse_ prolint-nowarn(recidkeyword)}
     method public void Write(input p0 as recid):
         /* no-op */
         Logger:Warn(substitute('Write (recid) method not implemented in &1', this-object:GetClass():TypeName)). 
     end method.
-    
+
+    {&_proparse_ prolint-nowarn(recidkeyword)}
     method public void Write(input p0 as recid extent):
         /* no-op */
         Logger:Warn(substitute('Write (recid[]) method not implemented in &1', this-object:GetClass():TypeName)). 

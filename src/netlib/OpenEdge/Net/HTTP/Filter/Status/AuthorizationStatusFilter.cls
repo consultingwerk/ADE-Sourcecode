@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2014-2017 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014-2017, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File       : AuthorizationStatusFilter
@@ -96,6 +96,7 @@ class OpenEdge.Net.HTTP.Filter.Status.AuthorizationStatusFilter
     method public void Write(input-output pcData as longchar):
         Assert:NotNullOrEmpty(pcData, 'Challenge').
         
+        {&_proparse_ prolint-nowarn(overflow)}
         assign mcChallenge = string(pcData).
     end method.
 

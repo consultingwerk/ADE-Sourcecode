@@ -1,5 +1,5 @@
 /**************************************************************************
-Copyright (c) 2014,2017-2018 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014,2017-2018,2021 by Progress Software Corporation. All rights reserved.
 **************************************************************************/
  /*------------------------------------------------------------------------
     File        : AgentInfo.cls
@@ -13,32 +13,29 @@ Copyright (c) 2014,2017-2018 by Progress Software Corporation. All rights reserv
 block-level on error undo, throw.
 
 class OpenEdge.ApplicationServer.AgentInfo :
-    /* Default constructor */
-    constructor public AgentInfo ():
+
+    /* Constructor */
+    constructor public AgentInfo ( ):
         setArchiveAgentStats(true).
     end constructor.
     
     /* Destructor */
-    destructor AgentInfo():
+    destructor AgentInfo ( ):
         setArchiveAgentStats(false).
-    end.
+    end destructor.
     
     /* Empties the cached agent request stats */
-    method public void clearAgentStatData():
+    method public void clearAgentStatData ( ):
         define variable statsData as handle no-undo.
         
-    /* clear the agent request table */
-
-    Progress.ApplicationServer.AgentInfo:getAgentRequestTableHandle(output statsData).
+        /* Clear the agent request table */
+        Progress.ApplicationServer.AgentInfo:getAgentRequestTableHandle(output statsData).
         if valid-handle(statsData) then
             statsData:empty-temp-table().
-
     end method.
     
-    /* Toggles the agent stats archive on and off.
-       
-       If we turn gathering stats OFF (a FALSE parameter) then we also
-       empty the cached stats
+    /* Toggles the agent stats archive on and off. If we turn gathering
+       stats OFF (a FALSE parameter) then we also empty the cached stats
        
        @param logical TRUE to enabled archiving; FALSE to disable
        @return logical TRUE when stats are archived, false otherwise */
@@ -50,7 +47,11 @@ class OpenEdge.ApplicationServer.AgentInfo :
         
         return Progress.ApplicationServer.AgentInfo:archiveAgentStats.
     end method.
-    
+
+    /* Returns the agent statistics
+
+       @param table-handle agent statistics data
+       @return logical */
     method public logical getAgentStatData (output table-handle pasThandle):
         Progress.ApplicationServer.AgentInfo:getAgentstatTableHandle(output pasThandle).
         
@@ -63,106 +64,161 @@ class OpenEdge.ApplicationServer.AgentInfo :
         return valid-handle(pasThandle).
     end method.
 
+    /* Returns the status of all agent sessions
+
+       @param table-handle agent session data
+       @return logical */
     method public logical getAgentSessionData (output table-handle pasThandle):
-        Progress.ApplicationServer.AgentInfo:getAgentsessionTableHandle(output pasThandle).
+        Progress.ApplicationServer.AgentInfo:getAgentSessionTableHandle(output pasThandle).
         
         return valid-handle(pasThandle).
     end method.
 
+    /* Returns the status of a specific agent session
+
+       @param character in session id 
+       @param table-handle agent session data
+       @return logical */
+    method public logical getAgentSessionData (input  agentSessId as integer,
+                                               output table-handle hTTCopy):
+        define variable hTTSrcBuffer  as handle no-undo.
+        define variable hTTCopyBuffer as handle no-undo.
+        define variable pasThandle    as handle no-undo.
+
+        Progress.ApplicationServer.AgentInfo:getAgentSessionTableHandle(output pasThandle).
+
+        /* Create dynamic temp-table */
+        create temp-table hTTCopy.
+    
+        /* Copy the schema from the one passed in */
+        hTTCopy:create-like(pasThandle).
+
+        /* Get the new temp-table ready and name it AgentSession */
+        hTTCopy:temp-table-prepare("AgentSession").    
+      
+        /* Get the default buffer for both source and target tables */
+        assign 
+            hTTSrcBuffer  = pasThandle:default-buffer-handle 
+            hTTCopyBuffer = hTTCopy:default-buffer-handle
+            . 
+
+        /* Fetch specific record from source table where session ID matches */
+        hTTSrcBuffer:find-first(substitute("where &1._Session-Id eq &2", pasThandle:name, agentSessId)) no-error.
+        if hTTSrcBuffer:available then do:
+            /* Create record and copy from source */
+            hTTCopyBuffer:buffer-create().
+            hTTCopyBuffer:buffer-copy(hTTSrcBuffer).
+            hTTCopyBuffer:buffer-release().
+        end.
+
+        return valid-handle(hTTCopy).
+        
+        finally:
+            delete object hTTCopy. 
+        end finally.
+    end method.
+
+    /* Returns the agent connection data
+
+       @param table-handle agent connection data
+       @return logical */
     method public logical getAgentConnectionData (output table-handle pasThandle):
         Progress.ApplicationServer.AgentInfo:getAgentConnectionTableHandle(output pasThandle).
         
         return valid-handle(pasThandle).
     end method.
 
-   /*
-    This method used to give all the requests that are running on the agent.
-    But because of the Issue:PSC00364863, we limited the API to return only
-    last 1000 requests information.
-    */
+    /* Returns the last 1000 requests for this agent
+
+       This method used to give all the requests that are running on the agent.
+       But because of the Issue:PSC00364863, we limited the API to return only
+       last 1000 requests information.
+
+       @param table-handle agent request data
+       @return logical */
     method public logical getAgentRequestData (output table-handle hTTCopy):
-        
-        DEFINE VARIABLE hTTSrcBuffer  AS HANDLE NO-UNDO.
-        DEFINE VARIABLE hTTCopyBuffer AS HANDLE NO-UNDO.
-        DEFINE VARIABLE hQuery        AS HANDLE NO-UNDO.
-        DEF    VAR      iCounter      AS INT    NO-UNDO.
-        def    var      pasThandle    as HANDLE NO-UNDO.
+        define variable hTTSrcBuffer  as handle  no-undo.
+        define variable hTTCopyBuffer as handle  no-undo.
+        define variable hQuery        as handle  no-undo.
+        define variable iCounter      as integer no-undo.
+        define variable pasThandle    as handle  no-undo.
         
         Progress.ApplicationServer.AgentInfo:getAgentRequestTableHandle(output pasThandle).
         
-        /* create dynamic temp-table */
-        CREATE TEMP-TABLE hTTCopy.
+        /* Create dynamic temp-table */
+        create temp-table hTTCopy.
     
         /* Copy the schema from the one passed in */
-        hTTCopy:CREATE-LIKE (pasThandle).
+        hTTCopy:create-like(pasThandle).
     
-      
         /* Get it ready and name it - in this case, AgentRequest is the new temp-table name */
-        hTTCopy:TEMP-TABLE-PREPARE("AgentRequest").    
-    
+        hTTCopy:temp-table-prepare("AgentRequest").    
       
         /* Get the default buffer for both source and target tables */
-        ASSIGN 
-            hTTSrcBuffer  = pasThandle:DEFAULT-BUFFER-HANDLE 
-            hTTCopyBuffer = hTTCopy:DEFAULT-BUFFER-HANDLE. 
+        assign 
+            hTTSrcBuffer  = pasThandle:default-buffer-handle 
+            hTTCopyBuffer = hTTCopy:default-buffer-handle
+            . 
     
         /* scan the source temp-table, in reverse order, and copy only the last
            1000 records. First create query to fetch records from source table */      
-     
-        CREATE QUERY hQuery.
-        hQuery:SET-BUFFERS(hTTSrcBuffer).
-        hQuery:QUERY-PREPARE("FOR EACH " +  pasThandle:NAME).
-     
-        hQuery:QUERY-OPEN().
+        create query hQuery.
+        hQuery:set-buffers(hTTSrcBuffer).
+        hQuery:query-prepare(substitute("for each &1", pasThandle:name)).
+        hQuery:query-open().
         /* get last one, to do reverse fetching */
-        hQuery:GET-LAST().
+        hQuery:get-last().
      
         /* loop through until query returns no more records */
-        DO WHILE NOT hQuery:QUERY-OFF-END:
-       
+        do while not hQuery:query-off-end:
             iCounter = iCounter + 1.
        
             /* Create record and copy from source */
-            hTTCopyBuffer:BUFFER-CREATE().
-            hTTCopyBuffer:BUFFER-COPY(hTTSrcBuffer).
-            hTTCopyBuffer:BUFFER-RELEASE().
+            hTTCopyBuffer:buffer-create().
+            hTTCopyBuffer:buffer-copy(hTTSrcBuffer).
+            hTTCopyBuffer:buffer-release().
        
             /* Stop when we create 100 records */
-            IF iCounter = 1000 THEN       
-            DO:
-                LEAVE.           
-            END.
+            if iCounter = 1000 then       
+            COUNTBLK:
+            do:
+                leave COUNTBLK.           
+            end.
        
             /* get previous record */
-            hQuery:GET-PREV().
-        END.
-     
-        /* Done with query */
-        hQuery:QUERY-CLOSE().
-        DELETE OBJECT hQuery.     
-        
+            hQuery:get-prev().
+        end.
+
         return valid-handle(hTTCopy).
         
-        FINALLY:
-            delete object hTTCopy. 
-        END FINALLY.
+        finally:
+            if valid-object(hQuery) then
+            do:
+                if hQuery:is-open then
+                    hQuery:query-close.
+                delete object hQuery no-error.
+            end.
 
+            delete object hTTCopy. 
+        end finally.
     end method.
  
     /* Returns the agent call stack for all sessions
        
-       @param longchar out JSON representation of the stack 
+       @param longchar out JSON representation of the stack
        @return logical  */
     method public logical getAgentStacks (output pStacks as longchar):
         define variable mptr as memptr no-undo.
         define variable retVal as logical no-undo.
         
         assign retVal = Progress.ApplicationServer.AgentInfo:GetAgentStacks(mptr).
+
         copy-lob from mptr 
                  // JSON data is spec'ed as UTF-8
                  to pStacks convert target codepage 'utf-8':u.
         
         return retVal.
+
         finally:
             set-size(mptr) = 0.
         end finally. 
@@ -172,16 +228,17 @@ class OpenEdge.ApplicationServer.AgentInfo :
        
        @param longchar out JSON representation of the stack 
        @return logical  */
-
     method public logical GetDynamicABLSessionLimitInfo (output sessionInfo as longchar):
         define variable mptr as memptr no-undo.
         define variable retVal as logical no-undo.
         
         assign retVal = Progress.ApplicationServer.AgentInfo:GetDynamicABLSessionLimitInfo(mptr).
+
         copy-lob from mptr // JSON data is spec'ed as UTF-8
             to sessionInfo convert target codepage 'utf-8':u.
         
         return retVal.
+
         finally:
             set-size(mptr) = 0.
         end finally. 
@@ -196,10 +253,10 @@ class OpenEdge.ApplicationServer.AgentInfo :
                                                 output pStack as longchar):
         define variable mptr as memptr no-undo.
         define variable retVal as logical no-undo.
-        define variable sessid_int as int no-undo.
+        define variable sessid_int as integer no-undo.
         define variable use_int as logical no-undo initial no.
 
-        if length(sessid) LE 10 then do:
+        if length(sessid) le 10 then do:
             sessid_int = integer(sessid) no-error.
             if not error-status:error then
                use_int = yes.
@@ -209,11 +266,13 @@ class OpenEdge.ApplicationServer.AgentInfo :
            retVal = Progress.ApplicationServer.AgentInfo:GetAgentSessionStack(sessid_int, mptr).
         else
            retVal = Progress.ApplicationServer.AgentInfo:GetAgentSessionStack(sessid, mptr).
+
         copy-lob from mptr 
                  // JSON data is spec'ed as UTF-8
                  to pStack convert target codepage 'utf-8':u.
         
         return retVal.
+
         finally:
             set-size(mptr) = 0.
         end finally. 
@@ -230,47 +289,47 @@ class OpenEdge.ApplicationServer.AgentInfo :
         define variable retVal as logical no-undo.
         
         assign retVal = Progress.ApplicationServer.AgentInfo:GetAgentSessionStack(sessid, mptr).
+
         copy-lob from mptr 
                  // JSON data is spec'ed as UTF-8
                  to pStack convert target codepage 'utf-8':u.
         
         return retVal.
+
         finally:
             set-size(mptr) = 0.
         end finally. 
     end method.
 
-    method public logical getClientSessionID(input agentsessid as int,
-                                             output clientsessid as char):
-      return Progress.ApplicationServer.AgentInfo:GetClientSessionID(
-                                                         input  agentsessid,
-                                                         output clientsessid).
+    method public logical getClientSessionID(input  agentSessId  as integer,
+                                             output clientSessId as character):
+        return Progress.ApplicationServer.AgentInfo:GetClientSessionID(input  agentSessId,
+                                                                       output clientSessId).
     end method.
 
-    method public integer getAgentSessionID(input clsessid as char):
-      return Progress.ApplicationServer.AgentInfo:GetAgentSessionID(clsessid).
+    method public integer getAgentSessionID(input clsessid as character):
+        return Progress.ApplicationServer.AgentInfo:GetAgentSessionID(clsessid).
     end method.
 
     /* Returns the number of agent requests being monitored 
        
-       return int64 The number of agent requests. Returns -1 if not enabled */
+       @return int64 The number of agent requests. Returns -1 if not enabled */
     method public int64 getAgentRequestQty ( ):
-        define variable hTempTable as handle no-undo.
-        define variable hBuffer as handle no-undo.
-        define variable hQuery  as handle no-undo.
-        define variable queryStr as character no-undo. 
-        define variable qty as int64 no-undo.
+        define variable pasThandle as handle no-undo.
+        define variable hBuffer    as handle no-undo.
+        define variable hQuery     as handle no-undo.
+        define variable qty        as int64  no-undo.
         
-        Progress.ApplicationServer.AgentInfo:getAgentRequestTableHandle(output hTempTable). 
-        if not valid-object(hTempTable) then return -1. 
+        Progress.ApplicationServer.AgentInfo:getAgentRequestTableHandle(output pasThandle). 
+        if not valid-object(pasThandle) then return -1.
 
-        hBuffer = hTempTable:default-buffer-handle.
+        hBuffer = pasThandle:default-buffer-handle.
         create query hQuery.
         hQuery:add-buffer(hBuffer).
-        queryStr = "preselect each ":u + hBuffer:name + " no-lock ":u.
-        hQuery:query-prepare(queryStr).
+        hQuery:query-prepare(substitute("preselect each &1 no-lock", hBuffer:name)).
         hQuery:query-open().
         qty = hQuery:num-results.
+
         return qty.
 
         finally:
@@ -284,62 +343,64 @@ class OpenEdge.ApplicationServer.AgentInfo :
     end method.
 
     /* Returns the active request for a given sessionID
+
        @param character in session id 
-       @param longchar out request info for the given session id 
-    */
-    method public void getAgentActiveRequestData (INPUT sessionId AS character, output table-handle hTTCopy):
-        
-        DEFINE VARIABLE hTTSrcBuffer  AS HANDLE NO-UNDO.
-        DEFINE VARIABLE hTTCopyBuffer AS HANDLE NO-UNDO.
-        DEFINE VARIABLE hQuery        AS HANDLE NO-UNDO.
-        def    var      pasThandle    as HANDLE NO-UNDO.
+       @param table-handle request info for the given session id */
+    method public void getAgentActiveRequestData (input  sessionId as character,
+                                                  output table-handle hTTCopy):
+        define variable hTTSrcBuffer  as handle no-undo.
+        define variable hTTCopyBuffer as handle no-undo.
+        define variable hQuery        as handle no-undo.
+        define variable pasThandle    as handle no-undo.
         
         Progress.ApplicationServer.AgentInfo:getAgentRequestTableHandle(output pasThandle).
         
         /* create dynamic temp-table */
-        CREATE TEMP-TABLE hTTCopy.
+        create temp-table hTTCopy.
     
         /* Copy the schema from the one passed in */
-        hTTCopy:CREATE-LIKE (pasThandle).
+        hTTCopy:create-like(pasThandle).
     
         /* Get it ready and name it - in this case, AgentRequest is the new temp-table name */
-        hTTCopy:TEMP-TABLE-PREPARE("AgentActiveRequest").    
+        hTTCopy:temp-table-prepare("AgentActiveRequest").    
     
         /* Get the default buffer for both source and target tables */
-        ASSIGN 
-            hTTSrcBuffer  = pasThandle:DEFAULT-BUFFER-HANDLE 
-            hTTCopyBuffer = hTTCopy:DEFAULT-BUFFER-HANDLE. 
+        assign 
+            hTTSrcBuffer  = pasThandle:default-buffer-handle 
+            hTTCopyBuffer = hTTCopy:default-buffer-handle
+            . 
     
         /* First create query to fetch records from source table */      
+        create query hQuery.
+        hQuery:set-buffers(hTTSrcBuffer).
+        hQuery:query-prepare(substitute("for each &1", pasThandle:name)).
+        hQuery:query-open().
      
-        CREATE QUERY hQuery.
-        hQuery:SET-BUFFERS(hTTSrcBuffer).
-        hQuery:QUERY-PREPARE("FOR EACH " +  pasThandle:NAME).
-     
-        hQuery:QUERY-OPEN().
-     
-        REPEAT:
-            hQuery:GET-NEXT().
-            IF hQuery:QUERY-OFF-END THEN LEAVE. 
+        QUERYBLK:
+        repeat:
+            hQuery:get-next().
+            if hQuery:query-off-end then leave QUERYBLK. 
 		
-            IF hTTSrcBuffer:BUFFER-FIELD("_Request-BrokerSessionId"):BUFFER-VALUE = sessionId THEN
-            DO:
+            if hTTSrcBuffer:buffer-field("_Request-BrokerSessionId"):buffer-value eq sessionId then
+            do:
                 /* Create record and copy from source */
-                hTTCopyBuffer:BUFFER-CREATE().
-                hTTCopyBuffer:BUFFER-COPY(hTTSrcBuffer).
-                hTTCopyBuffer:BUFFER-RELEASE().
-                
-            END.
+                hTTCopyBuffer:buffer-create().
+                hTTCopyBuffer:buffer-copy(hTTSrcBuffer).
+                hTTCopyBuffer:buffer-release().
+            end.
+        end.
 
-        END.
-     
         /* Done with query */
-        FINALLY:
-            hQuery:QUERY-CLOSE().
-            DELETE OBJECT hQuery.  
+        finally:
+            if valid-object(hQuery) then
+            do:
+                if hQuery:is-open then
+                    hQuery:query-close.
+                delete object hQuery no-error.
+            end.
+
             delete object hTTCopy. 
-        END FINALLY.
-        
+        end finally.
     end method.
 
 end class.

@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2017-2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2017-2018, 2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : SemanticVersion
@@ -41,7 +41,7 @@ class OpenEdge.Core.SemanticVersion serializable:
     /* Default constructor */
     constructor public SemanticVersion():
         this-object(0, 0, 0).
-    end method.
+    end constructor.
     
     /* Constructor
        
@@ -64,8 +64,8 @@ class OpenEdge.Core.SemanticVersion serializable:
                                        input pMinor as integer,
                                        input pPatch as integer,
                                        input pPreRel as character):
-        this-object(pMajor, pMinor, pPatch, '':u, '':u).
-    end method.
+        this-object(pMajor, pMinor, pPatch, pPreRel, '':u).
+    end constructor.
     
     /* Constructor
        
@@ -85,13 +85,13 @@ class OpenEdge.Core.SemanticVersion serializable:
         Assert:NotNull(pPreRel, 'Prerelease version').
         Assert:NotNull(pBuildMeta, 'Build metadata').
         
-        assign this-object:Major      = pMajor
-               this-object:Minor      = pMinor
-               this-object:Patch      = pPatch
-               this-object:PreRelease = pPreRel
-               this-object:BuildMetadata     = pBuildMeta
+        assign this-object:Major         = pMajor
+               this-object:Minor         = pMinor
+               this-object:Patch         = pPatch
+               this-object:PreRelease    = pPreRel
+               this-object:BuildMetadata = pBuildMeta
                .
-    end method.
+    end constructor.
     
     method override public character ToString():
         define variable version as character no-undo.

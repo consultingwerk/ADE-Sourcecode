@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016, 2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : DateTimeTzValueWriter
@@ -28,6 +28,7 @@ class OpenEdge.Web.DataObject.Writer.DateTimeTzValueWriter inherits ArgumentValu
     end method.
 
     method override public void Write(input pData as longchar):
+        {&_proparse_ prolint-nowarn(overflow)}
         this-object:Write(string(pData)).
     end method.
     

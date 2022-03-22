@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015-2016, 2020 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2015-2016, 2020-2021 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
    Purpose     : Writes data to a (web) stream from either a repsonse object
@@ -52,7 +52,7 @@ class OpenEdge.Web.WebResponseWriter inherits OutputStream:
         end set.
     
     define public property Message as IHttpMessage no-undo 
-        get().
+        get():
            return Response.
         end.
     
@@ -62,7 +62,7 @@ class OpenEdge.Web.WebResponseWriter inherits OutputStream:
     constructor public WebResponseWriter( poResponse as IHttpResponse ):
         this-object().
         assign this-object:Response = poResponse.
-    end.
+    end constructor.
     
     /*  Default Constructor */
     constructor public WebResponseWriter():
@@ -118,8 +118,8 @@ class OpenEdge.Web.WebResponseWriter inherits OutputStream:
         @param int64 The number of bytes to write from the offset
         @return int64 The number of bytes written */
     method public override int64 Write( pmData as memptr, offset as int64 , len as int64  ):
-        define variable tmpmemptr as memptr.
-        define variable lenmemptr as integer.
+        define variable tmpmemptr as memptr no-undo.
+        define variable lenmemptr as int64  no-undo.
         
         // The Write(memptr) method sets body_written = true ; we don't need to do it here 
         
@@ -169,7 +169,7 @@ class OpenEdge.Web.WebResponseWriter inherits OutputStream:
          
         @param character The data to write to the web stream 
         @return int64 The number of bytes written */
-    method public override int64 Write(pcData as character).
+    method public override int64 Write(pcData as character):
         define variable bytesWritten as int64 no-undo.
         
         WriteHttpPreamble().
@@ -201,8 +201,8 @@ class OpenEdge.Web.WebResponseWriter inherits OutputStream:
         if  not valid-object(Response:Entity) 
         and Response:HasHeader('Content-Length':u)
         then
-            // response to a HEAD request, we assume
-            .
+            /* response to a HEAD request, we assume */
+            . // no-op
         else
             // Per https://tools.ietf.org/html/rfc7230#section-3.3.2 , there MUST NOT be a Content-Length header
             // when there is transfer encoding

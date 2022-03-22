@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2014, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : Credentials
@@ -25,6 +25,7 @@ class OpenEdge.Net.HTTP.Credentials:
     define public property Password as character no-undo get. set.
     
     constructor public Credentials():
+        /* Default Constructor */
     end constructor.
     
     constructor public Credentials(input pcDomain as character,

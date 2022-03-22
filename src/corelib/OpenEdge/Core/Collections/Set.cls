@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2013,2014,2017-2018 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2013,2014,2017-2018,2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : Set
@@ -59,6 +59,8 @@ class OpenEdge.Core.Collections.Set inherits AbstractTTCollection implements ISe
         assign itemRowid = ?. 
         
         if can-find(pbSet where pbSet.objectref eq obj) then
+            /* Intentional lack of no-error on find. */
+            {&_proparse_ prolint-nowarn(findnoerror)}
             find pbSet where pbSet.objectref eq obj.
         if available pbSet then 
             return.
@@ -70,8 +72,10 @@ class OpenEdge.Core.Collections.Set inherits AbstractTTCollection implements ISe
         end.
         
         if not itemRowid eq ? then
+            /* Intentional lack of no-error on find. */
+            {&_proparse_ prolint-nowarn(findnoerror)}
             find pbSet where rowid(pbSet) eq itemRowid.
-    end.
+    end method.
    
     method public override logical Add(obj as Object):
         define buffer lbSet for ttSet.

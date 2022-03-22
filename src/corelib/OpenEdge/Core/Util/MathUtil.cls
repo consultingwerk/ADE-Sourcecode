@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2014, 2017, 2020 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014, 2017, 2020-2021 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : MathUtil
@@ -58,7 +58,7 @@ class OpenEdge.Core.Util.MathUtil:
         assign rHex = hex-decode( cHex )
                iMax = length( rHex, 'raw')
                .
-        do iLoop = 1 to iMax.
+        do iLoop = 1 to iMax:
           assign iResult = iResult * 256
                  iResult = iResult + get-byte(rHex, iLoop)
                  .

@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016, 2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : JsonValueWriter
@@ -56,8 +56,8 @@ class OpenEdge.Web.DataObject.Writer.JsonValueWriter inherits ArgumentValueWrite
         Assert:NotNull(poData).
         
         case true:
-            when type-of(poData, Memptr) then
-                assign oBody = cast(poData, Memptr).
+            when type-of(poData, memptr) then
+                assign oBody = cast(poData, memptr).
             
             when type-of(poData, ByteBucket) then
                 assign oBody = cast(poData, ByteBucket):GetBytes().
@@ -122,6 +122,7 @@ class OpenEdge.Web.DataObject.Writer.JsonValueWriter inherits ArgumentValueWrite
 
         @param handle Data to write */
     method override public void Write(input phData as handle):
+        {&_proparse_ prolint-nowarn(varusage)}
         define variable lOk as logical no-undo.
         define variable oData as JsonObject no-undo.
         

@@ -96,7 +96,11 @@ History:
     tmasood     11/11/2020  Include four new sections to support online schema change feature.
     kberlia     12/31/2020  Modified the code to generate the drop constraint statment properly in the DF file.
     tmasood     01/04/2021  Fixed issue with dump of update multi-tenant table
-    tmasood     05/19/2021  Handle the blank value passed in DUMP_INC_INDEXMODE 
+    tmasood     05/19/2021  Handle the blank value passed in DUMP_INC_INDEXMODE
+    tmasood     08/03/2021  Generate incrdump.e in temp-dir if write access are not provided
+    tmasood     10/18/2021  DROP FIELD opearation goes under PostDeploy section 
+	tmasood     11/24/2021  Index field should not be dumped under PostDeploy section
+	tmasood     11/26/2021  Fixed error 138 while dumping LOB field
 */
 
 using Progress.Lang.*.
@@ -186,8 +190,10 @@ DEFINE VARIABLE lAvalTrigger   AS LOGICAL NO-UNDO.
 DEFINE VARIABLE iDumpTrigger   AS INTEGER  NO-UNDO.
 DEFINE VARIABLE hStreamToWrite AS HANDLE NO-UNDO.
 DEFINE VARIABLE hDumpToStream  AS HANDLE NO-UNDO.
+DEFINE VARIABLE lDrpFldOnline  AS LOGICAL NO-UNDO INITIAL FALSE.
 DEFINE STREAM in-str.
 
+DEFINE NEW SHARED VARIABLE errFileName  AS CHARACTER INITIAL "incrdump.e" NO-UNDO.
 DEFINE NEW SHARED VARIABLE df-con AS CHARACTER EXTENT 7    NO-UNDO.
 DEFINE NEW SHARED VARIABLE dfseq  AS INTEGER INITIAL 1 NO-UNDO.
 DEFINE NEW SHARED TEMP-TABLE df-info NO-UNDO
@@ -226,10 +232,10 @@ DEFINE VARIABLE new_lang AS CHARACTER EXTENT 63 NO-UNDO INITIAL [
   /*24*/ " is in this AREA.  See the ""PROSTRCT""",
   /*25*/ "entry in the {&PRO_DISPLAY_NAME} Database Administration Guide and",
   /*26*/ "Reference for details.",
-  /*27*/ "Warnings have been written to a file called "{&errFileName}"",
-  /*28*/ "located in your current working directory.  Please check",   
-  /*29*/ "this file prior to loading this incremental .df.  Failure",
-  /*30*/ "to do so could result in errors or other undesirable results.",
+  /*27*/ "Warnings have been written to a file called ""incrdump.e""",
+  /*28*/ "located in your current working or session temp directory.",   
+  /*29*/ "Please check this file prior to loading this incremental .df.",
+  /*30*/ "Failure to do so could result in errors or other undesirable results.",
   /*31*/ "loading this .df or an error will result.  The new table",
   /*32*/ "The target database does not have encryption enabled." ,
   /*33*/ "The .df may contain encryption policy information but you will have",
@@ -432,7 +438,7 @@ PROCEDURE checkEPolicy:
                         VIEW-AS ALERT-BOX WARNING BUTTONS OK.
 
                     ASSIGN s_errorsLogged = TRUE.         
-                    OUTPUT STREAM err-log TO {&errFileName} APPEND NO-ECHO.
+                    OUTPUT STREAM err-log TO VALUE(errFileName) APPEND NO-ECHO.
 
                     PUT STREAM err-log UNFORMATTED
                          new_lang[32]    SKIP
@@ -479,7 +485,7 @@ PROCEDURE checkEPolicy:
             END.
 
             ASSIGN s_errorsLogged = TRUE.         
-            OUTPUT STREAM err-log TO {&errFileName} APPEND NO-ECHO.
+            OUTPUT STREAM err-log TO VALUE(errFileName) APPEND NO-ECHO.
 
             PUT STREAM err-log UNFORMATTED
                  new_lang[36]   SKIP
@@ -547,7 +553,7 @@ PROCEDURE checkObjectAttributes:
                         VIEW-AS ALERT-BOX WARNING BUTTONS OK.
 
                     ASSIGN s_errorsLogged = TRUE.         
-                    OUTPUT STREAM err-log TO {&errFileName} APPEND NO-ECHO.
+                    OUTPUT STREAM err-log TO VALUE(errFileName) APPEND NO-ECHO.
 
                     PUT STREAM err-log UNFORMATTED
                          new_lang[37]    SKIP
@@ -590,7 +596,7 @@ PROCEDURE checkObjectAttributes:
             END.
 
             ASSIGN s_errorsLogged = TRUE.         
-            OUTPUT STREAM err-log TO {&errFileName} APPEND NO-ECHO.
+            OUTPUT STREAM err-log TO VALUE(errFileName) APPEND NO-ECHO.
 
             PUT STREAM err-log UNFORMATTED
                  new_lang[38]   SKIP
@@ -620,7 +626,12 @@ ASSIGN p-batchmode = SESSION:BATCH-MODE.
   RUN set_Variables           IN h_dmputil(p-rename-file, p-debug-mode, p-silentincrd).
   RUN load_Rename_Definitions IN h_dmputil.
 /*END. */  /* batchmode */
-ASSIGN cIndexMode = OS-GETENV ("DUMP_INC_INDEXMODE").   
+ASSIGN cIndexMode = OS-GETENV ("DUMP_INC_INDEXMODE").
+/* Check write access */
+FILE-INFO:FILE-NAME = errFileName.
+IF FILE-INFO:FULL-PATHNAME ne ? AND INDEX(FILE-INFO:FILE-TYPE, "W":u) = 0 THEN
+  ASSIGN errFileName = SESSION:TEMP-DIRECTORY + errFileName.
+FILE-INFO:FILE-NAME = ?.  
 
 IF user_env[43] = "Yes" THEN
    ASSIGN hPreDeployStream  = STREAM pre-str:HANDLE
@@ -757,7 +768,7 @@ DO ON STOP UNDO, LEAVE
 
                                
         s_errorsLogged = TRUE.
-        OUTPUT STREAM err-log TO {&errFileName} APPEND NO-ECHO.
+        OUTPUT STREAM err-log TO VALUE(errFileName) APPEND NO-ECHO.
         p-log-line = new_lang[3] + '"' + DICTDB2._File._File-Name + '"' + 
                      new_lang[4].  /* 02/01/29 vap (IZ# 1525) */
         PUT STREAM err-log UNFORMATTED p-log-line SKIP.
@@ -887,7 +898,7 @@ DO ON STOP UNDO, LEAVE
   IF isDictdbMultiTenant = yes and isDictdb2MultiTenant = no THEN  /* IF one database is MT and other one is non MT. Give warning message */
   DO:
      ASSIGN s_errorsLogged = TRUE.        
-     OUTPUT STREAM err-log TO {&errFileName} APPEND NO-ECHO.
+     OUTPUT STREAM err-log TO VALUE(errFileName) APPEND NO-ECHO.
          
        PUT STREAM err-log UNFORMATTED new_lang[3] +
                   '"' + LDBNAME("DICTDB") + '"' + new_lang[39]     SKIP
@@ -897,7 +908,7 @@ DO ON STOP UNDO, LEAVE
    ELSE IF isDictdbMultiTenant = no and isDictdb2MultiTenant = yes THEN
    DO:
       ASSIGN s_errorsLogged = TRUE.        
-      OUTPUT STREAM err-log TO {&errFileName} APPEND NO-ECHO.
+      OUTPUT STREAM err-log TO VALUE(errFileName) APPEND NO-ECHO.
          
        PUT STREAM err-log UNFORMATTED new_lang[3] +
                   '"' + LDBNAME("DICTDB") + '"' + new_lang[41]     SKIP
@@ -908,7 +919,7 @@ DO ON STOP UNDO, LEAVE
   IF isDictDbPartitionEnabled = yes and isDictDb2PartitionEnabled = no THEN  /* IF one database is TP and other one is non TP. Give warning message */
   DO:
      ASSIGN s_errorsLogged = TRUE.        
-     OUTPUT STREAM err-log TO {&errFileName} APPEND NO-ECHO.
+     OUTPUT STREAM err-log TO VALUE(errFileName) APPEND NO-ECHO.
          
        PUT STREAM err-log UNFORMATTED new_lang[3] +
                   '"' + LDBNAME("DICTDB") + '"' + new_lang[56]     SKIP
@@ -918,7 +929,7 @@ DO ON STOP UNDO, LEAVE
    ELSE IF isDictDbPartitionEnabled = no and isDictDb2PartitionEnabled = yes THEN
    DO:
       ASSIGN s_errorsLogged = TRUE.        
-      OUTPUT STREAM err-log TO {&errFileName} APPEND NO-ECHO.
+      OUTPUT STREAM err-log TO VALUE(errFileName) APPEND NO-ECHO.
          
        PUT STREAM err-log UNFORMATTED new_lang[3] +
                   '"' + LDBNAME("DICTDB") + '"' + new_lang[58]     SKIP
@@ -967,7 +978,7 @@ DO ON STOP UNDO, LEAVE
        IF NOT AVAILABLE DICTDB2._Area THEN
        DO:
          ASSIGN s_errorsLogged = TRUE.
-         OUTPUT STREAM err-log TO {&errFileName} APPEND NO-ECHO.
+         OUTPUT STREAM err-log TO VALUE(errFileName) APPEND NO-ECHO.
          PUT STREAM err-log UNFORMATTED new_lang[3] +
             '"' + IF AVAIL DICTDB._Area THEN DICTDB._Area._Area-name ELSE '' + '"' + new_lang[21]     SKIP
             new_lang[22]                                           SKIP
@@ -980,7 +991,7 @@ DO ON STOP UNDO, LEAVE
        IF isDictdb2MultiTenant = no and DICTDB._File._File-attributes[1] = yes THEN
        DO:
           ASSIGN s_errorsLogged = TRUE.
-             OUTPUT STREAM err-log TO {&errFileName} APPEND NO-ECHO.
+             OUTPUT STREAM err-log TO VALUE(errFileName) APPEND NO-ECHO.
                PUT STREAM err-log UNFORMATTED new_lang[3] +
                         '"' + DICTDB._File._File-name + '"' + new_lang[43]     SKIP
                         '"' + LDBNAME("DICTDB")       + '"' + new_lang[44]     SKIP
@@ -991,7 +1002,7 @@ DO ON STOP UNDO, LEAVE
             AND DICTDB._File._File-attributes[1] = no and available DICTDB2._File and DICTDB2._File._File-attributes[1] = yes THEN
        DO:
            ASSIGN s_errorsLogged = TRUE.
-             OUTPUT STREAM err-log TO {&errFileName} APPEND NO-ECHO.
+             OUTPUT STREAM err-log TO VALUE(errFileName) APPEND NO-ECHO.
                PUT STREAM err-log UNFORMATTED new_lang[3] +
                         '"' + DICTDB._File._File-name + '"' + new_lang[43]     SKIP
                         '"' + LDBNAME("DICTDB2")      + '"' + new_lang[49]    SKIP
@@ -1105,7 +1116,7 @@ DO ON STOP UNDO, LEAVE
     ELSE IF DICTDB._File._File-Attributes[1] = no AND AVAILABLE DICTDB2._File AND DICTDB2._File._File-Attributes[1] = yes THEN  
     DO:
         ASSIGN s_errorsLogged = TRUE.
-        OUTPUT STREAM err-log TO {&errFileName} APPEND NO-ECHO.
+        OUTPUT STREAM err-log TO VALUE(errFileName) APPEND NO-ECHO.
             PUT STREAM err-log UNFORMATTED new_lang[3] +
                         '"' + DICTDB._File._File-name  + '"'  + new_lang[43]     SKIP
                         '"' + LDBNAME("DICTDB2")       + '"'  + new_lang[49]     SKIP
@@ -1191,7 +1202,7 @@ DO ON STOP UNDO, LEAVE
         If not DICTDB._File._File-Attributes[3] and DICTDB2._File._File-Attributes[3] then
         do:
             ASSIGN s_errorsLogged = TRUE.
-            OUTPUT STREAM err-log TO {&errFileName} APPEND NO-ECHO.
+            OUTPUT STREAM err-log TO VALUE(errFileName) APPEND NO-ECHO.
                 PUT STREAM err-log UNFORMATTED new_lang[3] +
                         '"' + DICTDB._File._File-name + '"' + new_lang[53]     SKIP
                         '"' + LDBNAME("DICTDB")       + '"' + new_lang[54]     SKIP
@@ -1557,9 +1568,19 @@ DO ON STOP UNDO, LEAVE
           ASSIGN drop-list.file-name  = DICTDB._File._File-Name
                  drop-list.f1-name    = field-list.f1-name
                  drop-list.f2-name    = field-list.f2-name.
-          PUT STREAM-HANDLE hOfflineStream UNFORMATTED
-            'DROP FIELD "' DICTDB._Field._Field-name
-            '" OF "' DICTDB._File._File-name '"' SKIP.
+          /* Cannot drop an LOB field online 
+            In one transaction, only one field can be dropped as online. PostDeploy will have one DROP FIELD operation  */         
+          IF NOT (DICTDB2._Field._Data-type = "CLOB" OR DICTDB2._Field._Data-type = "BLOB") AND NOT lDrpFldOnline 
+             AND NOT inindex(INPUT RECID(DICTDB2._File), INPUT RECID(DICTDB2._Field)) THEN DO:
+            PUT STREAM-HANDLE hPostDeployStream UNFORMATTED
+              'DROP FIELD "' DICTDB._Field._Field-name
+              '" OF "' DICTDB._File._File-name '"' SKIP.
+            lDrpFldOnline = TRUE.  
+          END.    
+          ELSE
+            PUT STREAM-HANDLE hOfflineStream UNFORMATTED
+              'DROP FIELD "' DICTDB._Field._Field-name
+              '" OF "' DICTDB._File._File-name '"' SKIP.    
           RELEASE DICTDB2._Field.
           lAvl = FALSE.
         END.
@@ -1756,8 +1777,8 @@ DO ON STOP UNDO, LEAVE
                                 AND DICTDB._Storageobject._Object-type = 3
                                 AND DICTDB._Storageobject._Object-number = DICTDB._Field._Fld-stlen
                                 and DICTDB._Storageobject._Partitionid   = 0                
-                              NO-LOCK.
-        FIND DICTDB._Area WHERE DICTDB._Area._Area-number = DICTDB._StorageObject._Area-number NO-LOCK .
+                              NO-LOCK.        
+        FIND DICTDB._Area WHERE DICTDB._Area._Area-number = DICTDB._StorageObject._Area-number NO-LOCK NO-ERROR.
         
         ASSIGN ddl[25] = "  LOB-AREA " + IF AVAIL DICTDB._Area THEN QUOTER(DICTDB._Area._Area-name) ELSE ''
                ddl[26] = "  LOB-BYTES "+ STRING(DICTDB._Field._Width)
@@ -1799,7 +1820,7 @@ DO ON STOP UNDO, LEAVE
                                 and DICTDB2._Storageobject._Partitionid   = 0                
                                 NO-LOCK.
         IF DICTDB._StorageObject._Area-number <> DICTDB2._StorageObject._Area-number THEN DO:
-          OUTPUT STREAM err-log TO {&errFileName} APPEND NO-ECHO.
+          OUTPUT STREAM err-log TO VALUE(errFileName) APPEND NO-ECHO.
    
           PUT STREAM err-log UNFORMATTED "Warning: Blob Field " +
                  '"' + DICTDB._Field._Field-name + '"' + new_lang[11] + 
@@ -2172,7 +2193,7 @@ DO ON STOP UNDO, LEAVE
                                 INPUT RECID(DICTDB2._DB)) THEN DO:
             ASSIGN s_errorsLogged = TRUE.
                 
-            OUTPUT STREAM err-log TO {&errFileName} APPEND NO-ECHO.
+            OUTPUT STREAM err-log TO VALUE(errFileName) APPEND NO-ECHO.
                 
             PUT STREAM err-log UNFORMATTED new_lang[10] +
                      '"' + DICTDB._Index._Index-name + '"' + new_lang[11] + 
@@ -2324,7 +2345,7 @@ DO ON STOP UNDO, LEAVE
 
       IF iact THEN DO:
         ASSIGN s_errorsLogged = TRUE.         
-        OUTPUT STREAM err-log TO {&errFileName} APPEND NO-ECHO.
+        OUTPUT STREAM err-log TO VALUE(errFileName) APPEND NO-ECHO.
          
         PUT STREAM err-log UNFORMATTED
              new_lang[18]                                  SKIP
@@ -2381,7 +2402,7 @@ DO ON STOP UNDO, LEAVE
               DICTDB2._Area._Area-name = DICTDB._Area._Area-name no-error.
       IF NOT AVAIL DICTDB2._Area THEN DO:
         ASSIGN s_errorsLogged = TRUE.        
-        OUTPUT STREAM err-log TO {&errFileName} APPEND NO-ECHO.
+        OUTPUT STREAM err-log TO VALUE(errFileName) APPEND NO-ECHO.
          
         PUT STREAM err-log UNFORMATTED new_lang[3] +
              '"' + IF AVAIL DICTDB._Area THEN DICTDB._Area._Area-name ELSE '' + '"' + new_lang[21]     SKIP
@@ -2436,7 +2457,7 @@ DO ON STOP UNDO, LEAVE
       do:  
          if not DICTDB._Index._index-attributes[1] and DICTDB2._Index._index-attributes[1] then
          do: 
-            OUTPUT STREAM err-log TO {&errFileName} APPEND NO-ECHO.  
+            OUTPUT STREAM err-log TO VALUE(errFileName) APPEND NO-ECHO.  
             PUT STREAM err-log UNFORMATTED new_lang[3] +
                         '"' + DICTDB._Index._Index-name + '"' + new_lang[53]     SKIP
                         '"' + LDBNAME("DICTDB")       + '"' + new_lang[54]     SKIP
@@ -2529,13 +2550,24 @@ DO ON STOP UNDO, LEAVE
       ans = TRUE.
       IF NOT p-batchmode and not p-silentincrd THEN  /* 02/01/29 vap (IZ# 1525) */
         DISPLAY missing.name @ fld2 WITH FRAME seeking.
-      PUT STREAM-HANDLE hOfflineStream UNFORMATTED
-        'DROP FIELD "' missing.name
-        '" OF "' DICTDB._File._File-name '"' SKIP.
+      /* Cannot drop an LOB field online 
+         In one transaction, only one field can be dropped as online. PostDeploy will have one DROP FIELD operation  */
+      FIND FIRST DICTDB2._Field WHERE DICTDB2._Field._Field-Name = missing.name NO-LOCK NO-ERROR.
+      IF NOT (DICTDB2._Field._Data-type = "CLOB" OR DICTDB2._Field._Data-type = "BLOB")  AND NOT lDrpFldOnline
+         AND NOT inindex(INPUT RECID(DICTDB2._File), INPUT RECID(DICTDB2._Field)) THEN DO:
+          PUT STREAM-HANDLE hPostDeployStream UNFORMATTED
+            'DROP FIELD "' missing.name
+            '" OF "' DICTDB._File._File-name '"' SKIP.
+          lDrpFldOnline  = TRUE.
+          PUT STREAM-HANDLE hPostDeployStream UNFORMATTED SKIP(1).
+      END.         
+      ELSE
+        PUT STREAM-HANDLE hOfflineStream UNFORMATTED
+          'DROP FIELD "' missing.name
+          '" OF "' DICTDB._File._File-name '"' SKIP.
       DELETE missing.
     END.
-    IF ans THEN PUT STREAM-HANDLE hOfflineStream UNFORMATTED SKIP(1).
-  
+    IF ans THEN PUT STREAM-HANDLE hOfflineStream UNFORMATTED SKIP(1).  
   
     DO ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE:
       HIDE MESSAGE.
@@ -2819,7 +2851,7 @@ DO ON STOP UNDO, LEAVE
          IF isDictdbMultiTenant = yes and isDictdb2MultiTenant = no THEN
          DO:
              ASSIGN s_errorsLogged = TRUE.
-             OUTPUT STREAM err-log TO {&errFileName} APPEND NO-ECHO.
+             OUTPUT STREAM err-log TO VALUE(errFileName) APPEND NO-ECHO.
                PUT STREAM err-log UNFORMATTED new_lang[3] +
                         '"' + DICTDB._Sequence._Seq-name + '"' + new_lang[48]     SKIP
                         '"' + LDBNAME("DICTDB")      + '"'    + new_lang[44]      SKIP
@@ -2837,7 +2869,7 @@ DO ON STOP UNDO, LEAVE
          IF DICTDB._Sequence._Seq-attributes[1] <> DICTDB2._Sequence._Seq-attributes[1] THEN
          DO:
              ASSIGN s_errorsLogged = TRUE.        
-             OUTPUT STREAM err-log TO {&errFileName} APPEND NO-ECHO.
+             OUTPUT STREAM err-log TO errFileName APPEND NO-ECHO.
          
              PUT STREAM err-log UNFORMATTED new_lang[3] + new_lang[51]
                  '"' + DICTDB._Sequence._Seq-name + '"' + new_lang[52] SKIP(1).

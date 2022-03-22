@@ -1,5 +1,5 @@
 /**************************************************************************
-Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2014, 2021 by Progress Software Corporation. All rights reserved.
 **************************************************************************/
  /*------------------------------------------------------------------------
     File        : AgentManager.cls
@@ -15,7 +15,7 @@ block-level on error undo, throw.
 
 class OpenEdge.ApplicationServer.AgentManager:
 
-    define private variable pasam as class Progress.ApplicationServer.AgentManager.
+    define private variable pasam as class Progress.ApplicationServer.AgentManager no-undo.
     
     method public logical cancelRequest(input brokerSessionId as character,
                                         input requstId        as character):

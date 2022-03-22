@@ -1,15 +1,15 @@
 /************************************************
-Copyright (c) 2016, 2018-2019 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2016, 2018-2019, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : LogMessage
     Purpose     : A data container/value object for a message to be logged, including
-                  substitution args 
-    Syntax      : 
-    Description : 
+                  substitution args
+    Syntax      :
+    Description :
     Author(s)   : pjudge
     Created     : Wed Nov 16 12:01:34 EST 2016
-    Notes       : 
+    Notes       :
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
@@ -62,12 +62,12 @@ class OpenEdge.Logging.LogMessage serializable:
                                   input pcArgs as character extent):
         this-object(pcGroup, pcMessageBase).
         AddContext('args':u, new LongcharArrayHolder(pcArgs)).
-    end method.
+    end constructor.
     
     /* Constructor
        
        @param character The message group
-       @param character The message base text 
+       @param character The message base text
        @param character The first argument (context) */
     constructor public LogMessage(input pcGroup as character,
                                   input pcMessageBase as character,
@@ -78,14 +78,14 @@ class OpenEdge.Logging.LogMessage serializable:
         
         assign args[1] = pcArg1.
         AddContext('args':u, new LongcharArrayHolder(args)).
-    end method.
+    end constructor.
     
     /* Constructor
        
        
        @param character The message group
-       @param character The message base text 
-       @param character The first argument 
+       @param character The message base text
+       @param character The first argument
        @param character The second argument   */
     constructor public LogMessage(input pcGroup as character,
                                   input pcMessageBase as character,
@@ -99,13 +99,13 @@ class OpenEdge.Logging.LogMessage serializable:
                args[2] = pcArg2
                .
         AddContext('args':u, new LongcharArrayHolder(args)).
-    end method.
+    end constructor.
     
     /* Constructor
        
        @param character The message group
-       @param character The message base text 
-       @param character The first argument 
+       @param character The message base text
+       @param character The first argument
        @param character The second argument
        @param character The third argument   */
     constructor public LogMessage(input pcGroup as character,
@@ -122,13 +122,13 @@ class OpenEdge.Logging.LogMessage serializable:
                args[3] = pcArg3
                .
         AddContext('args':u, new LongcharArrayHolder(args)).
-    end method.
+    end constructor.
     
     /* Constructor
        
        @param character The message group
-       @param character The message base text 
-       @param character The first argument 
+       @param character The message base text
+       @param character The first argument
        @param character The second argument
        @param character The third argument
        @param character The fourth argument  */
@@ -148,13 +148,13 @@ class OpenEdge.Logging.LogMessage serializable:
                args[4] = pcArg4
                .
         AddContext('args':u, new LongcharArrayHolder(args)).
-    end method.
+    end constructor.
     
     /* Constructor
        
        @param character The message group
-       @param character The message base text 
-       @param character The first argument 
+       @param character The message base text
+       @param character The first argument
        @param character The second argument
        @param character The third argument
        @param character The fourth argument
@@ -177,13 +177,13 @@ class OpenEdge.Logging.LogMessage serializable:
                args[5] = pcArg5
                .
         AddContext('args':u, new LongcharArrayHolder(args)).
-    end method.
+    end constructor.
     
     /* Constructor
        
        @param character The message group
-       @param character The message base text 
-       @param character The first argument 
+       @param character The message base text
+       @param character The first argument
        @param character The second argument
        @param character The third argument
        @param character The fourth argument
@@ -209,13 +209,13 @@ class OpenEdge.Logging.LogMessage serializable:
                args[6] = pcArg6
                .
         AddContext('args':u, new LongcharArrayHolder(args)).
-    end method.
+    end constructor.
     
     /* Constructor
        
        @param character The message group
-       @param character The message base text 
-       @param character The first argument 
+       @param character The message base text
+       @param character The first argument
        @param character The second argument
        @param character The third argument
        @param character The fourth argument
@@ -244,13 +244,13 @@ class OpenEdge.Logging.LogMessage serializable:
                args[7] = pcArg7
                .
         AddContext('args':u, new LongcharArrayHolder(args)).
-    end method.
+    end constructor.
     
     /* Constructor
        
        @param character The message group
-       @param character The message base text 
-       @param character The first argument 
+       @param character The message base text
+       @param character The first argument
        @param character The second argument
        @param character The third argument
        @param character The fourth argument
@@ -282,13 +282,13 @@ class OpenEdge.Logging.LogMessage serializable:
                args[8] = pcArg8
                .
         AddContext('args':u, new LongcharArrayHolder(args)).
-    end method.
+    end constructor.
     
     /* Constructor
        
        @param character The message group
-       @param character The message base text 
-       @param character The first argument 
+       @param character The message base text
+       @param character The first argument
        @param character The second argument
        @param character The third argument
        @param character The fourth argument
@@ -323,7 +323,7 @@ class OpenEdge.Logging.LogMessage serializable:
                args[9] = pcArg9
                .
         AddContext('args':u, new LongcharArrayHolder(args)).
-    end method.
+    end constructor.
     
     /* Adds context values to this message.
        
@@ -349,14 +349,14 @@ class OpenEdge.Logging.LogMessage serializable:
                 then
                     assign mTokensCtx = cast(pContext, IList).
                 else
-                    assign mTokensCtx = ?. 
+                    assign mTokensCtx = ?.
             
             otherwise
             do:
                 if not valid-object(mContext) then
                     assign mContext = new StringKeyedMap().
                 
-                mContext:Put(pKey, pContext). 
+                mContext:Put(pKey, pContext).
             end.
         end case.
     end method.
@@ -373,7 +373,7 @@ class OpenEdge.Logging.LogMessage serializable:
                 return mArgsCtx.
             
             when 'tokens':u then
-                return mTokensCtx. 
+                return mTokensCtx.
             
             otherwise
                 if valid-object(mContext) then

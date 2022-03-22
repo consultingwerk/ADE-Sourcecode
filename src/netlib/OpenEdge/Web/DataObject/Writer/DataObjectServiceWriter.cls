@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2018, 2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : DataObjectServiceWriter
@@ -70,7 +70,7 @@ class OpenEdge.Web.DataObject.Writer.DataObjectServiceWriter abstract
         
         Assert:NotNull(poValue, 'Value holder').
         assign this-object:Value = poValue.
-    end method.
+    end constructor.
     
     /** Constructor.
         

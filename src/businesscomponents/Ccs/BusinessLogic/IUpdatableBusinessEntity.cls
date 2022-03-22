@@ -31,10 +31,8 @@
     Notes       :
   ----------------------------------------------------------------------*/
 
-USING Ccs.BusinessLogic.* FROM PROPATH .
-
 INTERFACE Ccs.BusinessLogic.IUpdatableBusinessEntity
-    INHERITS IBusinessEntity:
+    INHERITS Ccs.BusinessLogic.IBusinessEntity:
 
     /*------------------------------------------------------------------------------
         Purpose: Stores data modifications in the persistent storage (typically a
@@ -49,6 +47,6 @@ INTERFACE Ccs.BusinessLogic.IUpdatableBusinessEntity
         @return An optional response object returned by the method
     ------------------------------------------------------------------------------*/
     METHOD PUBLIC Progress.Lang.Object updateData (INPUT-OUTPUT DATASET-HANDLE phDataset,
-                                                   poUpdateDataRequest AS IUpdateDataRequest).
+                                                   poUpdateDataRequest AS Ccs.BusinessLogic.IUpdateDataRequest).
 
 END INTERFACE.

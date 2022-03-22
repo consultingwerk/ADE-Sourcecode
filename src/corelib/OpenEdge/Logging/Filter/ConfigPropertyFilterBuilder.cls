@@ -1,20 +1,20 @@
 /* *************************************************************************************************************************
-Copyright (c) 2019 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2019, 2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
-    File        : ConfigPropertyFilterBuilder 
-    Purpose     : Auto-sets filter properties from configbuilder values 
-    Syntax      : 
-    Description : 
+    File        : ConfigPropertyFilterBuilder
+    Purpose     : Auto-sets filter properties from configbuilder values
+    Syntax      :
+    Description :
     Author(s)   : pjudge
     Created     : 2019-07-26
     Notes       : * Properties must be
                     - for an instance (not static)
-                    - publicly writable  
+                    - publicly writable
                   * The type property and JSON property must be identical (case-insensitive comparison)
                   * Only properties of certain data types are set:
                    - character
-                   - character[]: The property must be indeterminate or the extents of the config value 
+                   - character[]: The property must be indeterminate or the extents of the config value
                                   and property must be equal
                    - decimal
                    - datetime-tz
@@ -34,7 +34,7 @@ using Progress.Reflect.AccessMode.
 using Progress.Reflect.DataType.
 using Progress.Reflect.Property.
 
-class OpenEdge.Logging.Filter.ConfigPropertyFilterBuilder inherits LogFilterBuilder: 
+class OpenEdge.Logging.Filter.ConfigPropertyFilterBuilder inherits LogFilterBuilder:
     /* Constructor
        
        @param character The type of filter being build. */
@@ -83,60 +83,59 @@ class OpenEdge.Logging.Filter.ConfigPropertyFilterBuilder inherits LogFilterBuil
         define variable objValue as Progress.Lang.Object no-undo.
         define variable chrValue as character extent no-undo.
         
-        define buffer cfgValue for ConfigOption.
-        
         Assert:NotNull(pFilter, 'Logger filter instance').
         
         assign filterProps = pFilter:GetClass():GetProperties()
                cnt         = extent(filterProps)
                .
+        PROPERTY-LOOP:
         do loop = 1 to cnt
            on error undo, throw:
            
             // ignore properties defined on Progress.Lang.Object. The EQ ? check is probably faster than
             // EQ GET-CLASS(Progress.Lang.Object)
             if filterProps[loop]:DeclaringClass:SuperClass eq ? then
-                next.
+                next PROPERTY-LOOP.
             
             // must be able to set the value
-            if     filterProps[loop]:CanWrite 
+            if     filterProps[loop]:CanWrite
                and not filterProps[loop]:SetterAccessMode eq AccessMode:Public
             then
-                next.
+                next PROPERTY-LOOP.
             
-            // get the TT record since we want to do some stuff based on the stored type
-            if not FindConfigRecord(buffer cfgValue, filterProps[loop]:Name) then
-                next. 
+            if not HasOption(filterProps[loop]:Name) then
+                next PROPERTY-LOOP.
             
-            // data types must match
+            // data types must match; the GetOption*Value method throws an error if the stored type isn't as expected
+            // by the name
             if filterProps[loop]:Extent eq 0 then
             case filterProps[loop]:DataType:
                 when DataType:Character then
-                    filterProps[loop]:Set(pFilter, cfgValue.StringValue). 
+                    filterProps[loop]:Set(pFilter, GetOptionStringValue(filterProps[loop]:Name)).
                 
                 when DataType:Decimal then
-                    filterProps[loop]:Set(pFilter, cfgValue.NumericValue).
+                    filterProps[loop]:Set(pFilter, GetOptionNumericValue(filterProps[loop]:Name)).
                 
                 when DataType:Logical then
-                    filterProps[loop]:Set(pFilter, cfgValue.LogicalValue).
+                    filterProps[loop]:Set(pFilter, GetOptionLogicalValue(filterProps[loop]:Name)).
                 
                 when DataType:DateTimeTZ then
                 do:
                     // assume strings are in ISO-DATE format
-                    if cfgValue.ValueType eq 'string':u then
-                        filterProps[loop]:Set(pFilter, datetime-tz(cfgValue.StringValue)).
+                    if GetOptionType(filterProps[loop]:Name) eq 'string':u then
+                        filterProps[loop]:Set(pFilter, datetime-tz(GetOptionStringValue(filterProps[loop]:Name))).
                     else
-                        filterProps[loop]:Set(pFilter, cfgValue.DateTimeValue).
+                        filterProps[loop]:Set(pFilter, GetOptionDateTimeValue(filterProps[loop]:Name)).
                 end.
                 
                 when DataType:Object then
                 do:
-                    assign objValue = cfgValue.ObjectValue.
-                    // the stored option value must be of the property's declared type 
+                    assign objValue = GetOptionObjectValue(filterProps[loop]:Name).
+                    // the stored option value must be of the property's declared type
                     if     valid-object(objValue)
-                       and not objValue:GetClass():IsA(filterProps[loop]:DataTypeName) 
+                       and not objValue:GetClass():IsA(filterProps[loop]:DataTypeName)
                     then
-                        next.
+                        next PROPERTY-LOOP.
                     
                     filterProps[loop]:Set(pFilter, objValue).
                 end.
@@ -155,10 +154,11 @@ class OpenEdge.Logging.Filter.ConfigPropertyFilterBuilder inherits LogFilterBuil
                 end.
             end case.
             
-            catch err as Progress.Lang.Error:
+            {&_proparse_ prolint-nowarn(varusage)}
+            catch uncaught as Progress.Lang.Error:
                 // no-op: see method comment
             end catch.
-        end.
+        end.    // PROPERTY-LOOP
     end method.
     
 end class.

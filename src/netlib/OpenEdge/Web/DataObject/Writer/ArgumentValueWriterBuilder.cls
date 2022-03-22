@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2016-2018 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2016-2018, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : ArgumentValueWriterBuilder 
@@ -96,7 +96,7 @@ class OpenEdge.Web.DataObject.Writer.ArgumentValueWriterBuilder inherits ConfigB
     constructor public ArgumentValueWriterBuilder (input poArgType as class Progress.Lang.Class):
         Assert:NotNull(poArgType, 'Argument type').
         assign this-object:ArgumentType = poArgType.
-    end method.
+    end constructor.
     
     /** Specifies the Entity object to use for the message body   
         

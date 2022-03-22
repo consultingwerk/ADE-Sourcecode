@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2014, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
  /*------------------------------------------------------------------------
     File        : AppServerStatus.cls
@@ -16,15 +16,13 @@ Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
                   developer, if desired, can customize the return value.
   ----------------------------------------------------------------------*/
 
-using Progress.Lang.*.
-
 block-level on error undo, throw.
 
 class OpenEdge.Rest.Admin.AppServerStatus: 
 
-    method public char ServerStatus( ):
+    method public character ServerStatus( ):
         /* return "A developer can customize this". */
         return "".
-    end.    
+    end method.
         
 end class.

@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2015-2017 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2017, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : HtmlBodyWriter
@@ -50,7 +50,6 @@ class OpenEdge.Net.HTTP.Filter.Payload.HtmlBodyWriter inherits MessageWriter:
     
     method override public int64 Write( input poData as Object):
         define variable lcHtml as longchar no-undo.
-        define variable mHtml as memptr no-undo.
         define variable fileStream as FileInputStream no-undo.
         
         case true:

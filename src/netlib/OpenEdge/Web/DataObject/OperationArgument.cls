@@ -6,7 +6,7 @@ Copyright (c) 2016-2018 by Progress Software Corporation and/or one of its subsi
     Purpose     : This is the runtime argument (ie actual passed value) / value holder for a parameter.
     Author(s)   : pjudge
     Created     : 2016-05-25
-    Notes       : 
+    Notes       :
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
@@ -42,11 +42,11 @@ class OpenEdge.Web.DataObject.OperationArgument:
             if valid-object(pArgValue) then
                 Assert:IsType(pArgValue, this-object:ArgumentType).
             
-            assign this-object:ArgumentValue = pArgValue.                 
+            assign this-object:ArgumentValue = pArgValue.
         end set.
     
     /* The actual argument type (the ABL type in which the value is stored. Defaults to the parameter's DefaultType.
-       This valus is mutable because we may store the actual value in JSON as opposed to a dataset handle(say). */
+       This value is mutable because we may store the actual value in JSON as opposed to a dataset handle(say). */
     define public property ArgumentType as class Progress.Lang.Class no-undo
         get.
         set(input pArgType as class Progress.Lang.Class):
@@ -70,13 +70,13 @@ class OpenEdge.Web.DataObject.OperationArgument:
         assign this-object:Service      = pService
                this-object:Operation    = pOperation
                this-object:Parameter    = poParam
-               this-object:ArgumentType = poParam:ArgumentType 
+               this-object:ArgumentType = poParam:ArgumentType
                .
         // We need a "Value" property that is defined as CLASS <Object> EXTENT to be able to write object array values
         // The property MUST have PUBLIC SET access
         if     not poParam:IsPrimitive
            and poParam:IsArray
-           and not this-object:ArgumentType:IsA(get-class(IObjectArrayHolder)) 
+           and not this-object:ArgumentType:IsA(get-class(IObjectArrayHolder))
         then
             assign this-object:ArgumentType = get-class(IObjectArrayHolder).
     end constructor.

@@ -1,11 +1,11 @@
 /************************************************
-Copyright (c) 2018-2019 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2018-2019, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : MDCTokenFormat
-    Purpose     : A formatter for MDC-based tokens. 
-    Syntax      : 
-    Description : 
+    Purpose     : A formatter for MDC-based tokens.
+    Syntax      :
+    Description :
     Author(s)   : pjudge
     Created     : 2018-11-19
     Notes       : - The tokens must be of the format
@@ -45,17 +45,18 @@ class OpenEdge.Logging.Format.MDCTokenFormat implements ILoggerFilter:
             return.
         
         assign iter = cast(ctx, IList):Iterator().
+        TOKEN-LOOP:
         do while iter:HasNext():
             assign val = iter:Next().
             
             if    not valid-object(val)
                or not type-of(val, Token)
             then
-                next.
+                next TOKEN-LOOP.
             
             assign token = cast(val, Token).
-            if     not token:Arg eq '':u 
-               and OpenEdge.Logging.MDC:Has(token:Arg) 
+            if     not token:Arg eq '':u
+               and OpenEdge.Logging.MDC:Has(token:Arg)
             then
                 assign token:Value = OpenEdge.Logging.MDC:Get(token:Arg).
         end.

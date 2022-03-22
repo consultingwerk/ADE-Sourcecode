@@ -30,8 +30,6 @@
     Notes       :
   ----------------------------------------------------------------------*/
 
-USING Ccs.BusinessLogic.* FROM PROPATH .
-
 INTERFACE Ccs.BusinessLogic.INamedQuery:
 
     /*------------------------------------------------------------------------------
@@ -46,7 +44,7 @@ INTERFACE Ccs.BusinessLogic.INamedQuery:
         Notes:   Each Named Query Parameter consists of an identifier (name) and a value
                  (primitive holder) or values (primitive array holder)
     ------------------------------------------------------------------------------*/
-    DEFINE PUBLIC PROPERTY Parameters AS INamedQueryParameter EXTENT NO-UNDO
+    DEFINE PUBLIC PROPERTY Parameters AS Ccs.BusinessLogic.INamedQueryParameter EXTENT NO-UNDO
     GET.
 
 END INTERFACE.

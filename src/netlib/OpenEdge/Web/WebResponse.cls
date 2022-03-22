@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2015, 2017  by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015, 2017, 2021  by Progress Software Corporation. All rights reserved.
 *************************************************/  
 /*------------------------------------------------------------------------
    File        : WebResponse
@@ -30,7 +30,7 @@ class OpenEdge.Web.WebResponse inherits OpenEdge.Net.HTTP.HttpResponse:
         
         assign this-object:StatusCode   = pStatusCode
                this-object:StatusReason = StatusCodeHelper:GetMessage(pStatusCode)
-               this-object:Version      = 'HTTP/1.1':u.
+               this-object:Version      = 'HTTP/1.1':u
                .
     end constructor.    
 

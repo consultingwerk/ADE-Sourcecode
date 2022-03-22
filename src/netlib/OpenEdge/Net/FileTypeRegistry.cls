@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2018 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2018, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
    File        : FileTypeRegistry
@@ -30,8 +30,8 @@ class OpenEdge.Net.FileTypeRegistry:
         index idx2                   ParentRegistry MimeType
         .
     
-    /** Default constructor */
     constructor private FileTypeRegistry():
+        /** Default constructor */
     end constructor.
     
     destructor FileTypeRegistry():
@@ -40,12 +40,12 @@ class OpenEdge.Net.FileTypeRegistry:
     
     define static public property Registry as FileTypeRegistry no-undo
         get():
-            define variable registry as FileTypeRegistry no-undo.
+            define variable oRegistry as FileTypeRegistry no-undo.
             if not valid-object(FileTypeRegistry:Registry) then
             do:
-                assign registry = new FileTypeRegistry().
-                FileTypeRegistry:InitializeRegistry(registry).
-                assign FileTypeRegistry:Registry = registry.
+                assign oRegistry = new FileTypeRegistry().
+                FileTypeRegistry:InitializeRegistry(oRegistry).
+                assign FileTypeRegistry:Registry = oRegistry.
             end.
             return FileTypeRegistry:Registry.
         end get.
@@ -1086,7 +1086,7 @@ class OpenEdge.Net.FileTypeRegistry:
         if lExists then        
             find lbRegistry where
                  lbRegistry.ParentRegistry eq int64(this-object) and
-                 lbRegistry.ExtensionKey   eq pcExtensionKey.
+                 lbRegistry.ExtensionKey   eq pcExtensionKey no-error.
         else
         do:
             create lbRegistry.
@@ -1116,7 +1116,7 @@ class OpenEdge.Net.FileTypeRegistry:
         if lExists then        
             find lbRegistry where
                  lbRegistry.ParentRegistry eq int64(this-object) and
-                 lbRegistry.ExtensionKey   eq pcExtensionKey.
+                 lbRegistry.ExtensionKey   eq pcExtensionKey no-error.
         
         if lExists then
         do:

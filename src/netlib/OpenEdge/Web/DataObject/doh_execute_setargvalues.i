@@ -1,6 +1,6 @@
 &if false &then
 /* *************************************************************************************************************************
-Copyright (c) 2016-2017 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2017, 2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : doh_execute_setargvalues.i
@@ -14,15 +14,19 @@ Copyright (c) 2016-2017 by Progress Software Corporation and/or one of its subsi
                     &SWITCH-VALUE = the parameter data type
   ----------------------------------------------------------------------*/
 &endif
+
 &if defined(OPER-ARG) eq 0 &then
 &scoped-define OPER-ARG oOperArg
 &endif
+
 &if defined(VALUE-WRITER}) eq 0 &then
 &scoped-define VALUE-WRITER oValueWriter
 &endif
+
 &if defined(SWITCH-VALUE) eq 0 &then
 &scoped-define SWITCH-VALUE {&DATA-TYPE}
 &endif
+
 when '{&SWITCH-VALUE}':u then
     if {&OPER-ARG}:Parameter:IsArray then 
     case {&OPER-ARG}:ArgumentIndex:
@@ -55,7 +59,7 @@ when '{&SWITCH-VALUE}':u then
         when 27 then {&VALUE-WRITER}:Write(arg_arr_{&DATA-TYPE}_27).
         when 28 then {&VALUE-WRITER}:Write(arg_arr_{&DATA-TYPE}_28).
         when 29 then {&VALUE-WRITER}:Write(arg_arr_{&DATA-TYPE}_29).
-        when 20 then {&VALUE-WRITER}:Write(arg_arr_{&DATA-TYPE}_30).
+        when 30 then {&VALUE-WRITER}:Write(arg_arr_{&DATA-TYPE}_30).
         when 31 then {&VALUE-WRITER}:Write(arg_arr_{&DATA-TYPE}_31).
         when 32 then {&VALUE-WRITER}:Write(arg_arr_{&DATA-TYPE}_32).
         otherwise undo, throw new OpenEdge.Core.System.ArgumentError('Too many values specified', {&OPER-ARG}:Parameter:ABLType).

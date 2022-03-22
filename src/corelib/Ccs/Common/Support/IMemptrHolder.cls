@@ -30,11 +30,8 @@
     Notes       :
   ----------------------------------------------------------------------*/
 
-USING Ccs.Common.Support.* FROM PROPATH .
-USING Progress.Lang.*      FROM PROPATH .
-
 INTERFACE Ccs.Common.Support.IMemptrHolder
-    INHERITS IPrimitiveHolder:
+    INHERITS Ccs.Common.Support.IPrimitiveHolder:
 
     /*------------------------------------------------------------------------------
         Purpose: Returns the MEMPTR value held by this holder class

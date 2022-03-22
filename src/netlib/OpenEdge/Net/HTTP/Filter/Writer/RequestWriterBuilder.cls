@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015, 2018-2019 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2015, 2018-2019, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : RequestWriterBuilder
@@ -17,11 +17,11 @@ using OpenEdge.Core.ByteBucket.
 using OpenEdge.Core.ISupportInitialize.
 using OpenEdge.Net.HTTP.BuilderRegistry.
 using OpenEdge.Net.HTTP.ConfigBuilder.
+using OpenEdge.Net.HTTP.Filter.Payload.ConnectRequestFilter.
 using OpenEdge.Net.HTTP.Filter.Payload.DefaultRequestFilter.
 using OpenEdge.Net.HTTP.Filter.Payload.MessageWriter.
 using OpenEdge.Net.HTTP.Filter.Writer.RequestWriterBuilder.
 using OpenEdge.Net.HTTP.IHttpRequest.
-using OpenEdge.Net.HTTP.Filter.Payload.ConnectRequestFilter.
 
 class OpenEdge.Net.HTTP.Filter.Writer.RequestWriterBuilder inherits ConfigBuilder:
     /* The type of request being built. */
@@ -96,7 +96,7 @@ class OpenEdge.Net.HTTP.Filter.Writer.RequestWriterBuilder inherits ConfigBuilde
         return this-object.
     end method.    
     
-    /** Specifies the ByteBucket to use for the message body   
+    /** Specifies the ByteBucket to use for the message body
         
         @param  ByteBucket The bucket to use
         @return RequestWriterBuilder The writer used */
@@ -105,7 +105,7 @@ class OpenEdge.Net.HTTP.Filter.Writer.RequestWriterBuilder inherits ConfigBuilde
         
         SetOption(get-class(ByteBucket):TypeName, poMessageBody).
         return this-object.
-    end method.    
+    end method.
     
     method protected MessageWriter NewRequestWriter():
         define variable oWriter as MessageWriter no-undo.
@@ -118,12 +118,7 @@ class OpenEdge.Net.HTTP.Filter.Writer.RequestWriterBuilder inherits ConfigBuilde
         /* double-check we have the correct type */
         Assert:IsType(oWriterType, get-class(MessageWriter)).
         
-        oWriter= dynamic-new string(oWriterType:TypeName) ().
-        
-        if HasOption(get-class(ByteBucket):TypeName) then
-            oWriter:Entity = cast(GetOptionObjectValue(get-class(ByteBucket):TypeName), ByteBucket).
-        else
-            oWriter:Entity = ByteBucket:Instance(). 
+        oWriter = dynamic-new string(oWriterType:TypeName) ().
         
         if type-of(oWriter, ISupportInitialize) then
             cast(oWriter, ISupportInitialize):Initialize().

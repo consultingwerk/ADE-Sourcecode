@@ -1,5 +1,5 @@
 /* ***********************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2015, 2021 by Progress Software Corporation. All rights reserved.
  *************************************************/ 
 /*------------------------------------------------------------------------
     File        : MediaLinkEntity
@@ -52,7 +52,7 @@ class OpenEdge.Net.MediaLinkEntity serializable:
         this-object().
         
         assign this-object:ReadUrl = pcReadUrl.
-    end method.
+    end constructor.
     
     /* Constructor.
     
@@ -73,7 +73,7 @@ class OpenEdge.Net.MediaLinkEntity serializable:
         Assert:NotNull(poReadUrl, 'Read URI').
         
         assign this-object:ReadUrl = poReadUrl:ToString().
-    end method.
+    end constructor.
 
     /* Constructor.
     
@@ -85,10 +85,10 @@ class OpenEdge.Net.MediaLinkEntity serializable:
         
         Assert:NotNull(poEditUrl, 'Edit URI').
         assign this-object:EditUrl = poEditUrl:ToString().
-    end method.
+    end constructor.
 
-    /* Default constructor. */
     constructor MediaLinkEntity():
+        /* Default constructor. */
     end constructor.
         
     /* Deserializes a MLE into a real object

@@ -196,6 +196,14 @@
       <_Event-level>2</_Event-level>
       <_Event-criteria></_Event-criteria>
     </audit-event>
+    <audit-event Event-id="11002">
+      <_Event-level>2</_Event-level>
+      <_Event-criteria></_Event-criteria>
+    </audit-event>
+    <audit-event Event-id="11003">
+      <_Event-level>2</_Event-level>
+      <_Event-criteria></_Event-criteria>
+    </audit-event>
     <audit-event Event-id="11100">
       <_Event-level>2</_Event-level>
       <_Event-criteria></_Event-criteria>
@@ -358,4 +366,4 @@
     </audit-event>
   </Policy>
 </Policies>
-<!-- SealID=3SrqJxieVKt6FKHhULhJdA;5ffvDvYp9E67PI/9hfYhgQ== -->
+<!-- SealID=teaMahcPfIKFFB+xkMmnYg;6XSj+NM6VRWOuEEoKPbunw== -->

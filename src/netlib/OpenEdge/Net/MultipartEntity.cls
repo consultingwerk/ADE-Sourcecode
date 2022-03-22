@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2015, 2018 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015, 2018, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : MultipartEntity
@@ -174,7 +174,7 @@ class OpenEdge.Net.MultipartEntity implements ISupportMultipartEntity:
         do iLoop = 1 to iMax:
             find ttPart where
                  ttPart.ParentEntity eq integer(this-object) and
-                 ttPart.PartNum eq integer(entry(iLoop, cParts)).
+                 ttPart.PartNum eq integer(entry(iLoop, cParts)) no-error.
             
             assign oPart[iLoop] = cast(ttPart.Entity, MessagePart).
         end.
@@ -210,7 +210,7 @@ class OpenEdge.Net.MultipartEntity implements ISupportMultipartEntity:
                            ttPart.ParentEntity eq integer(this-object) and
                            ttPart.PartNum gt piPartNumber.
             get first qryParts.
-            do while available ttPart.
+            do while available ttPart:
                 assign ttPart.PartNum = piPartNumber
                        piPartNumber   = piPartNumber + 1.
                 get next qryParts.

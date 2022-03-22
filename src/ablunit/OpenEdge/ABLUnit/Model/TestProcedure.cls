@@ -1,26 +1,27 @@
 /************************************************
-Copyright (c) 2013-2014, 2019-2020 by Progress Software Corporation. All rights reserved.
-*************************************************/  
+Copyright (c) 2013-2014, 2019-2021 by Progress Software Corporation. All rights reserved.
+*************************************************/
  /*------------------------------------------------------------------------
     File        : TestProcedure
-    Purpose     : 
-    Syntax      : 
-    Description : 
+    Purpose     :
+    Syntax      :
+    Description :
     Author(s)   : svutla
     Created     : Fri Sep 20 22:47:19 IST 2013
-    Notes       : 
+    Notes       :
   ----------------------------------------------------------------------*/
 BLOCK-LEVEL ON ERROR UNDO, THROW.
 
 using Ccs.Common.Support.IHandleHolder.
+using OpenEdge.ABLUnit.Model.TestCase.
+using OpenEdge.ABLUnit.Reflection.AnnotationInfo.
 using OpenEdge.ABLUnit.Reflection.TestInfo.
 using OpenEdge.Core.WidgetHandle.
 using Progress.Lang.AppError.
-using OpenEdge.ABLUnit.Model.TestCase.
 
 CLASS OpenEdge.ABLUnit.Model.TestProcedure INHERITS TestCase:
     
-    /* Constructor 
+    /* Constructor
       
        @param integer The ID of this test entity */
     CONSTRUCTOR PUBLIC TestProcedure ( INPUT id1 AS INTEGER ):
@@ -47,7 +48,7 @@ CLASS OpenEdge.ABLUnit.Model.TestProcedure INHERITS TestCase:
         if     valid-object(Entity)
            and type-of(Entity, IHandleHolder)
         then
-            assign hInstance = cast(Entity, IHandleHolder):Value. 
+            assign hInstance = cast(Entity, IHandleHolder):Value.
         
         if valid-handle(hInstance) then
         do:
@@ -64,15 +65,29 @@ CLASS OpenEdge.ABLUnit.Model.TestProcedure INHERITS TestCase:
         if     valid-object(Entity)
            and type-of(Entity, IHandleHolder)
         then
-            assign hInstance = cast(Entity, IHandleHolder):Value. 
+            assign hInstance = cast(Entity, IHandleHolder):Value.
         
         if not valid-object(pMethodInfo) then
             // don't use Assert() because this state is a 'real error' not a test failure
             return error new AppError('Test method info is invalid', 0).
         
         if not valid-handle(hInstance) then
-            // don't use Assert() because this state is a 'real error' not a test failure
-            return error new AppError('Test instance is invalid', 0).
+        do:
+            this-object:Logger:Warn(substitute('Test instance for &1 invalid; re-running. Any "Before" procedures will be re-run.',
+                                               this-object:name)).
+            
+            // Try running the procedure again, using InstantiateEntity() to simply run the .P
+            // StartEntity is not run since we want errors (incl stops) to be handled by the
+            // normal run-test-method code
+            InstantiateEntity().
+            
+            // Run any before-all methods; errors are handled in a standard manner
+            RunLifecycleMethods(AnnotationInfo:BeforeAll, this-object, false).
+            
+            // If the .p fails to run, an error will be thrown from InstantiateEntity(),
+            // so we know the handle is good here
+            assign hInstance = cast(Entity, IHandleHolder):Value.
+        end.
         
         if hInstance:get-signature(pMethodInfo:TestName) eq '':u then
             // don't use Assert() because this state is a 'real error' not a test failure

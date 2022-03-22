@@ -31,11 +31,8 @@
     Notes       :
   ----------------------------------------------------------------------*/
 
-USING Ccs.BusinessLogic.*  FROM PROPATH .
-USING Ccs.Common.Support.* FROM PROPATH .
-
 INTERFACE Ccs.BusinessLogic.IQueryPredicate
-    INHERITS IQueryEntry:
+    INHERITS Ccs.BusinessLogic.IQueryEntry:
 
     /*------------------------------------------------------------------------------
         Purpose: Returns the name of the field for this query predicate
@@ -48,21 +45,21 @@ INTERFACE Ccs.BusinessLogic.IQueryPredicate
         Purpose: Returns the operator for this query predicate
         Notes:
     ------------------------------------------------------------------------------*/
-    DEFINE PUBLIC PROPERTY Operator AS QueryOperatorEnum NO-UNDO
+    DEFINE PUBLIC PROPERTY Operator AS Ccs.BusinessLogic.QueryOperatorEnum NO-UNDO
     GET.
 
     /*------------------------------------------------------------------------------
         Purpose: Returns a single value for this query predicate
         Notes:
     ------------------------------------------------------------------------------*/
-    DEFINE PUBLIC PROPERTY Value AS IPrimitiveHolder NO-UNDO
+    DEFINE PUBLIC PROPERTY Value AS Ccs.Common.Support.IPrimitiveHolder NO-UNDO
     GET.
 
     /*------------------------------------------------------------------------------
         Purpose: Returns a list of values for this query predicate
         Notes:   Used by the InRange and InList operators
     ------------------------------------------------------------------------------*/
-    DEFINE PUBLIC PROPERTY Values AS IPrimitiveArrayHolder NO-UNDO
+    DEFINE PUBLIC PROPERTY Values AS Ccs.Common.Support.IPrimitiveArrayHolder NO-UNDO
     GET.
 
 END INTERFACE.

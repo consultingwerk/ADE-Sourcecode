@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2013-2020 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2013-2022 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
    File        : ABLRunner
@@ -175,7 +175,7 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
                 ttXrefs.ParentDir = pcFrom
                 ttXrefs.FileName  = cFileName
                 ttXrefs.FullPath  = THIS-OBJECT:GetFullPathname(cFullName)
-                ttXrefs.isDir     = (INDEX(cCodes, "D":U) NE 0) 
+                ttXrefs.isDir     = (INDEX(cCodes, "D":U) NE 0)
                 .
 
             RELEASE ttXrefs.
@@ -392,9 +392,19 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
 
         DEFINE VARIABLE testJson AS JsonObject NO-UNDO.
         DEFINE VARIABLE testResource AS CHARACTER NO-UNDO.
-
-        ASSIGN writer = NEW ResultsXmlWriter().
-
+        
+        // Check if there's a ServiceManager and if that has a results writer defined
+        if valid-object(Ccs.Common.Application:ServiceManager) then
+        do:
+            assign writer = cast(Ccs.Common.Application:ServiceManager:getService(get-class(IResultsWriter)), IResultsWriter)
+                   no-error.
+            // in case an error was raised by the getService() call, clear it out (ie totally ignore it)
+            assign error-status:error = no.
+        end.
+        
+        if not valid-object(writer) then
+            ASSIGN writer = NEW ResultsXmlWriter().
+        
         THIS-OBJECT:FindXrefFiles().
 
         DO testIndex = 1 TO testsArray:Length:
@@ -419,10 +429,15 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
                 END.
             END.
         END.
+        
+        Logger:Debug(substitute('&1 tests loaded',testsArray:Length)).
 
         IF testEntity NE ? THEN DO:
             runtests(testEntity, updateFile).
+            Logger:Debug(substitute('&1 tests run',testsArray:Length)).
+            
             writer:WriteToFile(ablResultsFile, testEntity).
+            Logger:Debug(substitute('Results output created at &1', ablResultsFile)).
         END.
 
         FINALLY:
@@ -507,25 +522,26 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
         or pAttrName eq ?
         or pAttrName eq '':u
         or not pAttrData:Has(pAttrName)
-        then 
+        then
             return ?.
         
         case pAttrData:GetType(pAttrName):
             when JsonDataType:NULL   then assign attrVal = ?.
             when JsonDataType:STRING then assign attrVal = pAttrData:GetCharacter(pAttrName).
-            when JsonDataType:ARRAY then 
+            when JsonDataType:ARRAY then
             do:
                 assign ja  = pAttrData:GetJsonArray(pAttrName)
                        cnt = ja:Length
-                       . 
+                       .
                 DATA-LOOP:
                 do loop = 1 to cnt:
                     case ja:GetType(loop):
                         when JsonDataType:NULL   then assign jsonVal = '?':u.
                         when JsonDataType:STRING then assign jsonVal = ja:GetCharacter(loop).
-                                            otherwise assign jsonVal = string(ja:GetJsonText(loop)). 
+                        otherwise                     {&_proparse_ prolint-nowarn(overflow)}
+                                                       assign jsonVal = string(ja:GetJsonText(loop)).
                     end case.
-                    assign attrVal = attrVal + delim + jsonVal 
+                    assign attrVal = attrVal + delim + jsonVal
                            delim   = ',':u
                            .
                 end.
@@ -537,8 +553,8 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
     
     /* Create an Array of AnnotationInfo objects from the JSON data
        
-       @param JsonObject The annotation JSON data 
-       @return Array An array of annotation data. Will always be a valid object */ 
+       @param JsonObject The annotation JSON data
+       @return Array An array of annotation data. Will always be a valid object */
     method private Array BuildAnnotationInfo(input pData as JsonObject):
         define variable annotationsInfo as Array no-undo.
         define variable propNames as longchar extent no-undo.
@@ -553,6 +569,7 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
         define variable annoData as JsonObject no-undo.
         define variable attribLoop as integer no-undo.
         define variable attribCnt as integer no-undo.
+        // LONGCHAR arrays don't suffer from certain size constraints
         define variable attribNames as longchar extent no-undo.
         define variable val as character no-undo.
         
@@ -566,6 +583,7 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
                cnt       = extent(propNames)
                .
         do loop = 1 to cnt:
+            {&_proparse_ prolint-nowarn(overflow)}
             assign annoName = propNames[loop]
                    annoCnt  = 0
                    .
@@ -586,7 +604,7 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
                 do:
                     assign arrData = new JsonArray().
                     arrData:Add(pData:GetJsonObject(annoName)).
-                end.                    
+                end.
                     // array means multiple annots with the same name, just on a different line
                 when JsonDataType:ARRAY then
                     assign arrData = pData:GetJsonArray(annoName).
@@ -605,16 +623,18 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
                        attribCnt   = extent(attribNames)
                        
                        // the 'main' part of the annotation
+                       {&_proparse_ prolint-nowarn(overflow)}
                        attrName    = attribNames[1]
-                       val          = BuildAttributeValue(attrName, annoData)
+                       val         = BuildAttributeValue(attrName, annoData)
                        .
                 if not val eq ? then
                     assign attrValue = val.
                 do attribLoop = 2 to attribCnt:
-                    assign attrValue = attrValue + ',':U 
+                    {&_proparse_ prolint-nowarn(overflow)}
+                    assign attrValue = attrValue + ',':U
                                      + attribNames[attribLoop]
                                      + '=':u
-                                     + BuildAttributeValue(string(attribNames[attribLoop]), annoData). 
+                                     + BuildAttributeValue(string(attribNames[attribLoop]), annoData).
                 end.
                 // we add a distinct AnnotationInfo for each entry, even if they have the same name
                 annotationsInfo:Add(new AnnotationInfo(annoName, attrName, attrValue)).
@@ -630,6 +650,7 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
     METHOD PUBLIC TypeInfo ParseXMLDocument(INPUT xmlDocument AS CHARACTER):
         define variable annoWriter as AnnotationWriter no-undo.
         define variable fileAnnots as JsonObject no-undo.
+        // LONGCHAR arrays don't suffer from certain size constraints
         define variable propNames as longchar extent no-undo.
         define variable annots as JsonObject no-undo.
         define variable cnt as integer no-undo.
@@ -652,6 +673,7 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
             undo, throw new AppError(substitute('Unable to extract annotations from XML XREF file: "&1"', xmlDocument), 0).
         
         assign // the first (and only) child is the test case (suite/class/proc)
+               {&_proparse_ prolint-nowarn(overflow)}
                testCaseName = propNames[1]
                fileAnnots   = fileAnnots:GetJsonObject(testCaseName)
                // this program's typeinfo
@@ -675,79 +697,86 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
         else
             assign annotationsInfo = new Array().
         
-        if fileAnnots:GetJsonObject('meta':u):Has('inherits':u) then
-        do:
-            // is a class
-            assign typeInfo:classInfo = new ClassInfo(testCaseName, annotationsInfo).
-            // now methods
-            if not isSuite
-            and JsonPropertyHelper:HasTypedProperty(fileAnnots, 'method':u, JsonDataType:OBJECT)
-            then
+        case fileAnnots:GetJsonObject('meta':u):GetCharacter('programType':u):
+            when 'CLASS':u then
             do:
-                assign extent(propNames) = ?
-                       fnData    = fileAnnots:GetJsonObject('method':u)
-                       propNames = fnData:GetNames()
-                       cnt       = extent(propNames) 
-                       .
-                METHOD-LOOP:
-                do loop = 1 to cnt:
-                    assign pos          = r-index(propNames[loop], '(':u)
-                           testCaseName = substring(propNames[loop], 1, pos - 1)
-                           params       = substring(propNames[loop], pos)
+                assign typeInfo:classInfo = new ClassInfo(testCaseName, annotationsInfo).
+                // now methods
+                if not isSuite
+                and JsonPropertyHelper:HasTypedProperty(fileAnnots, 'method':u, JsonDataType:OBJECT)
+                then
+                do:
+                    assign extent(propNames) = ?
+                           fnData    = fileAnnots:GetJsonObject('method':u)
+                           propNames = fnData:GetNames()
+                           cnt       = extent(propNames)
                            .
-                    // only no-parameter methods are allowed. only protected and public methods appear
-                    // in the xref/annotations
-                    if not params eq '()':u then
-                        next METHOD-LOOP.
-                    
-                    if JsonPropertyHelper:HasTypedProperty(fnData, testCaseName + params, JsonDataType:OBJECT) then 
-                        assign annotationsInfo = BuildAnnotationInfo(fnData:GetJsonObject(testCaseName + params)).
-                    else
-                        assign annotationsInfo = ?.
-                    
-                    // only consider methods with annotations
-                    if valid-object(annotationsInfo) then
-                    do:
-                        assign testInfo              = new TestInfo(annotationsInfo, annotationsInfo:Size, testCaseName)
-                               typeInfo:methodsCount = typeInfo:methodsCount + 1
-                               testInfo:isStatic     = ?        // we can deprecate this flag 
+                    METHOD-LOOP:
+                    do loop = 1 to cnt:
+                        assign pos          = r-index(propNames[loop], '(':u)
+                               testCaseName = substring(propNames[loop], 1, pos - 1)
+                               params       = substring(propNames[loop], pos)
                                .
-                        typeInfo:methods:Add(testInfo).
+                        // only no-parameter methods are allowed. only protected and public methods appear
+                        // in the xref/annotations
+                        if not params eq '()':u then
+                            next METHOD-LOOP.
+                        
+                        if JsonPropertyHelper:HasTypedProperty(fnData, testCaseName + params, JsonDataType:OBJECT) then
+                            assign annotationsInfo = BuildAnnotationInfo(fnData:GetJsonObject(testCaseName + params)).
+                        else
+                            assign annotationsInfo = ?.
+                        
+                        // only consider methods with annotations
+                        if valid-object(annotationsInfo) then
+                        do:
+                            assign testInfo              = new TestInfo(annotationsInfo, annotationsInfo:Size, testCaseName)
+                                   typeInfo:methodsCount = typeInfo:methodsCount + 1
+                                   testInfo:isStatic     = ?        // we can deprecate this flag
+                                   .
+                            typeInfo:methods:Add(testInfo).
+                        end.
                     end.
                 end.
-            end.
-        end.
-        else
-        do:
-            // now internal procedures
-            if not isSuite
-            and JsonPropertyHelper:HasTypedProperty(fileAnnots, 'procedure':u, JsonDataType:OBJECT)
-            then
+            end.    // CLASS
+            
+            when 'PROCEDURE':u then
             do:
-                assign extent(propNames) = ?
-                       fnData    = fileAnnots:GetJsonObject('procedure':u)
-                       propNames = fnData:GetNames()
-                       cnt       = extent(propNames) 
-                       .
-                PROCEDURE-LOOP:
-                do loop = 1 to cnt:
-                    assign testCaseName = propNames[loop].
-                    if JsonPropertyHelper:HasTypedProperty(fnData, testCaseName, JsonDataType:OBJECT) then 
-                        assign annotationsInfo = BuildAnnotationInfo(fnData:GetJsonObject(testCaseName)).
-                    else
-                        assign annotationsInfo = ?.
-                    
-                    // only consider methods with annotations
-                    if valid-object(annotationsInfo) then
-                    do:
-                        assign testInfo              = new TestInfo(annotationsInfo, annotationsInfo:Size, testCaseName)
-                               typeInfo:methodsCount = typeInfo:methodsCount + 1
-                               .
-                        typeInfo:methods:Add(testInfo).
+                // now internal procedures
+                if not isSuite
+                and JsonPropertyHelper:HasTypedProperty(fileAnnots, 'procedure':u, JsonDataType:OBJECT)
+                then
+                do:
+                    assign extent(propNames) = ?
+                           fnData    = fileAnnots:GetJsonObject('procedure':u)
+                           propNames = fnData:GetNames()
+                           cnt       = extent(propNames)
+                           .
+                    PROCEDURE-LOOP:
+                    do loop = 1 to cnt:
+                        {&_proparse_ prolint-nowarn(overflow)}
+                        assign testCaseName = propNames[loop].
+                        if JsonPropertyHelper:HasTypedProperty(fnData, testCaseName, JsonDataType:OBJECT) then
+                            assign annotationsInfo = BuildAnnotationInfo(fnData:GetJsonObject(testCaseName)).
+                        else
+                            assign annotationsInfo = ?.
+                        
+                        // only consider methods with annotations
+                        if valid-object(annotationsInfo) then
+                        do:
+                            assign testInfo              = new TestInfo(annotationsInfo, annotationsInfo:Size, testCaseName)
+                                   typeInfo:methodsCount = typeInfo:methodsCount + 1
+                                   .
+                            typeInfo:methods:Add(testInfo).
+                        end.
                     end.
                 end.
-            end.
-        end.
+            end.    // PROCEDURE
+            
+            // we don't know how to handle interfaces and other types
+            otherwise
+                return ?.
+        end case.
         
         // This condition is for testsuites, which has only one annotation preceding the class definition and no methods.
         // Remove the empty method/procedure we added up front
@@ -760,7 +789,7 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
             typeInfo:methodsCount = typeInfo:methodsCount - 1.
         end.
         
-        return TypeInfo.
+        return typeInfo.
     END METHOD.
     
     /*------------------------------------------------------------------------------
@@ -787,7 +816,10 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
         /** for qualified classes input **/
         testClassName = getRelativePathOfClasses(testClassName).
         typeInfo = BuildTypeInfo(testClassName, "class").
-
+        // May be invalid for interfaces. This does not indicate an error condition
+        if not valid-object(typeInfo) then
+            return.
+        
         methodInfoList = typeInfo:methods.
         classAnnotInfo = NEW ClassAnnotationInfo().
 
@@ -866,6 +898,7 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
             DEFINE VARIABLE testClass AS TestClass NO-UNDO.
             
             assign testClass                = NEW TestClass(currentID)
+                   testClass:Logger         = this-object:Logger
                    currentID                = currentID + 1
                    testClass:Name           = testClassName
                    testClass:AnnotationInfo = classAnnotInfo
@@ -876,8 +909,8 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
             IF ignoreTest THEN
                 UpdateIgnoreDetails(testResult, testClass, testClassName, testModel:Summary).
             ELSE
-            // The testMethod variable only has a value when we're testing a single test in a testcase. If it's a 
-            // private/protected method then it won't appear in the annotations, and we will skip it since we cannot test it 
+            // The testMethod variable only has a value when we're testing a single test in a testcase. If it's a
+            // private/protected method then it won't appear in the annotations, and we will skip it since we cannot test it
             if testMethod eq '':u
             or valid-object(testMethodInfo)
             then
@@ -988,6 +1021,10 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
         DEFINE VARIABLE isTestProc AS LOGICAL NO-UNDO INITIAL NO.
         
         typeInfo = BuildTypeInfo(testProcedureName, "proc").
+        // May be invalid for interfaces. This does not indicate an error condition
+        if not valid-object(typeInfo) then
+            return.
+        
         procInfoList = typeInfo:methods.
         procAnnotInfo = NEW ProcedureAnnotationInfo().
         /*
@@ -1078,10 +1115,12 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
         END.
         ELSE IF testSuiteCount = 0 THEN
         DO:
-            procTestEntity = NEW TestProcedure(currentID).
-            currentID = currentID + 1.
-            procTestEntity:Name = testProcedureName.
-            procTestEntity:AnnotationInfo = procAnnotInfo.
+            assign procTestEntity                = NEW TestProcedure(currentID)
+                   currentID                     = currentID + 1
+                   procTestEntity:Logger         = this-object:Logger
+                   procTestEntity:Name           = testProcedureName
+                   procTestEntity:AnnotationInfo = procAnnotInfo
+                   .
             testEntity:addTestEntity(procTestEntity).
             IF testInternalProcedure = "" THEN
                 populateTestModelForInternalProcs(procHandle, testProcedureName, procAnnotInfo, testProcInfo, TRUE, procTestEntity).
@@ -1160,8 +1199,8 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
             populateTestModelForTestFolder(testClass, testEntity).
         ELSE
         IF testClass MATCHES "*~~.cls"
-        OR testClass MATCHES "*~~.p" 
-        OR testClass MATCHES "*~~.r" 
+        OR testClass MATCHES "*~~.p"
+        OR testClass MATCHES "*~~.r"
         THEN
             populateTestModelForTestCase(testClass, testMethod, testEntity).
     END METHOD.
@@ -1182,8 +1221,13 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
             IF fileN EQ "." OR
                fileN EQ ".." OR
                fCodes BEGINS "D" THEN NEXT DIRBLK.
-
-            IF (fileN MATCHES "*~~.cls" OR fileN MATCHES "*~~.p" OR fileN MATCHES "*~~.r") THEN
+            
+            // only use r-code if xrefs are in use
+            if (testConfig:useXref
+                and fileN MATCHES "*~~.r")
+            or (fileN MATCHES "*~~.cls"
+                OR fileN MATCHES "*~~.p")
+            then
                 populateTestModelForTestCase(testFolder + "~/" + fileN, "", testEnity).
         END.
 
@@ -1379,12 +1423,12 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
         ASSIGN startTime = NOW.
         /* Suite Class, Suite Procedure, Test Class may have configured with Ignore Annotation.
            The TestRootModel is a "virtual" TestEntity, that's at the top of the graph, and doesn't actually have any
-           tests itself. This method - runtest() - is called recursively so as to run All The Tests. If the root model 
-           has an ignored test, we continue; if there's a TestSuite/TestCase/TestProcedure/etc that has the @Ignored 
+           tests itself. This method - runtest() - is called recursively so as to run All The Tests. If the root model
+           has an ignored test, we continue; if there's a TestSuite/TestCase/TestProcedure/etc that has the @Ignored
            annotation, we skip running just that test/case/suite. */
         /*Start*/
         
-        IF  testEntity:Summary:ignoreCount GT 0 
+        IF  testEntity:Summary:ignoreCount GT 0
         and not type-of(testEntity, TestRootModel)
         THEN
         DO:
@@ -1404,13 +1448,15 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
             ASSIGN runnableEntity = CAST(testEntity, IRunnableEntity).
 
             runnableEntity:StartEntity().
+            
+            // Update the updatefile ... but don't add to the numbers
+            ProcessTestResult(testEntity, ?).
+            
+            // if there's an error we want to write TEST_EXCEPTION
             IF    testEntity:Summary:errorCount GT 0
                OR testEntity:Summary:failureCount GT 0
             THEN
                 RETURN testEntity:Summary.
-            ELSE
-                // ... but don't add success (since we're not _actually_ running a test here ...
-                ProcessTestResult(testEntity, ?).
         END.
 
         DO j = 1 TO childrenSize:
@@ -1437,16 +1483,17 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
         IF VALID-OBJECT(runnableEntity) THEN
         DO:
             runnableEntity:StopEntity().
-            // if there's an error we don't want to write TEST_END
+            
+            // Don't add to the counts since we're not _actually_ running a test here ...
+            ProcessTestResult(testEntity, ?).
+            
+            // if there's an error we want to write TEST_EXCEPTION
             IF    testEntity:Summary:errorCount GT 0
                OR testEntity:Summary:failureCount GT 0
             THEN
                 RETURN testEntity:Summary.
-            ELSE
-                // ... but don't add success (since we're not _actually_ running a test here ...
-                ProcessTestResult(testEntity, ?).
-        END.  
-
+        END.
+        
         ASSIGN testEntity:TimeTaken = INTERVAL(NOW, startTime, 'milliseconds':u) / 1000.
         updateFile(pUpdateFile, "TEST_END " + STRING(testEntity:Id) + " " + STRING(testEntity:TimeTaken) , FALSE).
 

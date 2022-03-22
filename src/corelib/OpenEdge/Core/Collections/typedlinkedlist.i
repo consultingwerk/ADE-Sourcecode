@@ -1,6 +1,6 @@
 &if 1=0 &then
 /************************************************
-Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2014, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : OpenEdge/Core/Collections/typedlinkedlist.i
@@ -49,6 +49,7 @@ class {&FullType} {&serializable} {&Interfaces}:
     define public property First as class {&NodeType} no-undo get. private set.
     
     constructor public {&ListType}():
+        /* Default constructor */
     end constructor.
 
     /** Constructor

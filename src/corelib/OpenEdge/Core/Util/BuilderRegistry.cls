@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2016-2019 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2016-2019, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : BuilderRegistry
@@ -138,7 +138,7 @@ class OpenEdge.Core.Util.BuilderRegistry:
         if lExists then
             find lbRegistry where
                  lbRegistry.ParentRegistry eq int64(this-object) and
-                 lbRegistry.TypeKey        eq pcTypeKey.
+                 lbRegistry.TypeKey        eq pcTypeKey no-error.
         else
         do:
             create lbRegistry.
@@ -164,7 +164,7 @@ class OpenEdge.Core.Util.BuilderRegistry:
         find lbRegistry where
              lbRegistry.ParentRegistry eq int64(this-object) and
              lbRegistry.TypeKey        eq pcTypeKey
-             .
+             no-error.
         delete lbRegistry.
         assign this-object:Size = this-object:Size - 1.
         
@@ -240,7 +240,7 @@ class OpenEdge.Core.Util.BuilderRegistry:
         find lbRegistry where
              lbRegistry.ParentRegistry eq int64(this-object) and
              lbRegistry.TypeKey eq pcTypeKey
-             .
+             no-error.
         return cast(lbRegistry.Type, Progress.Lang.Class).
     end method.
     

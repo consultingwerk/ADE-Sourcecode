@@ -469,8 +469,9 @@ class OpenEdge.BusinessLogic.Query.QueryBuilder:
                                         cClause).
         
         return cClause.
-        catch err as Progress.Lang.Error:
-            int64(err).  // tell sonarqube that we really want to catch&swallow this error
+
+        {&_proparse_ prolint-nowarn(varusage)}
+        catch uncaught as Progress.Lang.Error:
             return "". /* Return empty clause if an error is encountered. */
         end catch.
     end method. /* BuildClause */

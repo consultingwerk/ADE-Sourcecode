@@ -1,16 +1,16 @@
 /* *************************************************************************************************************************
-Copyright (c) 2018-2019 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2018-2019, 2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : TokenContextFormat
     Purpose     : (Re)Builds a message from a set of tokenised values
-    Syntax      : 
-    Description : 
+    Syntax      :
+    Description :
     Author(s)   : pjudge
     Created     : 2018-11-19
     Notes       : - This format filter should be the _last_ filter before any writers,
-                    so that the log message can be properly constructed 
-                  - This filter is cached in the LoggerFilterRegistry as the REPLACE_TOKENS_FORMAT filter 
+                    so that the log message can be properly constructed
+                  - This filter is cached in the LoggerFilterRegistry as the REPLACE_TOKENS_FORMAT filter
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
@@ -41,12 +41,13 @@ class OpenEdge.Logging.Format.TokenContextFormat
             return.
         
         assign iter = cast(ctx, IList):Iterator().
+        TOKEN-LOOP:
         do while iter:HasNext():
             assign val = iter:Next().
             if    not valid-object(val)
                or not type-of(val, Token)
             then
-                next.
+                next TOKEN-LOOP.
             
             assign token = cast(val, Token).
             if not token:Value eq ? then

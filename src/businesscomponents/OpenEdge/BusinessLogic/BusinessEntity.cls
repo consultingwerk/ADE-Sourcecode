@@ -65,9 +65,7 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
      */
     DEFINE PRIVATE PROPERTY UpdateMode AS UpdateModeEnum NO-UNDO
             GET.
-            SET (INPUT mode AS UpdateModeEnum):
-                UpdateMode = mode.
-            END SET.
+            SET.
             
     /* Constructor
        
@@ -1081,8 +1079,9 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
             // if the table is in this dataset, set the table request values to the input
             if idx gt 0 then
             do:
+                {&_proparse_ prolint-nowarn(overflow)}
                 assign tbl            = ProDataSet:get-buffer-handle(idx)
-                       tbl:batch-size = pGetRequest:TableRequests[loop]:NumRecords
+                       tbl:batch-size = integer(pGetRequest:TableRequests[loop]:NumRecords)
                        startRowid     = to-rowid(pGetRequest:TableRequests[loop]:PagingContext)
                        
                        // set the ROWID (not the input param value) to the PreviousPagingContext, since that's what is used

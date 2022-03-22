@@ -30,8 +30,6 @@
     Notes       :
   ----------------------------------------------------------------------*/
 
-USING Ccs.BusinessLogic.* FROM PROPATH .
-
 INTERFACE Ccs.BusinessLogic.IQueryEntry:
 
     /*------------------------------------------------------------------------------
@@ -39,7 +37,7 @@ INTERFACE Ccs.BusinessLogic.IQueryEntry:
                  query entry to its predecessor in the current list
         Notes:   The value of None is only supported for the first entry
     ------------------------------------------------------------------------------*/
-    DEFINE PUBLIC PROPERTY Join AS JoinEnum NO-UNDO
+    DEFINE PUBLIC PROPERTY Join AS Ccs.BusinessLogic.JoinEnum NO-UNDO
     GET.
 
 END INTERFACE .

@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014, 2015 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2014, 2015, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : ApperyPushNotificationMessageBuilder
@@ -184,9 +184,6 @@ class OpenEdge.Mobile.ApperyPushNotificationMessageBuilder inherits PushNotifica
                                                                         input poOperand as PushNotificationFilterOperandEnum):
         define variable oFilterParent as JsonObject no-undo.
         define variable oFilterObject as JsonObject no-undo.
-        define variable oFilterValue as JsonObject no-undo.
-        define variable cNames as character extent no-undo.
-        define variable cOperandName as character no-undo.
         define variable lFieldExists as logical no-undo.
         define variable cDateValue as character no-undo.
         
@@ -226,7 +223,7 @@ class OpenEdge.Mobile.ApperyPushNotificationMessageBuilder inherits PushNotifica
         end case.   /* operand */
         
         return this-object.
-    end.  
+    end method.  
 
     /** General method to add array filters to the payload.
     
@@ -356,9 +353,6 @@ class OpenEdge.Mobile.ApperyPushNotificationMessageBuilder inherits PushNotifica
                                                                            input poOperand as PushNotificationFilterOperandEnum):
         define variable oFilterParent as JsonObject no-undo.
         define variable oFilterObject as JsonObject no-undo.
-        define variable oFilterValue as JsonObject no-undo.
-        define variable cNames as character extent no-undo.
-        define variable cOperandName as character no-undo.
         define variable lFieldExists as logical no-undo.
         
         Assert:NotNull(poOperand, 'Operand').
@@ -392,7 +386,7 @@ class OpenEdge.Mobile.ApperyPushNotificationMessageBuilder inherits PushNotifica
         end case.   /* operand */
         
         return this-object.
-    end. 
+    end method. 
 
     /** A general method to add numeric(decimal) filter values to the notification
         query/filter. 
@@ -408,7 +402,6 @@ class OpenEdge.Mobile.ApperyPushNotificationMessageBuilder inherits PushNotifica
                                                                            input poOperand as PushNotificationFilterOperandEnum):
         define variable oFilterParent as JsonObject no-undo.
         define variable oFilterObject as JsonObject no-undo.
-        define variable oFilterValue as JsonObject no-undo.
         define variable oArrayValue as JsonArray no-undo.
         define variable lFieldExists as logical no-undo.
         
@@ -454,7 +447,7 @@ class OpenEdge.Mobile.ApperyPushNotificationMessageBuilder inherits PushNotifica
         end case.   /* operand */
         
         return this-object.
-    end.
+    end method.
     
     /** General method to add object filters to the payload. Note that the
         arrays required by Includes/NotIncludes must contain objects themselves,

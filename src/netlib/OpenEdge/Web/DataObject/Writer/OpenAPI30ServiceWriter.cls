@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2018, 2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : OpenAPI30ServiceWriter
@@ -158,14 +158,9 @@ class OpenEdge.Web.DataObject.Writer.OpenAPI30ServiceWriter inherits DataObjectS
     
     method protected JsonObject WriteServiceRoot():
         define variable svcJson as JsonObject no-undo.
-        define variable jsonData as JsonObject no-undo.
         define variable childData as JsonObject no-undo.
-        define variable arrayData as JsonArray no-undo.
-        define variable varData as JsonObject no-undo.
         
         assign svcJson   = new JsonObject()
-               jsonData  = new JsonObject()
-               arrayData = new JsonArray()
                childData = new JsonObject()
                .
         
@@ -188,7 +183,6 @@ class OpenEdge.Web.DataObject.Writer.OpenAPI30ServiceWriter inherits DataObjectS
     
     method protected JsonObject WriteDefaultSchemas():
         define variable schemas as JsonObject no-undo.
-        define variable schemaData as JsonObject no-undo.
         
         assign schemas    = new JsonObject()
                //schemaData = new JsonObject()
@@ -205,7 +199,6 @@ class OpenEdge.Web.DataObject.Writer.OpenAPI30ServiceWriter inherits DataObjectS
                                             input pMethod as MethodEnum):
         define variable pathJson as JsonObject no-undo.
         define variable uriJson as JsonObject no-undo.
-        define variable childData as JsonObject no-undo.
         define variable path as character no-undo.
         define variable svcName as character no-undo.
         define variable operationJson as JsonObject no-undo.
@@ -248,6 +241,7 @@ class OpenEdge.Web.DataObject.Writer.OpenAPI30ServiceWriter inherits DataObjectS
     method protected JsonObject WriteHeaders(input pData as MappedOperation):
         define variable jsonHeaders as JsonObject no-undo.
         define variable hdrData as JsonObject no-undo.
+        {&_proparse_ prolint-nowarn(varusage)}
         define variable headers as HttpHeader extent no-undo.
         define variable loop as integer no-undo.
         define variable cnt as integer no-undo.
@@ -277,13 +271,11 @@ class OpenEdge.Web.DataObject.Writer.OpenAPI30ServiceWriter inherits DataObjectS
         define variable contentJson as JsonObject no-undo.
         define variable schemaJson as JsonObject no-undo.
         define variable schemaChild as JsonObject no-undo.
-        define variable arrayData as JsonArray no-undo.
         define variable iter as IIterator no-undo.
         define variable opParam as OperationParameter no-undo.
         define variable paramJson as JsonArray no-undo.
         define variable loop as integer no-undo.
         define variable cnt as integer no-undo.
-        define variable inputElem as MessageElement extent no-undo.
         define variable operSchema as handle no-undo.
         define variable fldType as character no-undo.
         define variable fldFormat as character no-undo.

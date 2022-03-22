@@ -1,5 +1,5 @@
 /************************************************
-  Copyright (c) 2016-2020 by Progress Software Corporation. All rights reserved.
+  Copyright (c) 2016-2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : Principal
@@ -31,6 +31,7 @@ class OpenEdge.Security.Principal :
        Made private since we need this class to always hold a 
        client-principal */
     constructor private Principal():
+        /* Default constructor */
     end constructor.
     
     /* Constructor.
@@ -38,7 +39,7 @@ class OpenEdge.Security.Principal :
        @param handle A valid client-principal (state not checked) */
     constructor public Principal(input phClientPrincipal as handle):
         this-object(phClientPrincipal, false).
-    end method.
+    end constructor.
     
     /* Constructor.
        

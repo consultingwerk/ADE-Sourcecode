@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2015, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : BinaryBodyWriter
@@ -58,10 +58,10 @@ class OpenEdge.Net.HTTP.Filter.Payload.BinaryBodyWriter inherits MessageWriter
     end method.
     
     method override public int64 Write( input poData as Object):
-        define variable lcData as longchar no-undo.
+        {&_proparse_ prolint-nowarn(varusage)}
         define variable bytesWritten as int64 no-undo.
+        define variable lcData as longchar no-undo.
         define variable mData as memptr no-undo.
-        define variable fileStream as FileInputStream no-undo.
         
         assign this-object:TransferEncoding = 'binary':u.
         
@@ -69,7 +69,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.BinaryBodyWriter inherits MessageWriter
             when not valid-object(poData) then
                 return 0.
                 
-            when type-of(poData, Memptr) or
+            when type-of(poData, memptr) or
             when type-of(poData, IMemptrHolder) then
             do on error undo, throw:
                 // choose Write(<MEMPTR>) at compile time

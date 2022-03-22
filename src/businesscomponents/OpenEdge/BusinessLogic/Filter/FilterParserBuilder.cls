@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2018, 2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : FilterParserBuilder
@@ -153,6 +153,7 @@ class OpenEdge.BusinessLogic.Filter.FilterParserBuilder inherits ConfigBuilder:
         // 2. Loop through the list of properties, by property name (not value)
         do keyCnt = 1 to keyMax
         while not valid-object(builder):
+            {&_proparse_ prolint-nowarn(overflow)}
             assign builder = FilterParserBuilder:Build(string(propNames[keyCnt])).
         end.
         

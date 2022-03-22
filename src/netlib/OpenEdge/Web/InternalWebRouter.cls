@@ -1,14 +1,14 @@
 /************************************************
-Copyright (c) 2015-2018 by Progress Software Corporation. All rights reserved.
-*************************************************/  
+Copyright (c) 2015-2018, 2022 by Progress Software Corporation. All rights reserved.
+*************************************************/
 /*------------------------------------------------------------------------
-   Purpose     : Keep a list of customer specified handlers and invoke 
-   Syntax      : 
-   Description : 
+   Purpose     : Keep a list of customer specified handlers and invoke
+   Syntax      :
+   Description :
    Author(s)   : mbanks
    Created     : Mon Apr 27 14:42:44 EDT 2015
    Notes       : This is managed as a singleton by the ABL
-   @since      : 11.6    
+   @since      : 11.6
  ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
@@ -20,14 +20,17 @@ using OpenEdge.Logging.LoggerBuilder.
 using OpenEdge.Net.HTTP.StatusCodeEnum.
 using Progress.Web.AbstractWebRouter.
 using Progress.Web.IWebHandler.
+using Progress.Lang.StopAfter.
+using Progress.Lang.LockConflict.
+using Progress.Lang.UserInterrupt.
 
-class OpenEdge.Web.InternalWebRouter implements ISupportLogging 
+class OpenEdge.Web.InternalWebRouter implements ISupportLogging
     inherits AbstractWebRouter
     final:
     
     // A reference to the Logger in use by an implementer
     define public property Logger as ILogWriter no-undo
-        get(): 
+        get():
             if not valid-object(this-object:Logger) then
                 assign this-object:Logger = LoggerBuilder:GetLogger(get-class(OpenEdge.Web.InternalWebRouter)).
             
@@ -54,11 +57,13 @@ class OpenEdge.Web.InternalWebRouter implements ISupportLogging
         index idx1 as primary unique WebHandlerName.
     
     /* Handles a web request.  A customer can specify a different handler for
-       each application.  If this is the first request for this handler or the 
-       handler is invalaid, an instance of it is created.  
+       each application.  If this is the first request for this handler or the
+       handler is invalid, an instance of it is created.
        The HandleRequest() method is then invoked.
       
-       @param pcHandlerName   the name of the customer registered webspeed handler */
+       @param character The name of the customer registered webspeed handler
+       @return integer An HTTP status code. Zero means that the webhandler has taken care of any errors. A non-zero value
+                       means that the PASOE webapp's error handling will return a standard page for the error */
     method public override integer HandleRequest( pcHandlerName as character ):
         define variable oWebHandler as IWebHandler no-undo.
         define variable uriTemplate as character no-undo.
@@ -69,7 +74,7 @@ class OpenEdge.Web.InternalWebRouter implements ISupportLogging
         assign requestPath = web-context:get-cgi-value('ENV':u, 'REQUEST_URI':u)
                uriTemplate = web-context:get-cgi-value('ENV':u, 'URI_TEMPLATE':u)
                .
-        logger:Debug(substitute('Request for path "&1" using template "&2" and handler "&3"', 
+        logger:Debug(substitute('Request for path "&1" using template "&2" and handler "&3"',
                         requestPath,
                         uriTemplate,
                         pcHandlerName)).
@@ -87,9 +92,10 @@ class OpenEdge.Web.InternalWebRouter implements ISupportLogging
         do:
             /* Check to see if we've used this handler for a previous request */
             if can-find(lbHandler where lbHandler.WebHandlerName eq pcHandlerName) then
+                {&_proparse_ prolint-nowarn(findnoerror)}
                 find lbHandler where lbHandler.WebHandlerName eq pcHandlerName.
             
-            /* Create a record for the handler if it does not exist */    
+            /* Create a record for the handler if it does not exist */
             if not available lbHandler then
             do:
                 create lbHandler.
@@ -111,8 +117,18 @@ class OpenEdge.Web.InternalWebRouter implements ISupportLogging
         
         /* Invoke the registered URI handler */
         return oWebHandler:HandleRequest().
-        
-        catch e as Progress.Lang.Error :
+        // Stop conditions are considered timeouts: stop-after, user-interrupt, lock-conflict and use of the
+        // STOP statement in ABL.
+        catch s as Progress.Lang.Stop:
+            // 1st arg: StopAfter, UserInterrupt, LockConflict, Stop
+            logger:Error(substitute('Request timeout (&1) for path &2 using handler &3',
+                                    s:GetClass():TypeName, uriTemplate, pcHandlerName)).
+            // All stops are timeouts
+            return integer(StatusCodeEnum:RequestTimeOut).
+        end catch.
+        // Progress.Lang.StopError is raised for errors, not stops, so should be handled by the below catch block, since
+        // it inherits P.L.Error. For example, if the code tries to run a non-existent .P, a StopError is raised.
+        catch e as Progress.Lang.Error:
             logger:Error(substitute('Error handling request for path &2 using handler &1', pcHandlerName, uriTemplate),
                          e).
             //We're not sure exactly what went wrong; send a general error
@@ -121,15 +137,16 @@ class OpenEdge.Web.InternalWebRouter implements ISupportLogging
     end method.
     
     /* Releases the specified handler from the cache. This lets it be cleaned up/GC'ed.
-         
+       
        @param character The handler to release.
        @return true if the instance was found and released. otherwise false. */
-    method public logical Release(input pchandlerName as character).
+    method public logical Release(input pchandlerName as character):
         define variable lCached as logical no-undo.
         define buffer lbHandler for ttHandler.
         
         /* Check to see if we've used this handler for a previous request */
         if can-find(lbHandler where lbHandler.WebHandlerName eq pcHandlerName) then
+            {&_proparse_ prolint-nowarn(findnoerror)}
             find lbHandler where lbHandler.WebHandlerName eq pcHandlerName.
         assign lCached = available lbHandler and valid-object(lbHandler.WebHandler).
         if lCached then

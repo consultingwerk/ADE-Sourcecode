@@ -1,18 +1,20 @@
 /************************************************
-Copyright (c) 2015-2016, 2018 by Progress Software Corporation. All rights reserved.
-*************************************************/ 
+Copyright (c) 2015-2016, 2018, 2022 by Progress Software Corporation. All rights reserved.
+*************************************************/
 /*------------------------------------------------------------------------
    Purpose     : Standard interface for PASOE/Web requests
-   Syntax      : 
-   Description : 
+   Syntax      :
+   Description :
    Author(s)   : mbanks
    Created     : Mon Apr 20 11:47:12 EDT 2015
-   Notes       : 
-   @since      : 11.6    
+   Notes       :
+   @since      : 11.6
  ----------------------------------------------------------------------*/
 
+using OpenEdge.Core.Memptr.
 using OpenEdge.Net.HTTP.Cookie.
 using OpenEdge.Net.HTTP.IHttpRequest.
+using Progress.Lang.Object.
 
 interface OpenEdge.Web.IWebRequest inherits IHttpRequest:
     /* IP address of the interface on which the request was received */
@@ -31,12 +33,12 @@ interface OpenEdge.Web.IWebRequest inherits IHttpRequest:
     define public property RemoteHost as character no-undo get.
     
     /* Port of the client or last proxy that sent the request */
-    define public property RemotePort as integer no-undo get.  
+    define public property RemotePort as integer no-undo get.
     
     /* Login of the user making this request, or null if not authenticated */
     define public property RemoteUser as character no-undo get.
 
-    /* The part of this request's URL that specifies the OE transport */   
+    /* The part of this request's URL that specifies the OE transport */
     define public property TransportPath as character no-undo get.
     
     /* The real path to the part of the URL specified by TransportPath */
@@ -63,47 +65,61 @@ interface OpenEdge.Web.IWebRequest inherits IHttpRequest:
     /* Return the server software   */
     define public property ServerSoftware as character no-undo get.
     
-    /* Returns the URI template used to find the handler for this request. May be empty */ 
+    /* Returns the URI template used to find the handler for this request. May be empty */
     define public property UriTemplate as character no-undo get.
     
-    /* Returns a comma-delimited list of path parameter names, for URI mappings */ 
+    /* Returns a comma-delimited list of path parameter names, for URI mappings */
     define public property PathParameterNames as character no-undo get.
 
-    /* Get the parameter value that corresponds to the defined URI mapping 
+    /* Get the parameter value that corresponds to the defined URI mapping
         that invoked the handler for this request
          
-        Example: 
-        URI mapping defined in openedge.properties /customers/{custname}/orders/{ordernum} 
-        Requested URI /customers/Andersen/orders/7 
+        Example:
+        URI mapping defined in openedge.properties /customers/{custname}/orders/{ordernum}
+        Requested URI /customers/Andersen/orders/7
         GetPathParameter("custname") will return "Andersen"
         GetPathParameter("ordernum") will return "7"
                         
-        @param character name defined with curly braces in URI mapping  
+        @param character name defined with curly braces in URI mapping
         @return character The path parameter value */
     method public character GetPathParameter(input pcName as character).
     
     /* Get a value from the request context
        
-       @param character The name context property name   
+       @param character The name context property name
        @return longchar The content property value */
     method public longchar GetContextValue(pcName as character).
 
     /** Indicates whether a cookie exists for this message
         
-        @param character The cookie's name to check 
+        @param character The cookie's name to check
         @return logical TRUE if this message contains the cookie */
     method public logical HasCookie(input pcName as character).
     
     /** Returns a cookie by name from this message. Typically
         returns the first cookie it finds by name, oif more than
-        one exist 
+        one exist
         
-        @param character The cookie's name to check 
+        @param character The cookie's name to check
         @return Cookie The (first) cookie found by name */
-    method public Cookie GetCookie(input pcName as character).    
+    method public Cookie GetCookie(input pcName as character).
     
     /** Removes cookies from this message for a given name
     
         @param character The name of the cookie(s) to remove. */
     method public void RemoveCookie(input pcName as character).
+    
+    /** Returns a 'strongly-typed' object, converted based on the ContentType using the writers in the
+        EntityWriterRegistry.
+        
+        @return Object An object of an appropriate type for the request's ContentType. */
+    @since(rel='12.5.0').
+    method public Object GetTypedEntity().
+    
+    /** Returns the bytes for the entity - unconverted - regardless of the ContentType.
+        
+        @return Memptr The entity/body as bytes, uncoverted even for XML or JSON */
+    @since(rel='12.5.0').
+    method public class Memptr GetRawEntity().
+    
 end interface.

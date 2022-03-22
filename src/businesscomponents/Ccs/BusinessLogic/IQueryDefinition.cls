@@ -30,8 +30,6 @@
     Notes       :
   ----------------------------------------------------------------------*/
 
-USING Ccs.BusinessLogic.* FROM PROPATH .
-
 INTERFACE Ccs.BusinessLogic.IQueryDefinition:
 
     /*------------------------------------------------------------------------------
@@ -39,14 +37,14 @@ INTERFACE Ccs.BusinessLogic.IQueryDefinition:
                  definition
         Notes:
     ------------------------------------------------------------------------------*/
-    DEFINE PUBLIC PROPERTY QuerySelection AS IQueryEntry NO-UNDO
+    DEFINE PUBLIC PROPERTY QuerySelection AS Ccs.BusinessLogic.IQueryEntry NO-UNDO
     GET.
 
     /*------------------------------------------------------------------------------
         Purpose: Returns the list of query sort entries
         Notes:
     ------------------------------------------------------------------------------*/
-    DEFINE PUBLIC PROPERTY QuerySort AS IQuerySortEntry EXTENT NO-UNDO
+    DEFINE PUBLIC PROPERTY QuerySort AS Ccs.BusinessLogic.IQuerySortEntry EXTENT NO-UNDO
     GET.
 
 END INTERFACE .

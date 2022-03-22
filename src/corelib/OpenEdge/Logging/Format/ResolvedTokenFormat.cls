@@ -1,11 +1,11 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2017, 2019 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2017, 2019, 2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : ResolvedTokenFormat
     Purpose     : Formats a token-based message using the OE.Core.Util.TokenResolver
-    Syntax      : 
-    Description : 
+    Syntax      :
+    Description :
     Author(s)   : pjudge
     Created     : Wed Nov 16 13:02:52 EST 2016
     Notes       : - The format tokens are resolved first, then any message tokens
@@ -18,9 +18,9 @@ Copyright (c) 2016-2017, 2019 by Progress Software Corporation and/or one of its
                         grp                 LogMessage.GroupName
                         logger[.format]     LogEvent.LoggerName
                         level               LogEvent.LogLevel
-                        stack.depth         LogEvent.Callstack[depth]; the lesser of the size of the stack or <depth>; set to 1 if not specified 
+                        stack.depth         LogEvent.Callstack[depth]; the lesser of the size of the stack or <depth>; set to 1 if not specified
                         cp.[arg]            LogEvent.LoggedBy
-                        err                 LogEvent.Error; passed to the TokenResolver's ResolveError() method 
+                        err                 LogEvent.Error; passed to the TokenResolver's ResolveError() method
                    - All of the msg.[sub-token] messages are fully-resolved here
                    - The ${t.*} and ${cp.*} tokens are passed into the TokenResolver's ResolveTime() and ResolveUser()
                      methods with a value taken from the LogEvent (as opposed to the system default values).
@@ -51,7 +51,7 @@ class OpenEdge.Logging.Format.ResolvedTokenFormat
     constructor public ResolvedTokenFormat():
         // default format is simply the whole message
         assign this-object:Format = '$~{msg.msg}':u.
-    end constructor. 
+    end constructor.
     
     method public void Initialize():
         assign mFormatTokens = TokenResolver:Parse(this-object:Format).
@@ -78,7 +78,7 @@ class OpenEdge.Logging.Format.ResolvedTokenFormat
         then
         do:
             assign ctx = new List().
-            pEvent:Message:AddContext('tokens':u, ctx). 
+            pEvent:Message:AddContext('tokens':u, ctx).
         end.
         
         // if there's a list in the event context already, add the message tokens to it,
@@ -92,12 +92,13 @@ class OpenEdge.Logging.Format.ResolvedTokenFormat
             return.
         
         assign iter = cast(ctx, IList):Iterator().
+        TOKEN-LOOP:
         do while iter:HasNext():
             assign val = iter:Next().
             if    not valid-object(val)
                or not type-of(val, Token)
             then
-                next.
+                next TOKEN-LOOP.
             
             assign token = cast(val, Token).
             
@@ -144,7 +145,7 @@ class OpenEdge.Logging.Format.ResolvedTokenFormat
                                 assign idx = 0.
                             when num-entries(token:Arg, '.':u) gt 1 then
                                 // the number cannot be larger than the actual callstack size
-                                assign idx = min(integer(entry(2, token:Arg, '.':u)), extent(pEvent:CallStack)). 
+                                assign idx = min(integer(entry(2, token:Arg, '.':u)), extent(pEvent:CallStack)).
                             otherwise
                                 assign idx = 1.
                         end case.
@@ -157,12 +158,12 @@ class OpenEdge.Logging.Format.ResolvedTokenFormat
                         assign token:Value = pEvent:LogLevel:ToString().
                     
                     when 'err':u  then
-                        // the tokenArg is ERR.<SOMETHING> or just ERR 
-                        assign token:Value = TokenResolver:ResolveError(substring(token:Arg, 5), pEvent:Error). 
+                        // the tokenArg is ERR.<SOMETHING> or just ERR
+                        assign token:Value = TokenResolver:ResolveError(substring(token:Arg, 5), pEvent:Error).
                 end case.   // MSG.*
                 
                 otherwise
-                    // resolve all unresolved tokens using standard resolution 
+                    // resolve all unresolved tokens using standard resolution
                     if token:Value eq ? then
                         assign token:Value = TokenResolver:ResolveToken(token:Group, token:Arg, ?).
             end case.

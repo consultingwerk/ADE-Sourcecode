@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2015-2018 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2018, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : HttpHeaderCollection
@@ -31,9 +31,9 @@ class OpenEdge.Net.HTTP.HttpHeaderCollection serializable:
         get.
         private set.
     
-    /* Default constructor */
     constructor public HttpHeaderCollection():
-    end method.
+        /* Default constructor */
+    end constructor.
     
     /* Destructor */
     destructor HttpHeaderCollection():
@@ -98,7 +98,7 @@ class OpenEdge.Net.HTTP.HttpHeaderCollection serializable:
             find pbHeader where
                  pbHeader.ParentClass eq int64(this-object) and
                  pbHeader.HeaderName  eq pcName
-                 .
+                 no-error.
         return (available pbHeader).
     end method.
     
@@ -120,7 +120,7 @@ class OpenEdge.Net.HTTP.HttpHeaderCollection serializable:
             create lbHeader.
             assign lbHeader.ParentClass = int64(this-object)
                    lbHeader.HeaderName  = poHeader:Name
-                   this-object:Size     = this-object:Size - 1
+                   this-object:Size     = this-object:Size + 1
                    .
         end.
         assign lbHeader.HttpHeader = poHeader.
@@ -143,7 +143,7 @@ class OpenEdge.Net.HTTP.HttpHeaderCollection serializable:
 
         @param  character The name of the header to retrieve
         @return HttpHeader The header object. Returns a NullHeader if none exists. */
-    method public HttpHeader Get(input pcName as character).
+    method public HttpHeader Get(input pcName as character):
         define buffer lbHeader for Headers.
         
         Assert:NotNullOrEmpty(pcName, 'Header name').
@@ -210,7 +210,7 @@ class OpenEdge.Net.HTTP.HttpHeaderCollection serializable:
     end method.
     
     /** Removes all headers from this message */ 
-    method public void Clear().
+    method public void Clear():
         define buffer lbHeader for Headers.
         
         for each lbHeader where lbHeader.ParentClass eq int64(this-object):

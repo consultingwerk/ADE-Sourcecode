@@ -1,11 +1,11 @@
 /************************************************
-Copyright (c) 2016-2020 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2016-2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : ConfigFileLoggerBuilder
-    Purpose     : Loads JSON-based logger configuration from a known file 
-    Syntax      : 
-    Description : 
+    Purpose     : Loads JSON-based logger configuration from a known file
+    Syntax      :
+    Description :
     Author(s)   : pjudge
     Created     : Mon Dec 05 09:48:11 EST 2016
     Notes       : * Assumes the config is stored in a JSON file
@@ -32,7 +32,7 @@ class OpenEdge.Logging.ConfigFileLoggerBuilder inherits JsonConfigLoggerBuilder:
         get.
         set(input pInterval as integer):
             // if we get bad values, keep the old one
-            if    pInterval eq ? 
+            if    pInterval eq ?
                or pInterval lt 0
             then
                 return.
@@ -64,7 +64,7 @@ class OpenEdge.Logging.ConfigFileLoggerBuilder inherits JsonConfigLoggerBuilder:
         if     not FileCheckInterval eq 0
            // we haven't checked ever
            and not LAST_CHECK_TIMESTAMP eq ?
-           // we checked within the last n seconds ... 
+           // we checked within the last n seconds ...
            and add-interval(LAST_CHECK_TIMESTAMP, FileCheckInterval, 'seconds':u) ge now
         then
             return.
@@ -76,7 +76,7 @@ class OpenEdge.Logging.ConfigFileLoggerBuilder inherits JsonConfigLoggerBuilder:
                .
         // if there's no file, do nothing.
         if file-info:full-pathname eq ? then
-        do: 
+        do:
             // We previously loaded some config, and now have removed the file
             if not CONFIG_FILE_TIMESTAMP eq ? then
                 JsonConfigLoggerBuilder:ClearConfig().
@@ -109,18 +109,29 @@ class OpenEdge.Logging.ConfigFileLoggerBuilder inherits JsonConfigLoggerBuilder:
        @param character The logger type being built */
     constructor public ConfigFileLoggerBuilder (input pcLoggerType as character):
         super(pcLoggerType).
-    end method.
-    
+    end constructor.
     
     /* Constructs the actual logger instance
        
-       @return ILogWriter A new or cached logged */ 
+       @return ILogWriter A new or cached logged */
     method override protected ILogWriter GetLoggerInstance():
         // reload on every logger request. Will no-op if the file hasn't changed
         ConfigFileLoggerBuilder:LoadFromFile(CONFIG_FILE_NAME).
         
         // build from the JSON config
         return super:GetLoggerInstance().
+    end method.
+    
+    /* Clears the config - resets last-read and other timestamps.
+       This will cause the next request for a file-based logger to re-check
+       the file on disk */
+    method override static public void ClearConfig():
+        // "inheritance"
+        JsonConfigLoggerBuilder:ClearConfig().
+        
+        assign LAST_CHECK_TIMESTAMP  = ?
+               CONFIG_FILE_TIMESTAMP = ?
+               .
     end method.
     
 end class.

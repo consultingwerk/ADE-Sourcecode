@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2013, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : NotFoundError
@@ -34,6 +34,7 @@ class OpenEdge.Core.System.NotFoundError inherits ApplicationError serializable:
     end constructor.
     
     constructor public NotFoundError(pcArgs1 as char, pcArgs2 as char):
+        {&_proparse_ prolint-nowarn(varusage)}
         define variable oUnknown as Error no-undo.
         
         this-object(oUnknown,pcArgs1, pcArgs2).

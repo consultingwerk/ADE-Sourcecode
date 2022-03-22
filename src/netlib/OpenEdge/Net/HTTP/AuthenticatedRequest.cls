@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2015, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : AuthenticatedRequest
@@ -83,7 +83,6 @@ class OpenEdge.Net.HTTP.AuthenticatedRequest inherits HttpRequestDecorator
         define variable oNewArray as IAuthFilterEventHandler extent no-undo.
         define variable iOldArraySize as integer no-undo.
         define variable iLoop as integer no-undo.
-        define variable iMax as integer no-undo.
         define variable iIdx as integer no-undo.
 
         Assert:NotNull(poListener, 'Listener').
@@ -96,10 +95,11 @@ class OpenEdge.Net.HTTP.AuthenticatedRequest inherits HttpRequestDecorator
         assign extent(oNewArray) = iOldArraySize + 1
                iIdx = 1. 
         
+        LOOPBLK:
         do iLoop = 1 to iOldArraySize:
             /* don't add invalid object */
             if not valid-object(moEventListener[iLoop]) then
-                next.
+                next LOOPBLK.
             
             /* we have it in our list already */
             if moEventListener[iLoop]:Equals(poListener) then
@@ -131,7 +131,7 @@ class OpenEdge.Net.HTTP.AuthenticatedRequest inherits HttpRequestDecorator
         
         @param IAuthFilterEventHandler[] An array of listeners 
         @return integer The number of registgered listeners. */    
-    method public integer GetAuthenticationCallbacks(output poListener as IAuthFilterEventHandler extent).
+    method public integer GetAuthenticationCallbacks(output poListener as IAuthFilterEventHandler extent):
         assign poListener = moEventListener. 
         return extent(moEventListener).
     end method.

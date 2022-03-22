@@ -1,33 +1,39 @@
 /************************************************
-Copyright (c) 2015, 2018-2019 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015, 2018-2019, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : ConfigBuilder
-    Purpose     : helper class for configuration data used by builders 
-    Syntax      : 
-    Description : 
+    Purpose     : helper class for configuration data used by builders
+    Syntax      :
+    Description :
     Author(s)   : pjudge
     Created     : Thu Mar 19 14:55:32 EDT 2015
-    Notes       : 
+    Notes       :
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
+using OpenEdge.Core.Decimal.
+using OpenEdge.Core.LogicalValue.
+using OpenEdge.Core.String.
+using OpenEdge.Core.TimeStamp.
 using Progress.Json.ObjectModel.JsonArray.
 using Progress.Lang.Object.
 
-class OpenEdge.Core.Util.ConfigBuilder use-widget-pool abstract: 
+class OpenEdge.Core.Util.ConfigBuilder use-widget-pool abstract:
     /* single static tt for perf */
     define static protected temp-table ConfigOption no-undo
         field ParentBuilder as int64
         field ConfigName as character
-        field ValueType as character        /* object|string|numeric|logical */
+        field ValueType as character                /* object|string|numeric|logical|datetime */
         field ObjectValue as Progress.Lang.Object
         field StringValue as character
         field NumericValue as decimal
         field LogicalValue as logical
         field DateTimeValue as datetime-tz
-        index idx1 as primary unique ParentBuilder ConfigName .
+        index idx1 as primary unique ParentBuilder ConfigName
+        index idx2 ParentBuilder ValueType
+        .
     
     destructor ConfigBuilder():
         ClearOptions().
@@ -46,7 +52,7 @@ class OpenEdge.Core.Util.ConfigBuilder use-widget-pool abstract:
     /** Stores an numeric value as an option
         
         @param character The option name
-        @param Object the value     
+        @param Object the value
         @return logical True is the option was overwritten */
     method protected logical SetOption(input pcName as character,
                                        input pdValue as decimal):
@@ -79,7 +85,7 @@ class OpenEdge.Core.Util.ConfigBuilder use-widget-pool abstract:
         if FindConfigRecord(buffer ConfigOption, pcName) then
         do:
             Assert:Equals(ConfigOption.ValueType, 'object':u).
-            return ConfigOption.ObjectValue. 
+            return ConfigOption.ObjectValue.
         end.
         
         return ?.
@@ -101,7 +107,7 @@ class OpenEdge.Core.Util.ConfigBuilder use-widget-pool abstract:
         return ?.
     end method.
     
-    /** Returns an option's character array value 
+    /** Returns an option's character array value
     
         @param character The option name
         @return character[] the value    */
@@ -197,16 +203,17 @@ class OpenEdge.Core.Util.ConfigBuilder use-widget-pool abstract:
         
         @param buffer    The buffer of the ConfigOption table.
         @param character The config name
-        @return logical True if a config record was found. */ 
-    method protected logical FindConfigRecord(buffer pConfig for ConfigOption, 
+        @return logical True if a config record was found. */
+    method protected logical FindConfigRecord(buffer pConfig for ConfigOption,
                                               input pName as character):
         // Don't leave any 'trailing finds' around: RELEASE clears the AVAILABLE state
         release pConfig.
         
         if can-find(pConfig where
                     pConfig.ParentBuilder eq int64(this-object) and
-                    pConfig.ConfigName    eq pName) 
+                    pConfig.ConfigName    eq pName)
         then
+            {&_proparse_ prolint-nowarn(findnoerror)}
             find pConfig where
                  pConfig.ParentBuilder eq int64(this-object) and
                  pConfig.ConfigName    eq pName
@@ -214,7 +221,7 @@ class OpenEdge.Core.Util.ConfigBuilder use-widget-pool abstract:
         return (available pConfig).
     end method.
     
-    /** Checks whether a config option already exists 
+    /** Checks whether a config option already exists
         
         @param  character The option name
         @return logical True if the named configuration option exists */
@@ -225,7 +232,7 @@ class OpenEdge.Core.Util.ConfigBuilder use-widget-pool abstract:
         
         return can-find(ConfigOption where
                         ConfigOption.ParentBuilder eq int64(this-object) and
-                        ConfigOption.ConfigName    eq pcConfigName). 
+                        ConfigOption.ConfigName    eq pcConfigName).
     end method.
     
     /** Removes an option
@@ -245,7 +252,7 @@ class OpenEdge.Core.Util.ConfigBuilder use-widget-pool abstract:
     /** Stores an object value as an option
         
         @param Progress.Lang>Class The option name (as a type)
-        @param Object the value 
+        @param Object the value
         @return logical True is the option was overwritten    */
     method protected logical SetOption(input pName as class Progress.Lang.Class,
                                        input pValue as Object):
@@ -256,7 +263,7 @@ class OpenEdge.Core.Util.ConfigBuilder use-widget-pool abstract:
     /** Stores an object value as an option
         
         @param character The option name
-        @param Object the value 
+        @param Object the value
         @return logical True is the option was overwritten    */
     method protected logical SetOption(input pcName as character,
                                        input poValue as Object):
@@ -282,7 +289,7 @@ class OpenEdge.Core.Util.ConfigBuilder use-widget-pool abstract:
     /** Stores a logical value as an option
         
         @param character The option name
-        @param logical the value     
+        @param logical the value
         @return logical True is the option was overwritten */
     method protected logical SetOption(input pcName as character,
                                        input plValue as logical):
@@ -300,7 +307,7 @@ class OpenEdge.Core.Util.ConfigBuilder use-widget-pool abstract:
         else
             Assert:Equals(ConfigOption.ValueType, 'logical':u).
         
-        assign ConfigOption.LogicalValue = plValue. 
+        assign ConfigOption.LogicalValue = plValue.
         
         return lExists.
     end method.
@@ -308,7 +315,7 @@ class OpenEdge.Core.Util.ConfigBuilder use-widget-pool abstract:
     /** Stores a datetime-tzvalue as an option
         
         @param character The option name
-        @param datetime-tz the value    
+        @param datetime-tz the value
         @return logical True is the option was overwritten */
     method protected logical SetOption(input pcName as character,
                                        input ptValue as datetime-tz):
@@ -334,13 +341,13 @@ class OpenEdge.Core.Util.ConfigBuilder use-widget-pool abstract:
     /** Stores an value as an option
         
         @param character The option name
-        @param character the value     
+        @param character the value
         @return logical True is the option was overwritten */
     method protected logical SetOption(input pcName as character,
                                        input pcValue as character):
         define variable lExists as logical no-undo.
         define buffer ConfigOption for ConfigOption.
-         
+        
         assign lExists = FindConfigRecord(buffer ConfigOption, pcName).
         if not lExists then
         do:
@@ -360,7 +367,7 @@ class OpenEdge.Core.Util.ConfigBuilder use-widget-pool abstract:
     /** Stores an value as an option
         
         @param character The option name
-        @param character the value     
+        @param character the value
         @return logical True is the option was overwritten */
     method protected logical SetOption(input pcName as character,
                                        input pcValue as character extent):
@@ -408,6 +415,76 @@ class OpenEdge.Core.Util.ConfigBuilder use-widget-pool abstract:
         SetOption(pcName, oValue).
         
         return lExists.
+    end method.
+    
+    /* Returns an array of all the current option names
+       
+       @return character[] An array of option names. If there are no options, an indeterminate array is returned */
+    method protected character extent GetOptionNames():
+        define variable names as character extent no-undo.
+        
+        define buffer bOpt for ConfigOption.
+        define query qry for bOpt.
+        
+        open query qry preselect each bOpt
+                                where bOpt.ParentBuilder eq int64(this-object).
+        
+        if query qry:num-results eq 0 then
+            return names.
+        
+        assign extent(names) = query qry:num-results.
+        
+        get first qry.
+        do while available bOpt:
+            assign names[query qry:current-result-row] = bOpt.ConfigName.
+            get next qry.
+        end.
+        
+        return names.
+        finally:
+            close query qry.
+        end finally.
+    end method.
+    
+    /* Returns the data type of an option
+       
+       @param character The option name
+       @return character The option's data type (object|string|numeric|logical|datetime),
+                         or ? if no option exists. */
+    method protected character GetOptionType(input pName as character):
+        define buffer bOpt for ConfigOption.
+        
+        if FindConfigRecord(buffer bOpt, pName) then
+            return bOpt.ValueType.
+        
+        return ?.
+    end method.
+    
+    /* Returns the option value as an object representation, even if stored as an ABL primitive. Distinct from
+       GetOptionObjectValue() which only returns values for "object"-type options.
+       
+       The object types returned are:
+         object   - as stored; for character arrays will be a JsonArray
+         datetime - OpenEdge.Core.TimeStamp
+         string   - OpenEdge.Core.String (implements Ccs.Common.Support.ILongcharHolder)
+         logical  - OpenEdge.Core.LogicalValue (implements Ccs.Common.Support.ILogicalHolder)
+         number   - OpenEdge.Core.Decimal (implements Ccs.Common.Support.IDecimalHolder)
+       
+       @param character The option name
+       @return Progress.Lang.Object The option value, or ? if the option doesn't exist. */
+    method protected Object GetOptionAsObject(input pName as character):
+        define buffer bOpt for ConfigOption.
+        
+        if FindConfigRecord(buffer bOpt, pName) then
+        case bOpt.ValueType:
+            when 'object':u   then return bOpt.ObjectValue.
+            when 'datetime':u then return new TimeStamp(bOpt.DateTimeValue).
+            when 'logical':u  then return new LogicalValue(bOpt.LogicalValue).
+            when 'string':u   then return new String(bOpt.StringValue).
+            when 'number':u   then return new Decimal(bOpt.NumericValue).
+        end case.
+        
+        return ?.
     end method.
     
 end class.

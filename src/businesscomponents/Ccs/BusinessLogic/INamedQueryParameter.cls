@@ -30,8 +30,6 @@
     Notes       :
   ----------------------------------------------------------------------*/
 
-USING Ccs.Common.Support.* FROM PROPATH .
-
 INTERFACE Ccs.BusinessLogic.INamedQueryParameter:
 
     /*------------------------------------------------------------------------------
@@ -45,14 +43,14 @@ INTERFACE Ccs.BusinessLogic.INamedQueryParameter:
         Purpose: Returns a single value for this named query parameter
         Notes:
     ------------------------------------------------------------------------------*/
-    DEFINE PUBLIC PROPERTY Value AS IPrimitiveHolder NO-UNDO
+    DEFINE PUBLIC PROPERTY Value AS Ccs.Common.Support.IPrimitiveHolder NO-UNDO
     GET.
 
     /*------------------------------------------------------------------------------
         Purpose: Returns a list of values for this named query parameter
         Notes:
     ------------------------------------------------------------------------------*/
-    DEFINE PUBLIC PROPERTY Values AS IPrimitiveArrayHolder NO-UNDO
+    DEFINE PUBLIC PROPERTY Values AS Ccs.Common.Support.IPrimitiveArrayHolder NO-UNDO
     GET.
 
 END INTERFACE.

@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2019 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2019, 2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : KendoFilterParser
@@ -166,6 +166,7 @@ class OpenEdge.BusinessLogic.Filter.KendoFilterParser inherits FilterParser:
 
     method protected IQueryEntry ParseWhere (input pGroup  as QueryGroup,
                                              input pFilter as JsonObject):
+        define variable iFilters    as integer           no-undo.
         define variable iLoop       as integer           no-undo.
         define variable oFilters    as JsonArray         no-undo.
         define variable oFilter     as JsonObject        no-undo.
@@ -197,9 +198,11 @@ class OpenEdge.BusinessLogic.Filter.KendoFilterParser inherits FilterParser:
         extent(pGroup:Entries) = oFilters:length.
 
         /* Iterate over the filters array as provided. */
-        do iLoop = 1 to oFilters:length
+        assign iFilters = oFilters:Length.
+        FILTER-LOOP:
+        do iLoop = 1 to iFilters
         on error undo, throw:
-            if not oFilters:GetType(iLoop) eq JsonDataType:OBJECT then next.
+            if not oFilters:GetType(iLoop) eq JsonDataType:OBJECT then next FILTER-LOOP.
 
             assign oFilter = oFilters:GetJsonObject(iLoop).
             if oFilter:Has("logic") then

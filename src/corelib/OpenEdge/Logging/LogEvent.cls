@@ -1,14 +1,14 @@
 /************************************************
-Copyright (c) 2016-2018 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2016-2018, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : LogEvent
-    Purpose     : 
-    Syntax      : 
-    Description : 
+    Purpose     :
+    Syntax      :
+    Description :
     Author(s)   : pjudge
     Created     : Wed Nov 16 14:03:05 EST 2016
-    Notes       : 
+    Notes       :
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
@@ -27,7 +27,7 @@ class OpenEdge.Logging.LogEvent serializable:
     // (mandatory) THe level of this event
     define public property LogLevel as LogLevelEnum no-undo get. private set.
     
-    // The more-or-less exact time when the log event occurred 
+    // The more-or-less exact time when the log event occurred
     define public property TimeStamp as datetime-tz no-undo get. private set.
     
     // The log message
@@ -50,11 +50,11 @@ class OpenEdge.Logging.LogEvent serializable:
     
     /* Constructor
        
-       @param LogLevelEnum The level this log event was at 
+       @param LogLevelEnum The level this log event was at
        @param LogMessage The message to log
        @param P.L.Error The error being logged
        @param datetime-tz The timestamp of the log event */
-    constructor public LogEvent(input poLevel as LogLevelEnum, 
+    constructor public LogEvent(input poLevel as LogLevelEnum,
                                 input poMessage as LogMessage,
                                 input poError as Progress.Lang.Error,
                                 input ptTimeStamp as datetime-tz):
@@ -115,7 +115,7 @@ class OpenEdge.Logging.LogEvent serializable:
     end destructor.
     
     /* Builds the calls stack of the log event */
-    method private character extent BuildStack():
+    method private void BuildStack():
         define variable iMax as integer no-undo.
         define variable iLoop as integer no-undo.
         define variable cStack as character no-undo.
@@ -124,27 +124,28 @@ class OpenEdge.Logging.LogEvent serializable:
         
         // we want the line that did the logging. If -debugalert is set, always show
         if not session:debug-alert
-           and this-object:LogLevel lt LogLevelEnum:DEBUG 
+           and this-object:LogLevel lt LogLevelEnum:DEBUG
            then
             assign iMax = 1.
         
         assign cDelim = '':u
                iLoop  = 1
                .
+        CALLING-LOOP:
         do while program-name(iLoop) ne ?:
             assign cProgName = program-name(iLoop)
                    iLoop     = iLoop + 1
                    .
             // don't add the logging infrastructure to the log stack
-            if     num-entries(cProgName, StringConstant:SPACE) ge 2 
-               and entry(2, cProgName, StringConstant:SPACE) begins 'OpenEdge.Logging.':u 
-            then 
-                next.
+            if     num-entries(cProgName, StringConstant:SPACE) ge 2
+               and entry(2, cProgName, StringConstant:SPACE) begins 'OpenEdge.Logging.':u
+            then
+                next CALLING-LOOP.
             
             assign cStack = cStack + cDelim + cProgName
-                   cDelim = StringConstant:LF. 
+                   cDelim = StringConstant:LF.
             if iMax eq 1 then
-                leave.
+                leave CALLING-LOOP.
         end.
         
         if iMax eq 0 then

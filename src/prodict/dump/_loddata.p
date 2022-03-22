@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2005-2009,2011 by Progress Software Corporation. All rights *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/*************************************************************************
+* Copyright (C) 2005-2009,2011,2021 by Progress Software Corporation.    *
+* All rights reserved. Prior versions of this work may contain portions  *
+* contributed by participants of Possenet.                               *
+*                                                                        *
+**************************************************************************/
 
 /* _loddata.p */ /**** Data Dictionary load contents module ****/
 
@@ -56,6 +56,7 @@ history
     fernando    Dec 12, 2007  Improved use of user_env[5]
     fernando    Nov  4, 2008  Output number of records to .ds file
     rkamboj     Nov 15, 2011  Fixed lod directory upload issue.
+    tmasood     Nov 03, 2021  Support for load .d file with date/numeric mismatch
 */
 
 /* ensure that errors from directory functions are thrown   
@@ -102,12 +103,10 @@ DEFINE VARIABLE load_size  AS INT64               NO-UNDO.
 DEFINE VARIABLE lvar       AS CHARACTER EXTENT 10 NO-UNDO.
 DEFINE VARIABLE lvar#      AS INTEGER             NO-UNDO.
 DEFINE VARIABLE maptype    AS CHARACTER           NO-UNDO.
-DEFINE VARIABLE mdy        AS CHARACTER           NO-UNDO.
 DEFINE VARIABLE msg        AS CHARACTER           NO-UNDO.
 DEFINE VARIABLE numformat  AS CHARACTER           NO-UNDO.
 DEFINE VARIABLE terrors    AS INTEGER   INITIAL 0 NO-UNDO.
 DEFINE VARIABLE addfilename     AS LOGICAL             NO-UNDO.
-DEFINE VARIABLE yy         AS INTEGER             NO-UNDO.
 DEFINE VARIABLE stopped    AS LOGICAL   INIT TRUE NO-UNDO.
 DEFINE VARIABLE NumProcRun AS LOGICAL             NO-UNDO.
 DEFINE VARIABLE lobdir     AS CHARACTER           NO-UNDO.
@@ -136,6 +135,17 @@ define variable cFileType          as character no-undo.
 define variable cFileTypeSubdir    as character no-undo.
 define variable useSimpleFileName    as logical   no-undo.
 define variable simple-fil-d         as character no-undo.
+
+/* New variables to hold session values */
+DEFINE VARIABLE iOrigYearOffset    AS INTEGER   NO-UNDO.
+DEFINE VARIABLE cOrigDateFormat    AS CHARACTER NO-UNDO.
+DEFINE VARIABLE cOrigNumSep        AS CHARACTER NO-UNDO.
+DEFINE VARIABLE cOrigNumDec        AS CHARACTER NO-UNDO.
+
+ASSIGN iOrigYearOffset = SESSION:YEAR-OFFSET
+       cOrigDateFormat = SESSION:DATE-FORMAT
+       cOrigNumSep     = SESSION:NUMERIC-SEPARATOR
+       cOrigNumDec     = SESSION:NUMERIC-DECIMAL.
 
 DEFINE STREAM dsfile.
 
@@ -303,7 +313,6 @@ if user_env[6] NE "load-silent" then do:
   run adecomm/_setcurs.p ("WAIT").
 end.
 
-RUN "prodict/_dctyear.p" (OUTPUT mdy,OUTPUT yy).
 { prodict/dictgate.i &action=query &dbtype=user_dbtype &dbrec=? &output=cload_size }
 
 
@@ -650,6 +659,27 @@ DO ON STOP UNDO, LEAVE:
     
          next. /* skip that file */
     END.
+    /* Assign trailer values to session's setting */
+    IF d-was <> ? AND NUM-ENTRIES(d-was,"-") = 2 THEN DO:
+      ASSIGN SESSION:DATE-FORMAT = ENTRY(1,d-was,"-")
+             SESSION:YEAR-OFFSET = INTEGER(ENTRY(2,d-was,"-")) NO-ERROR.      
+      IF ERROR-STATUS:ERROR OR 
+         d-was <> SESSION:DATE-FORMAT + STRING(- SESSION:YEAR-OFFSET) THEN DO:
+        ASSIGN terrors = terrors + 1.
+        /* ERROR! -d <mdy> or -yy <n> settings of dump were <mdy>-<nnnn> */
+        /* but current settings are <mdy>-<nnnn>. */
+        RUN DateFormatErr IN THIS-PROCEDURE.
+        IF VALID-OBJECT(dictMonitor) THEN  
+           dictMonitor:AddTableError(fil-d,
+              new_lang[9] 
+              + " " + d-was + "~n** "
+              + new_lang[10] + " " +  SESSION:DATE-FORMAT + " " + STRING(- SESSION:YEAR-OFFSET) + ".  "
+              + new_lang[11]).
+        /* Skip the file */            
+        NEXT.                              
+      END.
+    END.
+    
     /**  the monitor reads the trail 
     if valid-object(dictMonitor) then      
         dictMonitor:SetTableExpectedNumRows(fil-d,irecs).          
@@ -757,21 +787,14 @@ DO ON STOP UNDO, LEAVE:
     DO:
        IF LENGTH(numformat) = 1 THEN
        DO:
-          IF index(string(1.5,"9.9"),numformat) = 0 THEN
-          DO:  /* sesion-format and .d-format don't match */
-             RUN NumFormatErr IN THIS-PROCEDURE (INPUT "EparmErr").
-             ASSIGN terrors = terrors + 1.
-                    NumProcRun = NO.
-             if valid-object(dictMonitor) then      
-                dictMonitor:AddTableError(fil-d,"Numeric Format error").          
- 
-             NEXT.   /* skip this file */
-          END.    /* sesion-format and .d-format don't match */
+          /* Assign session's numformat */
+          IF numformat = "." THEN SESSION:SET-NUMERIC-FORMAT(",":U,".":U).
+                             ELSE SESSION:SET-NUMERIC-FORMAT(".":U,",":U).
        END. /* Above deals with the old format, below handles the new */ 
        ELSE
        DO:  /* Test for existence of 2 numeric values, or at least something *
              * translatable to numerics. */
-             
+ 
           ASSIGN i = INTEGER(ENTRY(1,numformat)) + INTEGER(ENTRY(2,numformat))
              NO-ERROR.
           IF ERROR-STATUS:ERROR THEN
@@ -794,17 +817,19 @@ DO ON STOP UNDO, LEAVE:
                  dictMonitor:AddTableError(fil-d,"Numeric Format error").          
              NEXT.
           END.
+          /* Set the numformat from .d trailer */
+          SESSION:SET-NUMERIC-FORMAT(CHR(INTEGER(ENTRY(1,numformat)),SESSION:CPINTERNAL,codepage),CHR(INTEGER(ENTRY(2,numformat)),SESSION:CPINTERNAL,codepage)) NO-ERROR.
           IF CHR(INT(ENTRY(1,numformat)),SESSION:CPINTERNAL,codepage) <>
-          SESSION:NUMERIC-SEPARATOR THEN
+             SESSION:NUMERIC-SEPARATOR THEN
           DO:
-             RUN NumFormatErr IN THIS-PROCEDURE (INPUT "SepErr").
-             ASSIGN terrors = terrors + 1.
+            RUN NumFormatErr IN THIS-PROCEDURE (INPUT "SepErr").
+            ASSIGN terrors = terrors + 1.
           END.
           IF CHR(INT(ENTRY(2,numformat)),SESSION:CPINTERNAL,codepage) <>
-          SESSION:NUMERIC-DECIMAL-POINT THEN
+             SESSION:NUMERIC-DECIMAL-POINT THEN
           DO:
-             RUN NumFormatErr IN THIS-PROCEDURE (INPUT "DecErr").
-             ASSIGN terrors = terrors + 1.
+            RUN NumFormatErr IN THIS-PROCEDURE (INPUT "DecErr").
+            ASSIGN terrors = terrors + 1.
           END.
           IF NumProcRun THEN
           DO:
@@ -940,25 +965,7 @@ DO ON STOP UNDO, LEAVE:
               + new_lang[8]).          
    
     END.
-    IF d-was <> ? AND d-was <> mdy + STRING(- yy) THEN 
-    DO:
-        ASSIGN errs = errs + 1.
-        /* ERROR! -d <mdy> or -yy <n> settings of dump were <mdy>-<nnnn> */
-        /* but current settings are <mdy>-<nnnn>. */
-        PUT STREAM loaderr UNFORMATTED
-            ">> " new_lang[9] " " d-was SKIP
-            "** " new_lang[10] " " mdy STRING(- yy) ".  " new_lang[11] SKIP.
-        
-        if valid-object(dictMonitor) then  
-           dictMonitor:AddTableError(fil-d,
-              new_lang[9] 
-              + " " + d-was + "~n** "
-              + new_lang[10] + " " +  mdy + " " + STRING(- yy) + ".  "
-              + new_lang[11]).          
-   
-    
-    END.
-    
+          
     OUTPUT STREAM loaderr CLOSE.
     
     if valid-object(dictMonitor) then      
@@ -1108,6 +1115,11 @@ finally:
     /* Make sure to set back the suppress warnings again */
     SESSION:SUPPRESS-WARNINGS = lSuppressWarnings.
     
+    /* Revert the session settings */
+    ASSIGN SESSION:YEAR-OFFSET       = iOrigYearOffset
+           SESSION:DATE-FORMAT       = cOrigDateFormat.
+    SESSION:SET-NUMERIC-FORMAT(cOrigNumSep, cOrigNumDec).
+    
     IF NOT isCpUndefined THEN
        ASSIGN user_longchar = "".
     
@@ -1162,15 +1174,6 @@ PROCEDURE NumFormatErr:
      /* What type of error do we want to output this time through? */
      /* One or both of the following could be wrong.               */
      CASE ErrType:
-     WHEN "EparmErr" THEN
-     DO:
-        PUT STREAM loaderr UNFORMATTED
-           (IF numformat = "." THEN "without " ELSE "with " ) + 
-            "the -E startup parameter, or set the"                 SKIP   
-            "-numsep parameter to " +
-            (IF numformat = "." THEN "44 " ELSE "46 ") + "and -numdec to " +
-            (IF numformat = "." THEN "46." ELSE "44.") SKIP.    
-     END.
      WHEN "SepErr" THEN
      DO:
         PUT STREAM loaderr UNFORMATTED
@@ -1197,6 +1200,18 @@ PROCEDURE NumFormatErr:
           SKIP.
      END.
      END CASE.
+     
+     OUTPUT STREAM loaderr CLOSE.  
+
+END PROCEDURE.
+
+PROCEDURE DateFormatErr:
+
+     OUTPUT STREAM loaderr TO VALUE(fil-e) NO-ECHO.
+
+     PUT STREAM loaderr UNFORMATTED
+            ">> " new_lang[9] " " d-was SKIP
+            "** " new_lang[10] " " SESSION:DATE-FORMAT + STRING(- SESSION:YEAR-OFFSET) ".  " new_lang[11] SKIP.
      
      OUTPUT STREAM loaderr CLOSE.  
 

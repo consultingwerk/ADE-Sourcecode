@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2015, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : CookieJarBuilder
@@ -92,7 +92,6 @@ class OpenEdge.Net.HTTP.CookieJarBuilder abstract inherits ConfigBuilder:
         @return ICookieJar The new, decorating cookie jar */
     method static public ICookieJar DecorateCookieJar(input poDecorationType as Progress.Lang.Class,
                                                       input poDecoratedClient as ICookieJar):
-        define variable oDecorator as ICookieJar no-undo.
         define variable oDecoratorType as Progress.Lang.Class no-undo.
         define variable oClient as ICookieJar no-undo.
         

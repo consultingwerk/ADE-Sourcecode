@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000,2009,2016 by Progress Software Corporation. All *
-* rights reserved. Prior versions of this work may contain portions  *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/************************************************************************
+* Copyright (C) 2000,2009,2016 by Progress Software Corporation.        *
+* All rights reserved. Prior versions of this work may contain portions *
+* contributed by participants of Possenet.                              *
+*                                                                       *
+*************************************************************************/
 
 /*----------------------------------------------------------------------------
 
@@ -148,8 +148,7 @@ form
    p_Multi_User    label "&Multiple Users"      at     35
                                 view-as TOGGLE-BOX
    Pass_Phrase     label "Passphrase"      at     57
-                                view-as TOGGLE-BOX                             SKIP({&VM_WID})
-
+                                view-as TOGGLE-BOX                       SKIP({&VM_WID})
    p_UserId              label "&User ID"                         colon  18 
                                 format "x(50)" {&STDPH_FILL}             SKIP({&VM_WID})
    p_Password            label "Pass&word"                        colon  18
@@ -373,13 +372,13 @@ do:
            run adecomm/_setcurs.p ("").
        END.
 
-       IF Pass_Phrase OR 
+       IF Pass_Phrase OR
           (ERROR-STATUS:ERROR AND ERROR-STATUS:GET-NUMBER(1) = 15271) THEN DO:
           /* if missing or incorrect passphrase for a database
              with encryption enabled and manual start, prompt
              for the passphrase now.
           */
-          DEFINE VARIABLE cpassPhrase AS CHAR NO-UNDO.
+          DEFINE VARIABLE cpassPhrase AS CHARACTER NO-UNDO.
 
           RUN _passphrase.p (OUTPUT cpassPhrase).
 
@@ -387,9 +386,9 @@ do:
              just display the errors we got above.
           */
           IF cpassPhrase <> ? AND length(cpassPhrase) > 0 THEN DO:
-              /* this will let them try once. If it fails, then they will
+             /* this will let them try once. If it fails, then they will
                  need to try to connect again.
-              */
+             */
               connect VALUE(args) VALUE("-KeyStorePassPhrase " + QUOTER(cpassPhrase)) VALUE(p_Unix_Parms) NO-ERROR.
           END.
        END.

@@ -30,11 +30,8 @@
     Notes       :
   ----------------------------------------------------------------------*/
 
-USING Ccs.Common.Support.* FROM PROPATH .
-USING Progress.Lang.*      FROM PROPATH .
-
 INTERFACE Ccs.Common.Support.ILogicalArrayHolder
-    INHERITS IPrimitiveArrayHolder:
+    INHERITS Ccs.Common.Support.IPrimitiveArrayHolder:
 
     /*------------------------------------------------------------------------------
         Purpose: Returns the LOGICAL array held by this holder class

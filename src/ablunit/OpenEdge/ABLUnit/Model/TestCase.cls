@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2020 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2020-2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : TestCase
@@ -7,25 +7,39 @@ Copyright (c) 2020 by Progress Software Corporation. All rights reserved.
                   their lifecycle methods and their test methods
     Author(s)   : pjudge
     Created     : 2019-12-09
-    Notes       : 
+    Notes       :
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
 using OpenEdge.ABLUnit.Model.IRunnableEntity.
-using OpenEdge.ABLUnit.Model.TestCase.
 using OpenEdge.ABLUnit.Model.TestEntity.
 using OpenEdge.ABLUnit.Model.TestMethod.
-using OpenEdge.ABLUnit.Reflection.AnnotationInfo.
 using OpenEdge.ABLUnit.Reflection.AnnotationUtil.
 using OpenEdge.ABLUnit.Reflection.ITestInfoList.
 using OpenEdge.ABLUnit.Reflection.TestAnnotationInfo.
 using OpenEdge.ABLUnit.Reflection.TestInfo.
 using OpenEdge.ABLUnit.Results.TestResultEnum.
 using OpenEdge.ABLUnit.Results.TestTestResult.
+using OpenEdge.ABLUnit.Runner.ExpectedExceptionError.
+using OpenEdge.Logging.ILogWriter.
+using OpenEdge.Logging.ISupportLogging.
+using OpenEdge.Logging.LoggerBuilder.
 using Progress.Lang.AppError.
 
-class OpenEdge.ABLUnit.Model.TestCase abstract inherits TestEntity
-                    implements IRunnableEntity:
+class OpenEdge.ABLUnit.Model.TestCase
+abstract
+inherits TestEntity
+implements IRunnableEntity,
+           ISupportLogging:
+    /* Logger for this test. Typically set by ABLRunner */
+    define public property Logger as ILogWriter no-undo
+        get():
+            if not valid-object(this-object:Logger) then
+                assign this-object:Logger = LoggerBuilder:GetLogger('ABLUnit':u).
+            
+            return this-object:Logger.
+        end get.
+        set.
     
     /* The current object being tested */
     define public property Entity as Progress.Lang.Object no-undo
@@ -91,14 +105,14 @@ class OpenEdge.ABLUnit.Model.TestCase abstract inherits TestEntity
         if cnt ge 2 then
         do loop = 1 to cnt
         while not hasErrNumAttrib:
-            assign annotEntry = trim(entry(loop, expectedException)). 
+            assign annotEntry = trim(entry(loop, expectedException)).
             if annotEntry begins 'errNum':u then
                 assign expectedErrNum  = integer(entry(2, annotEntry, '=':u))
                        hasErrNumAttrib = yes
                        .
         end.
         
-        // Get a fully-qualified OOABL type reference  
+        // Get a fully-qualified OOABL type reference
         assign expectedException = GetExpectedErrorType(trim(entry(1, expectedException))).
         
         // run the test. this block catches an uncaught STOPs and any other thrown errors
@@ -117,7 +131,8 @@ class OpenEdge.ABLUnit.Model.TestCase abstract inherits TestEntity
                 
                 // we were expecting failure here
                 if not expectedException eq '':u then
-                    undo, throw new Progress.Lang.AppError(substitute('No exception is raised but expecting &1', expectedException), 0).
+                    undo, throw new ExpectedExceptionError(expectedException).
+                
                 //success!
                 assign tr:IsIncomplete = false
                        tr:TestResult   = TestResultEnum:StatusPassed
@@ -137,7 +152,9 @@ class OpenEdge.ABLUnit.Model.TestCase abstract inherits TestEntity
             end.    // ON ERROR UNDO, THROW block
             
             catch runErr as Progress.Lang.Error:
-                if expectedException eq '':u then
+                if expectedException eq '':u
+                or type-of(runErr, ExpectedExceptionError)
+                then
                     assign tr:Error = runErr.
                 else
                 if runErr:GetClass():IsA(expectedException) then
@@ -168,7 +185,7 @@ class OpenEdge.ABLUnit.Model.TestCase abstract inherits TestEntity
         assign pChild:timeTaken = interval(now, startTime, 'milliseconds':u) / 1000.
     end method.
     
-    /* Runs/starts the test entity 
+    /* Runs/starts the test entity
        This method adds a TestResult iff there's an error or failure. */
     method public void StartEntity():
         define variable tr as TestTestResult no-undo.
@@ -194,7 +211,7 @@ class OpenEdge.ABLUnit.Model.TestCase abstract inherits TestEntity
                     return.
                 end catch.
             end.
-            // We don't care about the successly running of the test entity, only
+            // We don't care about the successfully running of the test entity, only
             // failures and errors; those are added in the catch and/or stop blocks
             RunLifecycleMethods(AnnotationInfo:BeforeAll, this-object, true).
         end.    // STOP-RETRY block
@@ -264,7 +281,7 @@ class OpenEdge.ABLUnit.Model.TestCase abstract inherits TestEntity
        
        @param ITestInfoList     The list of lifecycle methods
        @param TestEntity  The test for which the lifecycle methods were run (class/procedure/method)
-       @param logical If TRUE then a failure will increment the number of test in the entity's summary; if FALSE 
+       @param logical If TRUE then a failure will increment the number of test in the entity's summary; if FALSE
                       or UNKNOWN the number of tests is not changed */
     method protected void RunLifecycleMethods(input pMethods as ITestInfoList,
                                               input pEntity as TestEntity,
@@ -301,7 +318,7 @@ class OpenEdge.ABLUnit.Model.TestCase abstract inherits TestEntity
                 // if -catchStop=1 then this code applies, otherwise use IF RETRY code of the surrounding block
                 catch stoi as Progress.Lang.Stop:
                     assign tr:Stop = stoi.
-                    // explicitly go to the next iteration of the loop 
+                    // explicitly go to the next iteration of the loop
                     next LIFECYCLE-METHOD-RUN.
                 end catch.
             end.    // ERROR UNDO block
@@ -311,7 +328,7 @@ class OpenEdge.ABLUnit.Model.TestCase abstract inherits TestEntity
             //failure
             catch runErr as Progress.Lang.Error:
                 assign tr:Error = runErr.
-                // explicitly go to the next iteration of the loop 
+                // explicitly go to the next iteration of the loop
                 next LIFECYCLE-METHOD-RUN.
             end catch.
             finally:
@@ -350,7 +367,7 @@ class OpenEdge.ABLUnit.Model.TestCase abstract inherits TestEntity
             when 'Quit':u then
                 return get-class(Progress.Lang.SysError):TypeName.
             
-            otherwise 
+            otherwise
                 return pShortError.
         end case.
     end method.

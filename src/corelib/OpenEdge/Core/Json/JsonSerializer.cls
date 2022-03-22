@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2019-2020 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2019-2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : OpenEdge.Core.Json.JsonSerializer
@@ -38,6 +38,7 @@ class OpenEdge.Core.Json.JsonSerializer:
        
        This is private so that this class cannot be instantiated - it's intended to be used with static members only */
     constructor private JsonSerializer():
+        /* Default constructor */
     end constructor.
     
     /* Serialises an array of objects to JSON.
@@ -57,6 +58,7 @@ class OpenEdge.Core.Json.JsonSerializer:
         define variable loop as integer no-undo.
         define variable objRefs as character no-undo.
         define variable idx as integer no-undo.
+        {&_proparse_ prolint-nowarn(varusage)}
         define variable ok as logical no-undo.
         define variable delim as character no-undo.
         

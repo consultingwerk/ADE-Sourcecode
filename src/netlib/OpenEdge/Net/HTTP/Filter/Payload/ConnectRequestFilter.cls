@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2018, 2020 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2018, 2020-2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : ConnectRequestFilter
@@ -21,6 +21,7 @@ using OpenEdge.Core.Assert.
 using OpenEdge.Core.ByteBucket.
 using OpenEdge.Core.StringConstant.
 using OpenEdge.Net.HTTP.Filter.Payload.MessageWriter.
+using OpenEdge.Net.HTTP.Filter.Payload.RawMessage.
 using OpenEdge.Net.HTTP.IHttpRequest.
 using OpenEdge.Net.UriSchemeEnum.
 using Progress.Lang.AppError.
@@ -29,13 +30,17 @@ using Progress.Lang.Object.
 class OpenEdge.Net.HTTP.Filter.Payload.ConnectRequestFilter inherits MessageWriter:
     /* Default constructor */
     constructor public ConnectRequestFilter():
-        super(get-class(ByteBucket)).
+        super(get-class(RawMessage)).
     end constructor.
+    
+    method override public void Open():
+        assign this-object:Entity = new RawMessage().
+        super:Open().
+    end method.
     
     /* Write*/
     method override public int64 Write(input pData as Object):
         define variable req as IHttpRequest no-undo.
-        define variable prevSize as int64 no-undo.
         define variable requestURI as character no-undo.
         define variable host as character no-undo.
         define variable port as integer no-undo.
@@ -43,10 +48,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.ConnectRequestFilter inherits MessageWrit
         
         Assert:IsType(pData, get-class(IHttpRequest)).
         
-        assign bb       = cast(this-object:Entity, ByteBucket)
-               prevSize = bb:Size
-               req      = cast(pData, IHttpRequest)
-               .
+        assign req = cast(pData, IHttpRequest).
         Assert:NotNull(req:URI, 'Request URI').
         assign host = req:URI:Host
                port = req:URI:Port
@@ -64,14 +66,18 @@ class OpenEdge.Net.HTTP.Filter.Payload.ConnectRequestFilter inherits MessageWrit
         if port gt 65535 then
             return error new AppError(substitute('Port is too large: &1 (max allowed: 65535)', port), 0).
         
-        assign requestURI = substitute('&1:&2':u, host, port).
-        // CONNECT
+        assign requestURI = substitute('&1:&2':u, host, port)
+               bb         = cast(this-object:Entity, RawMessage):StartLine
+               .
+        // CONNECT request line
         bb:PutString(substitute('CONNECT &1 &2&3':u,
                                 requestURI,
                                 req:Version,
                                 StringConstant:CRLF)).
         
         // HEADERS
+        assign bb = cast(this-object:Entity, RawMessage):Headers.
+        
         bb:PutString(substitute('Host: &1&2':u, requestURI, StringConstant:CRLF)).
         bb:PutString(substitute('&1&2':u, req:GetHeader('User-Agent':u):ToString(), StringConstant:CRLF)).
         bb:PutString(substitute('Connection: keep-alive&1':u, StringConstant:CRLF)).
@@ -81,8 +87,10 @@ class OpenEdge.Net.HTTP.Filter.Payload.ConnectRequestFilter inherits MessageWrit
         /* ALWAYS add a trailing CRLF to indicate end of headers. */
         bb:PutString(StringConstant:CRLF).
         
-        // Only return what we write here
-        return (bb:Size - prevSize).
+        /* Only return what we write here: the Open() operation ensures that there's
+           a new empty RawMessage for use to write into. */
+        return (  cast(this-object:Entity, RawMessage):StartLine:Size
+                + cast(this-object:Entity, RawMessage):Headers:Size).
     end method.
     
 end class.

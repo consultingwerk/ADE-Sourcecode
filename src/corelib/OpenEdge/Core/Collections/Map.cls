@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2013, 2015, 2017-2018 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2013, 2015, 2017-2018, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : Map
@@ -144,7 +144,7 @@ class OpenEdge.Core.Collections.Map serializable
        @param ICollection The collection of keys
        @return logical TRUE if all of the keys in the input collection are in the map */
     method public logical ContainsAllKeys(input poKeys as ICollection):
-        define variable oIterator as IIterator.
+        define variable oIterator as IIterator no-undo.
         
         Assert:NotNull(poKeys, 'Check keys').
         
@@ -172,7 +172,7 @@ class OpenEdge.Core.Collections.Map serializable
        @param ICollection The collection of values 
        @return logical TRUE if all of the values in the input collection are in the map */
     method public logical ContainsAllValues(input poValues as ICollection):
-        define variable oIterator as IIterator.
+        define variable oIterator as IIterator no-undo.
         
         Assert:NotNull(poValues, 'Check values').
         
@@ -227,6 +227,8 @@ class OpenEdge.Core.Collections.Map serializable
             return oValue.
         
         if can-find(lbMap where lbMap.KeyRef eq poKey) then
+            /* Intentional lack of no-error on find. */
+            {&_proparse_ prolint-nowarn(findnoerror)}
             find lbMap where lbMap.KeyRef = poKey.
         if avail lbMap then
             assign oValue = lbMap.ValueRef.
@@ -260,10 +262,14 @@ class OpenEdge.Core.Collections.Map serializable
         do transaction:
             /* try by-reference first */
             if can-find(lbMap where lbMap.KeyRef eq poKey) then
+                /* Intentional lack of no-error on find. */
+                {&_proparse_ prolint-nowarn(findnoerror)}
                 find putMap where putMap.KeyRef eq poKey.
             if not available putMap then        
             for each lbMap while not available putMap:
                 if lbMap.KeyRef:Equals(poKey) then 
+                    /* Intentional lack of no-error on find. */
+                    {&_proparse_ prolint-nowarn(findnoerror)}
                     find putMap where rowid(putMap) eq rowid(lbMap).
             end.
             // Add an entry
@@ -312,11 +318,15 @@ class OpenEdge.Core.Collections.Map serializable
         
         /* try by-reference first */
         if can-find(removeMap  where removeMap.KeyRef eq poKey) then
+            /* Intentional lack of no-error on find. */
+            {&_proparse_ prolint-nowarn(findnoerror)}
             find removeMap where removeMap.KeyRef eq poKey.
         
         if not available removeMap then
         for each lbMap while not available removeMap:
             if lbMap.KeyRef:Equals(poKey) then
+                /* Intentional lack of no-error on find. */
+                {&_proparse_ prolint-nowarn(findnoerror)}
                 find removeMap where rowid(removeMap) eq rowid(lbMap).
         end.
         
@@ -333,9 +343,9 @@ class OpenEdge.Core.Collections.Map serializable
     /** Removes the mappings for all key from this map if it is present (optional operation).
         
         @param ICollection A collection of keys to remove */
-    method public void RemoveAll(input poKeys as ICollection).
+    method public void RemoveAll(input poKeys as ICollection):
         define variable oIterator as IIterator no-undo.
-        define variable oRemove  as Object.
+        define variable oRemove  as Object no-undo.
         define buffer removeMap for ttMap. 
         
         oIterator = poKeys:iterator().

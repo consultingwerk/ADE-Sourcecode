@@ -1,15 +1,15 @@
 /************************************************
-Copyright (c) 2015, 2017-2019 by Progress Software Corporation. All rights reserved.
-*************************************************/ 
+Copyright (c) 2015, 2017-2019, 2021-2022 by Progress Software Corporation. All rights reserved.
+*************************************************/
 /*------------------------------------------------------------------------
     File        : MultipartEntityWriter
     Purpose     : Creates a MultiPartEntity per http://tools.ietf.org/html/rfc2046
-    Syntax      : 
-    Description : 
+    Syntax      :
+    Description :
     Author(s)   : pjudge
     Created     : Wed Jul 01 16:53:21 EDT 2015
     Notes       : - Write() operations are destructive (they replace the existing
-                    Entity).    
+                    Entity).
                   - http://www.w3.org/Protocols/rfc1341/7_2_Multipart.html
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
@@ -29,7 +29,7 @@ using Progress.Lang.AppError.
 using Progress.Lang.Object.
 
 class OpenEdge.Net.HTTP.Filter.Payload.MultipartEntityWriter inherits MessageWriter
-        implements ISupportMultipartEntity: 
+        implements ISupportMultipartEntity:
     
     /* magic numbers */
     define private property CR as integer init 13 no-undo get.
@@ -60,6 +60,12 @@ class OpenEdge.Net.HTTP.Filter.Payload.MultipartEntityWriter inherits MessageWri
             
             when type-of(poData, MessagePart) then
                 return this-object:Write(cast(poData, MessagePart)).
+            
+            when type-of(poData, MultipartEntity) then
+            do:
+                assign this-object:Entity = poData.
+                return 0.
+            end.
             
             otherwise
                 return error new AppError(
@@ -96,9 +102,9 @@ class OpenEdge.Net.HTTP.Filter.Payload.MultipartEntityWriter inherits MessageWri
         return 0.
     end method.
     
-    /* Writes a multipart entity byte-by-byte. 
+    /* Writes a multipart entity byte-by-byte.
        
-       @param memptr The multipart message body 
+       @param memptr The multipart message body
        @return int64 The number of bytes written */
     method override public int64 Write(input pmData as memptr):
         define variable oMPE as MultipartEntity no-undo.
@@ -123,7 +129,6 @@ class OpenEdge.Net.HTTP.Filter.Payload.MultipartEntityWriter inherits MessageWri
         define variable oPartData as ByteBucket no-undo.
         define variable iStartDataPos as int64 no-undo.
         define variable startAt as datetime no-undo.
-        define variable boundaryLoop as integer no-undo.
         define variable atBoundary as logical no-undo.
         define variable cPattern as character no-undo.
         define variable idx as integer no-undo.
@@ -148,10 +153,10 @@ class OpenEdge.Net.HTTP.Filter.Payload.MultipartEntityWriter inherits MessageWri
         
         MAIN-LOOP:
         do iLoop = 1 to iSize:
-            idx = INDEX(pmData, cPattern, iLoop).
+            idx = index(pmData, cPattern, iLoop).
             iLoop = idx.
             if iLoop gt 2 then
-                    // iLoop points to the first dash; now check the 2 bytes before that 
+                    // iLoop points to the first dash; now check the 2 bytes before that
                     assign atBoundary = (    get-byte(pmData, iLoop - 2) eq CR
                                          and get-byte(pmData, iLoop - 1) eq LF).
             else
@@ -197,10 +202,10 @@ class OpenEdge.Net.HTTP.Filter.Payload.MultipartEntityWriter inherits MessageWri
                                     if iByte eq CR or iByte eq LF then
                                         assign iNumBytes = iNumBytes - 1.
                                     
-                                    /* if we're at the end of our chunk of data, or we have hit 
+                                    /* if we're at the end of our chunk of data, or we have hit
                                        the carriage return */
-                                    if     (   (iPrevByte eq CR and iByte eq LF) 
-                                             or iPartLoop eq iEndPos) 
+                                    if     (   (iPrevByte eq CR and iByte eq LF)
+                                             or iPartLoop eq iEndPos)
                                        and iNumBytes gt 0
                                     then
                                     do:
@@ -216,12 +221,12 @@ class OpenEdge.Net.HTTP.Filter.Payload.MultipartEntityWriter inherits MessageWri
                                                iNumBytes = 0.
                                     end.
                                     
-                                    /* if this is the 2nd CRLF then we have finished all the headers 
+                                    /* if this is the 2nd CRLF then we have finished all the headers
                                        
                                        NOTE: usually we check for line ending by having CR+LF. Here we
                                        check for LF then CR since that means the first byte following a
                                        LF is another line ending (CR). */
-                                    if iByte eq LF and iNumBytes eq 0 and 
+                                    if iByte eq LF and iNumBytes eq 0 and
                                        get-string(pmData, iPartLoop - 3 /* 1-based counting */, 4) eq (StringConstant:CRLF + StringConstant:CRLF)
                                     then
                                         assign lHeadersRead  = true
@@ -236,7 +241,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.MultipartEntityWriter inherits MessageWri
                                                             :Writer.
                                     Assert:NotNull(oPartWriter, 'Part writer').
                                     
-                                    oPartData:PutBytes(get-pointer-value(mPartData), 
+                                    oPartData:PutBytes(get-pointer-value(mPartData),
                                                        get-size (mPartData)).
                                     
                                     /* create the entity */
@@ -272,7 +277,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.MultipartEntityWriter inherits MessageWri
                         assign iLoop = iSize.
                         
                         if oMPE:Epilogue eq StringConstant:CRLF then
-                            assign oMPE:Epilogue = '':u. 
+                            assign oMPE:Epilogue = '':u.
                         
                         leave MAIN-LOOP.
                     end.

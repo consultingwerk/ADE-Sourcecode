@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2017-2018, 2020 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2017-2018, 2020-2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
  /*------------------------------------------------------------------------
     File        : DataObjectError
@@ -22,7 +22,9 @@ using OpenEdge.Web.DataObject.MappedOperation.
 using OpenEdge.Web.DataObject.ServiceDiscoveryEventArgs.
 using OpenEdge.Web.IWebRequest.
 
+{&_proparse_ prolint-nowarn(serializableerror)}
 class OpenEdge.Web.DataObject.DataObjectError inherits ApplicationError: 
+
     /* (optional) The service affected by this error */
     define public property Service as DataObjectService no-undo get. set.
     
@@ -43,8 +45,8 @@ class OpenEdge.Web.DataObject.DataObjectError inherits ApplicationError:
     /* (optional) The entity (business logic) servicing the request */
     define public property BusinessEntity as Progress.Lang.Object no-undo get. set.
     
-    /* Default constructor */
     constructor public DataObjectError():
+        /* Default constructor */
     end constructor.
     
     /* Constructor

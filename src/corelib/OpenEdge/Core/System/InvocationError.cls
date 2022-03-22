@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2013, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : InvocationError
@@ -44,6 +44,7 @@ class OpenEdge.Core.System.InvocationError inherits ApplicationError serializabl
     end constructor.
     
     constructor public InvocationError():
+        {&_proparse_ prolint-nowarn(varusage)}
         define variable oUnknown as Error no-undo.
         super(oUnknown).
     end constructor.

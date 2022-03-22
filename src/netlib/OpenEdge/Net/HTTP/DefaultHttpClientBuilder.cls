@@ -1,14 +1,14 @@
 /************************************************
-Copyright (c) 2015-2016, 2019 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2016, 2019, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : DefaultHttpClientBuilder
-    Purpose     : 
-    Syntax      : 
-    Description : 
+    Purpose     :
+    Syntax      :
+    Description :
     Author(s)   : pjudge
     Created     : Wed Jan 14 14:53:46 EST 2015
-    Notes       : 
+    Notes       :
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
@@ -38,13 +38,14 @@ class OpenEdge.Net.HTTP.DefaultHttpClientBuilder inherits ClientBuilder
     
     destructor public DefaultHttpClientBuilder():
         Destroy().
-    end destructor.  
+    end destructor.
 
     method public void Initialize():
-        Named('OpenEdge-HttpClient':u, '0.4.0':u).
+        Named('OpenEdge-HttpClient':u, '0.5.0':u).
     end method.
     
     method public void Destroy():
+        /* Stub for destroy action */
     end method.
     
     /** Returns a useable HttpClient based on the config.
@@ -67,7 +68,7 @@ class OpenEdge.Net.HTTP.DefaultHttpClientBuilder inherits ClientBuilder
         oClient = dynamic-new string(oClientType:TypeName) (GetOptionStringValue(PROP_CLIENT_NAME),
                                                             GetOptionStringValue(PROP_CLIENT_VERSION),
                                                             BuildLibrary() ).
-        
+
         /* SET OPTIONS */
         if HasOption('numRetries':u) then
             oClient:Options:NumRetries = GetOptionNumericValue('numRetries':u).
@@ -75,9 +76,18 @@ class OpenEdge.Net.HTTP.DefaultHttpClientBuilder inherits ClientBuilder
             oClient:Options:PauseBetweenRetry = GetOptionNumericValue('pauseBetweenRetry':u).
         if HasOption('requestTimeout':u) then
             assign oClient:Options:RequestTimeout = GetOptionNumericValue('requestTimeout':u).
-            
-        // Add logging if it's been passed in 
-        if HasOption(get-class(ILogWriter):TypeName) 
+        
+        /* TRACING */
+        // is tracing allowed?
+        if HasOption('allowTracing':u) then
+            assign oClient:Options:AllowTracing = GetOptionLogicalValue('allowTracing':u) eq true.
+        
+        // any config
+        if HasOption('traceConfig') then
+                assign oClient:Options:TraceConfig = GetOptionObjectValue('traceConfig').
+        
+        // Add logging if it's been passed in
+        if HasOption(get-class(ILogWriter):TypeName)
            and type-of(oClient, ISupportLogging) then
             assign cast(oClient, ISupportLogging):Logger = cast(GetOptionObjectValue(get-class(ILogWriter):TypeName), ILogWriter).
         

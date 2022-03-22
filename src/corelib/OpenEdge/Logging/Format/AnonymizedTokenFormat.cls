@@ -1,11 +1,11 @@
 /************************************************
-Copyright (c) 2018-2019 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2018-2019, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : AnonymizedTokenFormat
     Purpose     : Anonymises (hashes) specific token values
-    Syntax      : 
-    Description : 
+    Syntax      :
+    Description :
     Author(s)   : pjudge
     Created     : 2018-11-16
     Notes       : - Default property values are
@@ -16,7 +16,7 @@ Copyright (c) 2018-2019 by Progress Software Corporation. All rights reserved.
                     This takes the form of
                         $<id>$<salt>$<b64-hash>
                     
-                    The <id> value represents the hashing algorithm, and is one of 
+                    The <id> value represents the hashing algorithm, and is one of
                         md5     : 1
                         sha-1   : sha1
                         sha-256 : 5
@@ -37,7 +37,7 @@ using OpenEdge.Logging.LogEvent.
 
 class OpenEdge.Logging.Format.AnonymizedTokenFormat implements ILoggerFilter:
     
-    // The mask to use for anonymising the token values 
+    // The mask to use for anonymising the token values
     define private variable mMask as character no-undo.
     
     /* A comma-separated list of tokens to anonymize. */
@@ -72,7 +72,7 @@ class OpenEdge.Logging.Format.AnonymizedTokenFormat implements ILoggerFilter:
         Assert:NotNull(pTokens, 'Token list').
         
         assign this-object:HashAlgorithm   = pAlgorithm
-               this-object:AnonymizeTokens = pTokens 
+               this-object:AnonymizeTokens = pTokens
                .
         //mMask = $id$salt$hashed
         case this-object:HashAlgorithm:
@@ -108,18 +108,19 @@ class OpenEdge.Logging.Format.AnonymizedTokenFormat implements ILoggerFilter:
             return.
         
         assign iter = cast(ctx, IList):Iterator().
+        TOKEN-LOOP:
         do while iter:HasNext():
             assign val = iter:Next().
             if    not valid-object(val)
                or not type-of(val, Token)
             then
-                next.
+                next TOKEN-LOOP.
             
             assign token = cast(val, Token).
-            if    index(this-object:AnonymizeTokens, string(token)) eq 0 
+            if    index(this-object:AnonymizeTokens, string(token)) eq 0
                or token:Value eq ?
             then
-                next.
+                next TOKEN-LOOP.
             
             assign salt      = substring(base64-encode(generate-uuid), 1, 22)
                    //$id$salt$hashed

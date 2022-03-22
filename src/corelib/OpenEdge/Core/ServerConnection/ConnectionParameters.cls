@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2013, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : ConnectionParameters
@@ -54,7 +54,10 @@ class OpenEdge.Core.ServerConnection.ConnectionParameters
             oOptions = cast(oParser:Parse(pcOptions), JsonObject).
         end.
         
-        ShadowConstructor(oOptions, FormatMaskEnum:Default).
+        if valid-object(poFormatMask) then
+            ShadowConstructor(oOptions, poFormatMask).
+        else
+            ShadowConstructor(oOptions, FormatMaskEnum:Default).
     end constructor.
     
     constructor public ConnectionParameters(input poOptions as JsonObject, input poFormatMask as FormatMaskEnum):
@@ -79,6 +82,7 @@ class OpenEdge.Core.ServerConnection.ConnectionParameters
     
     /** Use this method for setting initial or default values, or other similar actions */
     method protected void Initialise():
+        /* Default initialize (sp) */
     end method.
     
     /** Returns the Options as a formatted string for use by the server to connect. 

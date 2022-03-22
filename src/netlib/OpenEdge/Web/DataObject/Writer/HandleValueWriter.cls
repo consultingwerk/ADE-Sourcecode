@@ -1,14 +1,14 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2017, 2019 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2017, 2019, 2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : HandleValueWriter
     Purpose     : Writes a primitive value to a IHandleHolder
-    Syntax      : 
-    Description : 
+    Syntax      :
+    Description :
     Author(s)   : pjudge
     Created     : 2016-06-08
-    Notes       : 
+    Notes       :
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
@@ -31,10 +31,9 @@ class OpenEdge.Web.DataObject.Writer.HandleValueWriter inherits ArgumentValueWri
     
     constructor public HandleValueWriter ():
         super(get-class(IHandleHolder)).
-    end constructor. 
+    end constructor.
     
     method override public void Write( input pData as character):
-        
         assign this-object:Value = new OpenEdge.Core.WidgetHandle(handle(pData)).
     end method.
     
@@ -73,6 +72,7 @@ class OpenEdge.Web.DataObject.Writer.HandleValueWriter inherits ArgumentValueWri
     end method.
     
     method override public void Write(input pData as longchar):
+        {&_proparse_ prolint-nowarn(overflow)}
         this-object:Write(string(pData)).
     end method.
     
@@ -92,7 +92,7 @@ class OpenEdge.Web.DataObject.Writer.HandleValueWriter inherits ArgumentValueWri
             if valid-handle(hData) then
             case hData:type:
                 when string(DataTypeEnum:TempTable) then
-                    hData:copy-temp-table(pData, ?, ?, true).       // loose-copy-mode 
+                    hData:copy-temp-table(pData, ?, ?, true).       // loose-copy-mode
                 when string(DataTypeEnum:Dataset) then
                     hData:copy-dataset(pData, ?, ?, true).          // loose-copy-mode
                 otherwise
@@ -109,6 +109,7 @@ class OpenEdge.Web.DataObject.Writer.HandleValueWriter inherits ArgumentValueWri
     end method.
 
     method override public void Write( input pData as int64):
+        {&_proparse_ prolint-nowarn(overflow)}
         this-object:Write(integer(pData)).
     end method.
 
@@ -133,7 +134,7 @@ class OpenEdge.Web.DataObject.Writer.HandleValueWriter inherits ArgumentValueWri
             when type-of(pData, JsonConstruct) then
             do:
                 /* If we have a handle already, use that. */
-                if valid-object(this-object:Value) then    
+                if valid-object(this-object:Value) then
                 do:
                     assign hData    = cast(this-object:Value, IHandleHolder):Value
                            lDestroy = false.
@@ -160,8 +161,8 @@ class OpenEdge.Web.DataObject.Writer.HandleValueWriter inherits ArgumentValueWri
                         hData:read-json('JsonArray':u, cast(pData, JsonArray), ReadModeEnum:Empty:ToString()).
                     else
                     if type-of(pData, JsonObject) then
-                        /* JsonObject data can be read into a table or dataset. Try a dataset, since we don't really know the 
-                           name of the tables. If it fails, throw an error. 
+                        /* JsonObject data can be read into a table or dataset. Try a dataset, since we don't really know the
+                           name of the tables. If it fails, throw an error.
                            
                            Use EMPTY read-mode in case there are index conflicts in the input data */
                         hData:read-json('JsonObject':u, cast(pData, JsonObject), ReadModeEnum:Empty:ToString()).
@@ -176,7 +177,7 @@ class OpenEdge.Web.DataObject.Writer.HandleValueWriter inherits ArgumentValueWri
                         do iLoop = 1 to iMax:
                             oReadError:AddMessage(oError:GetMessage(iLoop), oError:GetMessageNum(iLoop)).
                         end.
-                        undo, throw oReadError.    
+                        undo, throw oReadError.
                     end catch.
                 end.
                 
@@ -197,12 +198,12 @@ class OpenEdge.Web.DataObject.Writer.HandleValueWriter inherits ArgumentValueWri
             when type-of(pData, IInt64Holder) then
                this-object:Write(cast(pData, IInt64Holder):Value).
             
-            /* Data types such as RAW, MEMPTR, LVARBINARY, and so on return the 
+            /* Data types such as RAW, MEMPTR, LVARBINARY, and so on return the
                Unknown value (?), but this is not considered an error. */
             when type-of(pData, IPrimitiveHolder) then
                 assign this-object:Value = new OpenEdge.Core.WidgetHandle(?).
             
-            otherwise 
+            otherwise
                 return error new AppError(
                             substitute('Unsupported object type: &1', pData:GetClass():TypeName)
                             , 0).

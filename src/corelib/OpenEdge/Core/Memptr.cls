@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2014-2018 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014-2018, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : Memptr
@@ -19,8 +19,10 @@ using OpenEdge.Core.HashAlgorithmEnum.
 using OpenEdge.Core.Memptr.
 using OpenEdge.Core.StringConstant.
 using Progress.Lang.AppError.
+using OpenEdge.Core.IMemoryPointer.
 
-class OpenEdge.Core.Memptr implements IMemptrHolder:
+class OpenEdge.Core.Memptr
+implements IMemptrHolder, IMemoryPointer:
     /**  the actual memptr under management here */
     define private variable mmValue as memptr no-undo.
     
@@ -47,9 +49,15 @@ class OpenEdge.Core.Memptr implements IMemptrHolder:
                 set-size(mmValue) = piSize.
         end set.
     
+    /* A pointer to the underlying/wrapped memptr */
+    define public property PointerValue as int64 no-undo
+        get():
+            return get-pointer-value(mmValue).
+        end get.
+            
     /** Returns a new, empty/null Memptr */
     define static public property Empty as class Memptr no-undo
-        get().
+        get():
             return new Memptr(0).
         end get.
     
@@ -61,7 +69,7 @@ class OpenEdge.Core.Memptr implements IMemptrHolder:
     /** Constructor.
     
         @param int64 The pointer to memory represented by a memptr (via get-pointer-value). 
-        @param int64 The size of the memptr represented by the pointer value. */          
+        @param int64 The size of the memptr represented by the pointer value. */
     constructor public Memptr(input piPtr as int64, input piSize as int64):
         /* this-object(piSize). - don't use this constructor, it calls set-size() */
         this-object().
@@ -76,7 +84,7 @@ class OpenEdge.Core.Memptr implements IMemptrHolder:
     
     /** Constructor.
     
-        @param int64 The size of the memptr to be created. */          
+        @param int64 The size of the memptr to be created. */
     constructor public Memptr(input piSize as int64):
         this-object().
         
@@ -116,16 +124,13 @@ class OpenEdge.Core.Memptr implements IMemptrHolder:
     
         @param int64 The pointer to memory represented by this memptr */ 
     method public int64 GetPointerValue():
-        define variable iPtr as int64 no-undo.
-        
-        iPtr = get-pointer-value(mmValue).
-        return iPtr.
+        return this-object:PointerValue.
     end method.
     
     /** Clears/resets the current memptr. Clears the memory and resets it to
         its former size. */
     method public void Clear():
-        define variable iOldSize as integer no-undo.
+        define variable iOldSize as int64 no-undo.
         if not this-object:ExternalAllocation then
         do:
             assign iOldSize = this-object:Size.
@@ -170,7 +175,7 @@ class OpenEdge.Core.Memptr implements IMemptrHolder:
         @return longchar The character/string data requested     */
     method public longchar GetString(input piStartPos as int64):
         return GetString(piStartPos, this-object:Size - piStartPos + 1).
-    end.
+    end method.
 
     /** Returns a string/character representation a particular number of bytes,
         from a given start position.
@@ -181,7 +186,7 @@ class OpenEdge.Core.Memptr implements IMemptrHolder:
     method public longchar GetString(input piStartPos as int64,
                                      input piSliceSize as int64):
         return GetString(piStartPos, piSliceSize, session:cpinternal, 'UTF-8':u).
-    end.
+    end method.
         
     /** Returns a string/character representation a particular number of bytes,
         from a given start position.
@@ -333,8 +338,8 @@ class OpenEdge.Core.Memptr implements IMemptrHolder:
     /** Debug/dump of the contents of this object on a per-byte basic. COPY-LOB 
         can also be used for debug purposes (COPY-LOB objMemptr:Value TO FILE). */
     method public void _Debug ():
-        define variable iLoop as integer no-undo.
-        define variable iMax as integer no-undo.
+        define variable iLoop as int64 no-undo.
+        define variable iMax as int64 no-undo.
         define variable iByte as integer no-undo.
         define variable cDumpFile as character no-undo.
         
@@ -351,8 +356,8 @@ class OpenEdge.Core.Memptr implements IMemptrHolder:
             if iByte <> 10 and iByte <> 13 then
                 put unformatted
                     StringConstant:TAB StringConstant:TAB chr(iByte).
-                  
-             put unformatted skip. 
+            
+            put unformatted skip. 
         end.
         output close.
     end method.

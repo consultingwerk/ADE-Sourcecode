@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2013-2017 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2013-2017, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------------
     File        : AbstractTTCollection
@@ -112,8 +112,8 @@ class OpenEdge.Core.Collections.AbstractTTCollection abstract serializable
         return true. 
     end method.
     
-    method public void Clear(  ):
-        mhTempTable:default-buffer-handle:empty-temp-table.
+    method public void Clear( ):
+        mhTempTable:default-buffer-handle:empty-temp-table().
         assign this-object:Size = 0.        
     end method.
     
@@ -123,7 +123,7 @@ class OpenEdge.Core.Collections.AbstractTTCollection abstract serializable
     end method.
     
     method public logical ContainsAll(input poCollection as ICollection):
-        define variable oIterator as IIterator.
+        define variable oIterator as IIterator no-undo.
         
         Assert:NotNull(poCollection, 'Collection to check').
         
@@ -171,8 +171,8 @@ class OpenEdge.Core.Collections.AbstractTTCollection abstract serializable
     end method.
     
     method public logical RemoveAll(collection as ICollection):
-        define variable iterator as IIterator. 
-        define variable oRemove  as Object. 
+        define variable iterator as IIterator no-undo. 
+        define variable oRemove  as Object no-undo.
         define variable lAny as logical no-undo.        
         iterator = collection:iterator().
         do while iterator:HasNext():

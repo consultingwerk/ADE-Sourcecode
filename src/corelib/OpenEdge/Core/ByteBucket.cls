@@ -1,32 +1,30 @@
 /************************************************
-Copyright (c) 2014-2018 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014-2018, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : ByteBucket
     Purpose     : An extensible bucket/container for byte-based data. The bucket
-                  consists of a MemoryOutputSTream instance
+                  consists of a MemoryOutputStream instance
     Author(s)   : pjudge
     Created     : Wed May 14 16:26:38 EDT 2014
-    Notes       : * Bucket size is initially 3 x 30k records, and will expand
-                    to contain whatever's passed in.
-                  * Resize can be used to grow and shrink the number of rows in
-                    the bucket. The number of rows cannot shrink below the number
-                    needed to contain the current data (ie :Size ).
+    Notes       :
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
+using Ccs.Common.Support.IMemptrHolder.
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.ByteBucket.
 using OpenEdge.Core.HashAlgorithmEnum.
 using OpenEdge.Core.ISupportInitialize.
 using OpenEdge.Core.Memptr.
 using OpenEdge.Core.String.
-using OpenEdge.Core.Util.MathUtil.
-using Progress.Io.MemoryOutputStream.
+using Progress.IO.MemoryOutputStream.
+using OpenEdge.Core.IMemoryPointer.
 
-class OpenEdge.Core.ByteBucket implements ISupportInitialize:
-    
-    define private variable memoutStream as Progress.Io.MemoryOutputStream no-undo.
+class OpenEdge.Core.ByteBucket
+implements ISupportInitialize, IMemptrHolder, IMemoryPointer:
+    // The storage of the memptr data - this is a dynamically-extensible primitive
+    define private variable memoutStream as MemoryOutputStream no-undo.
     
     /** The current read position */
     define public property Position as int64 no-undo get. set.
@@ -37,24 +35,49 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
     /** The initial size of the memptr that are held in the Bucket */
     define public property DefaultCapacity as int64 no-undo get. private set.
     
-    /** Returns the size of the data in the bucket */    
-    define public property Size as int64 no-undo 
-        get: 
-            return memoutStream:BytesWritten. 
+    /** Returns the size of the data in the bucket */
+    define public property Size as int64 no-undo
+        get:
+            return memoutStream:BytesWritten.
         end.
+    
+    /** A memptr value with the complete contents of the ByteBucket (bytes actually written)
+        The value SHOULD be assigned to another variable, since it is cleaned up in the getter */
+    define public property Value as memptr no-undo
+        get():
+            var memptr bbData.
+            if memoutStream:BytesWritten gt 0 then
+            do:
+                set-size(bbData) = memoutStream:BytesWritten.
+                bbData = get-bytes(memoutStream:Data, 1, memoutStream:BytesWritten).
+            end.
+            return bbData.
+            finally:
+                // cleaning up this memptr doesn't mean that the caller
+                // will have a zero-byte value
+                set-size(bbData) = 0.
+            end finally.
+        end get.
+    
+    /* A pointer to the underlying/wrapped memptr */
+    define public property PointerValue as int64 no-undo
+        get():
+            return get-pointer-value(memoutStream:Data).
+        end get.
     
     /** Constructor for a ByteBucket. Defaults to 0 memptr size */
     constructor public ByteBucket():
-        this-object(1).
-        DefaultCapacity = 0.
-    end method.
+        this-object(0).
+    end constructor.
     
     /** Constructor for a ByteBucket
         @param int64 the intial size of memptr to store bytes */
     constructor public ByteBucket(input piDefaultCapacity as int64):
-        memoutStream = New Progress.io.MemoryOutputStream(piDefaultCapacity).
-        this-object:Position        =   1. 
-        DefaultCapacity = piDefaultCapacity.
+        Assert:IsZeroOrPositive(piDefaultCapacity, 'Initial size').
+        assign memoutStream                = new MemoryOutputStream(piDefaultCapacity)
+               this-object:Position        = 1
+               this-object:DefaultCapacity = piDefaultCapacity
+               .
     end constructor.
     
     destructor ByteBucket():
@@ -65,21 +88,18 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
         @deprecated(since='12.0':u).
         @param integer  The initial size of the array (ie how many extents)
         @param int64 the intial size of  memptr to store bytes */
+    {&_proparse_ prolint-nowarn(varusage)}
     constructor public ByteBucket(input piInitialSize as integer, input piDefaultCapacity as int64):
-        memoutStream = New Progress.io.MemoryOutputStream(piDefaultCapacity ).
-        this-object:Position        =   1. 
-        DefaultCapacity = piDefaultCapacity.
+        this-object(piDefaultCapacity).
     end constructor.
     
     /** Constructor for a ByteBucket
         
-        @param integer The initial size of the bucket (ie how many 32k rows) 
-        @deprecated(since='12.0':u). 
+        @param integer The initial size of the bucket (ie how many 32k rows)
+        @deprecated(since='12.0':u).
         */
     constructor public ByteBucket(input piInitialSize as integer):
-        Assert:IsPositive(piInitialSize, 'Initial size').
-        memoutStream = New Progress.io.MemoryOutputStream().
-        this-object:Position        =   1.
+        this-object(int64(piInitialSize)).
     end constructor.
     
     /** Factory method for creating a ByteBucket.
@@ -90,7 +110,7 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
         define variable oBB as ByteBucket no-undo.
         assign oBB = new ByteBucket(piInitialSize, piDefaultCapacity).
         oBB:Initialize().
-        return oBB. 
+        return oBB.
     end method.
 
     /** Factory method for creating a ByteBucket.
@@ -102,7 +122,7 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
         assign oBB = new ByteBucket(piDefaultCapacity).
         oBB:Initialize().
         
-        return oBB. 
+        return oBB.
     end method.
     
     /** Factory method for creating a ByteBucket. */
@@ -112,9 +132,8 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
         assign oBB = new ByteBucket().
         oBB:Initialize().
         
-        return oBB. 
+        return oBB.
     end method.
-    
     
     /** Clears/resets the ByteBucket. Does not de-allocate the memory, just the
         various pointers/counters/cursors. */
@@ -130,61 +149,61 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
         
         Clears and resizes the bucket's internals to the initial size (num records) */
     method public void Initialize():
-        this-object:Clear().
+        assign this-object:Position = 1.
     end method.
     
     /** Destroy/Shutdown/Anti-Initializer */
     method public void Destroy():
-        assign this-object:Position = 1.
-            
-        delete object memoutStream.
-        
-        if get-size(mmTempBytes) gt 0 then
-            set-size(mmTempBytes) = 0.
+        this-object:Clear().
     end method.
     
     /** Resizes the internal 'array' of records.
-        We can shrink down the number of rows, but not smaller than the 
-        bucket's size. 
+        We can shrink down the number of rows, but not smaller than the
+        bucket's size.
         
         @param integer The new size (number of extents) for the array */
     {&_proparse_ prolint-nowarn(varusage)}
     method public void ResizeArray(input piSize as integer):
-        //this-object:Resize(piSize).    
+        //this-object:Resize(piSize).
     end method.
     
     /** Resizes the internal 'array' of records.
-        We can shrink down the number of rows, but not smaller than the 
-        bucket's size in bytes. 
+        We can shrink down the number of rows, but not smaller than the
+        bucket's size in bytes.
         
         @param integer The new size (number of records) for the internal structure */
-    {&_proparse_ prolint-nowarn(varusage)}    
-    method public void Resize(input piSize as integer):        
+    {&_proparse_ prolint-nowarn(varusage)}
+    method public void Resize(input piSize as integer):
+        // not needed
     end method.
     
     /** Copies all of the bytes from a memptr into this bucket. The
         caller is responsible for cleaning up the memptr.
     
-        @param int64 The pointer to memory represented by a memptr (via get-pointer-value). 
+        @param int64 The pointer to memory represented by a memptr (via get-pointer-value).
         @param int64 The size of the memptr represented by the pointer value. */
     method public void PutBytes(input piPointerValue as int64,
                                 input piSize as int64):
+        define variable bytesWritten as int64 no-undo.
+        
         // Nothing to do if there's no data
-        if piSize eq 0 then
+        if piSize le 0
+        or piSize eq ?
+        then
             return.
         
         Assert:IsPositive(piPointerValue, 'Pointer Value').
-        Assert:IsPositive(piSize, 'Memptr Size').
         
         /* jiggery-pokery so we can reuse code without deep-copying memptr's all over the show */
         set-size(mmTempBytes) = 1. /* allocate a new 1-byte memptr */
         set-size(mmTempBytes) = 0. /* free this 1-byte memptr, which also clears the size */
         set-pointer-value(mmTempBytes) = piPointerValue.
         set-size(mmTempBytes) = piSize.
-         
-        /* Start at the first byte of the input memptr */
-        WriteBytes(1, piSize).
         
+        /* Start at the first byte of the input memptr */
+        assign bytesWritten         = memoutStream:Write(mmTempBytes, 1, piSize)
+               this-object:Position = this-object:Position + bytesWritten
+               .
         finally:
             /* First de-reference the mmTempBytes variable before
                calling SET-SIZE() = 0 on it. */
@@ -194,7 +213,7 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
         end finally.
     end method.
     
-    /** Copies all of the bytes from a String object (longchar) into this bucket. 
+    /** Copies all of the bytes from a String object (longchar) into this bucket.
         
         @param String The longchar containing the source data. */
     method public void PutString(input poData as String):
@@ -203,7 +222,7 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
         PutString(poData:Value, poData:Encoding).
     end method.
     
-    /** Copies all of the bytes from a longchar into this bucket. 
+    /** Copies all of the bytes from a longchar into this bucket.
         
         @param longchar The longchar containing the source data */
     method public void PutString(input pcData as longchar):
@@ -212,11 +231,12 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
     
     /** Copies all of the bytes from a longchar into this bucket.
         
-        @param longchar The longchar containing the source data 
+        @param longchar The longchar containing the source data
         @param longchar The target codepage used to write data into the bucket. Defaults to UTF-8 */
     @deprecated(since="11.7.3", use="PutString(longchar,character)").
     method public void PutString(input pcData as longchar,
                                  input pcTargetCodepage as longchar):
+        {&_proparse_ prolint-nowarn(overflow)}
         PutString(pcData, string(pcTargetCodepage)).
     end method.
     
@@ -233,7 +253,7 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
             return.
         
         if    pcTargetCodepage eq '':u
-           or pcTargetCodepage eq ? 
+           or pcTargetCodepage eq ?
         then
             assign pcTargetCodepage = 'UTF-8':u.
         
@@ -255,8 +275,7 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
         @param OpenEdge.Core.Memptr The Memptr instance containing the data. */
     method public void PutBytes(input poData as class Memptr):
         Assert:NotNull(poData, 'Data').
-        if poData:Size gt 0 then
-            PutBytes(poData:GetPointerValue(), poData:Size).
+        PutBytes(poData:GetPointerValue(), poData:Size).
     end method.
 
     /** Copies all of the bytes from a ByteBucket instance into this bucket. The
@@ -269,11 +288,11 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
         if poData:Size eq 0 then
             return.
         
-          memoutStream:write(poData:memoutStream:Data,1,poData:memoutStream:BytesWritten).
+        memoutStream:Write(poData:memoutStream:Data, 1, poData:memoutStream:BytesWritten).
     end method.
     
     /** Copies all of the bytes from a memptr (primitive) into this bucket. The
-        caller is responsible for cleaning up the memptr. 
+        caller is responsible for cleaning up the memptr.
     
         @param memptr The memptr containing the data. */
     method public void PutBytes(input pmData as memptr):
@@ -282,22 +301,7 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
             return.
         
         /* jiggery-pokery so we can reuse code without deep-copying memptr's all over the show */
-        PutBytes(get-pointer-value(pmData), get-size(pmData)). 
-    end method.
-    
-    /** Writes the contents/bytes of the currently-read memptr (mmTempBytes) 
-        into this bucket. This method writes bytes until the current bucket is
-        full, then resizes the bucket appropriately and calls itself. 
-        
-        @param int64 The start position in the memptr.
-        @param int64 The number of bytes to write */
-    method private void WriteBytes(input piStartPos as int64, 
-                                   input piBytesLeft as int64):
-       define var bwritten as int64 no-undo.
-       
-       assign bwritten             = memoutStream:write(mmTempBytes, piStartPos,piBytesLeft)
-              this-object:Position = this-object:Position + bwritten
-              .
+        PutBytes(get-pointer-value(pmData), get-size(pmData)).
     end method.
     
     /** Returns a byte at the current position , and increments the
@@ -308,7 +312,7 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
         define variable iByte as integer no-undo.
         
         assign iByte                = GetByte(this-object:Position)
-               this-object:Position = this-object:Position + 1. 
+               this-object:Position = this-object:Position + 1.
         return iByte.
     end method.
     
@@ -317,7 +321,6 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
         
         @param int64 The position at which to return the byte.
         @return integer The byte value at the current position */
-    
     method public integer GetByte(input piStartPos as int64):
         
         if piStartPos  <=  memoutStream:BytesWritten then do:
@@ -325,38 +328,37 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
         end.
         
         return 0.
-        
     end method.
     
     /** Returns a string/character representation a particular number of bytes,
         from a given start position.
     
         @param int64 The start potision
-        @param int64 The size of the data (in bytes) to return 
+        @param int64 The size of the data (in bytes) to return
         @return longchar The character/string data requested     */
     method public longchar GetString(input piStartPos as int64,
                                      input piSliceSize as int64):
-        return GetString(piStartPos, piSliceSize, session:cpinternal, 'UTF-8':u).         
+        return GetString(piStartPos, piSliceSize, session:cpinternal, 'UTF-8':u).
     end method.
-
+    
     /** Returns a string/character representation a particular number of bytes,
         from a given start position.
     
         @param  int64 The start potision
-        @param  int64 The size of the data (in bytes) to return 
+        @param  int64 The size of the data (in bytes) to return
         @param  character The target codepage for the character data
         @return longchar The character/string data requested     */
     method public longchar GetString(input piStartPos as int64,
                                      input piSliceSize as int64,
                                      input pcTargetCodepage as character):
-        return GetString(piStartPos, piSliceSize, session:cpinternal, pcTargetCodepage).                                                
-    end method. 
+        return GetString(piStartPos, piSliceSize, session:cpinternal, pcTargetCodepage).
+    end method.
                                                                                         
     /** Returns a string/character representation a particular number of bytes,
         from a given start position.
     
         @param  int64 The start potision
-        @param  int64 The size of the data (in bytes) to return 
+        @param  int64 The size of the data (in bytes) to return
         @param  character The source codepage for the character data
         @param  character The target codepage for the character data
         @return longchar The character/string data requested     */
@@ -376,7 +378,7 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
         
         fix-codepage(stringData) = pcTargetCodepage.
         
-        if    this-object:Size eq 0 
+        if    this-object:Size eq 0
            or piSliceSize eq 0 then
             return stringData.
         
@@ -402,7 +404,7 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
     /** Returns a string/character representation a particular number of bytes,
         from the current Position.
     
-        @param int64 The size of the data (in bytes) to return 
+        @param int64 The size of the data (in bytes) to return
         @return longchar The character/string data requested     */
     method public longchar GetString(input piSliceSize as int64):
         return GetString(this-object:Position, piSliceSize).
@@ -442,8 +444,8 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
         define variable data as memptr no-undo.
         
         /* return an empty Memptr */
-        if    this-object:Size eq 0 
-           or piSliceSize eq 0 
+        if    this-object:Size eq 0
+           or piSliceSize eq 0
         then
             return Memptr:Empty.
         
@@ -459,47 +461,49 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
         end finally.
     end method.
     
-    /* Reads data from the internal TT records into a memptr
+    /* Reads data from the MemoryOutputSTream into a memptr
        for return by GetBytes() and GetString() and friends.
        
        - The caller is responsible for cleaning up the memptr.
-       - The memptr size is also the number of bytes to read  
+       - The memptr size is also the initial number of bytes to read;
+         this value may change depending on the start pos and the number
+         of bytes written
        
        @param int64  The start position to read
        @param memptr The memptr into which to read the data */
     method private void ReadBytes(input piStartPos as int64,
                                   input pData as memptr):
-        
-        define variable iBytesLeft as integer no-undo.
         define variable bytestoread as int64 no-undo.
-        define variable mTemp as memptr no-undo.
+        define variable mSize as int64 no-undo.
         
-        Assert:IsPositive(piStartPos, 'Start position').                         
+        Assert:IsPositive(piStartPos, 'Start position').
         
-        assign iBytesLeft   = get-size(pData). 
-        bytestoread = iBytesLeft.
-            
-        if bytestoread gt memoutStream:BytesWritten then
-            assign bytestoread = memoutStream:BytesWritten.
+        assign mSize = get-size(pData).
+        if piStartPos gt memoutStream:BytesWritten then
+            assign bytestoread = 0.
+        else
+            assign bytestoread = minimum(memoutStream:BytesWritten,
+                                         (memoutStream:BytesWritten - piStartPos) + 1).
         
-        // workaround for PSC00295004
-        set-size(mTemp) = bytestoread.
-        mTemp = get-bytes(memoutStream:Data,piStartPos,bytestoread).
-        put-bytes(pData,1) = mTemp. 
-        finally:
-            if get-size(mTemp) gt 0 then
-                set-size(mTemp) = 0.
-        end finally.
+        if mSize gt 0 then
+            assign bytestoread = minimum(bytestoread, mSize).
+        
+        // if previously allocated
+        set-size(pData) = 0.
+        set-size(pData) = bytestoread.
+        
+        if bytestoread gt 0 then
+            assign pData = get-bytes(memoutStream:Data, piStartPos, bytestoread).
     end method.
     
-    /* Debug method to dump out current RAW bytes into numbered files 
+    /* Debug method to dump out current RAW bytes into numbered files
        Files are named bytebucket-memptr-<number>.bin */
     method public void Debug():
-        copy-lob from memoutStream:Data to file session:temp-dir + 'bytebucket-memptr-':u + string(int64(this-object)) + '.bin':u.         
+        copy-lob from memoutStream:Data to file session:temp-dir + 'bytebucket-memptr-':u + string(int64(this-object)) + '.bin':u.
     end method.
     
     /** Returns a hash of the current contents of the memptr. This can be used
-        for comparing memptr values quickly.  
+        for comparing memptr values quickly.
         
         @return raw The hashed value of the memptr. */
     method public raw GetHash():
@@ -507,7 +511,7 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
     end method.
     
     /** Returns a hash of the current contents of the memptr. This can be used
-        for comparing memptr values quickly.  
+        for comparing memptr values quickly.
         
         @param HashAlgorithmEnum The algorithm to use for the message
         @return raw The hashed value of the memptr. */
@@ -515,7 +519,44 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
         Assert:NotNull(poAlgorithm, 'Algorithm').
         
         /* hash of all the bytes */
-        return GetBytes():GetHash(poAlgorithm). 
+        return message-digest(string(poAlgorithm), this-object:Value).
+    end method.
+    
+    /** Returns the index of a string in the bytebucket's data. 
+        
+        @param longchar The search string. Must be non-unknown.
+        @return int64 The 1-based index of the start of the search string. Returns 0 if the search string cannot be found */
+    @since(rel='12.5.0').
+    method public int64 IndexOf(input pSearchStr as longchar):
+        return IndexOf(pSearchStr, 1).
+    end method.
+    
+    /** Returns the index of a string in the bytebucket's data. 
+        
+        @param longchar The search string. Must be non-unknown.
+        @param int64 The position to start searching at. Must be 1 or greater. If > the bytes written, returns 0.
+        @return int64 The 1-based index of the start of the search string. Returns 0 if the search string cannot be found */
+    @since(rel='12.5.0').
+    method public int64 IndexOf(input pSearchStr as longchar,
+                                input pStartAt as int64):
+        var int64 idx.
+        
+        if memoutStream:BytesWritten eq 0
+        or pStartAt eq ?
+        or pSearchStr eq ?
+        or pStartAt eq 0
+        or pStartAt gt memoutStream:BytesWritten
+        then
+            return 0.
+        
+        assign idx = index(memoutStream:Data, pSearchStr, pStartAt).
+        
+        if idx eq ? 
+        or idx gt memoutStream:BytesWritten
+        then
+            return 0.
+        
+        return idx.
     end method.
     
 end class.

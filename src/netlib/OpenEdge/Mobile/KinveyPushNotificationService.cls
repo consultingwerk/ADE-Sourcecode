@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2018 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2018, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
  /*------------------------------------------------------------------------
     File        : KinveyPushNotificationService
@@ -68,7 +68,7 @@ class OpenEdge.Mobile.KinveyPushNotificationService inherits PushNotificationSer
         assign this-object:ServerUri:Path = substitute('/rpc/&1/custom/&2',
                                                 pApplicationName,
                                                 pCustomEndpoint). 
-    end method.
+    end constructor.
     
     /** Sends a notification for a given payload. The payload may be built by one
         of the methods in this class, or created by the PushNotificationMessageBuilder

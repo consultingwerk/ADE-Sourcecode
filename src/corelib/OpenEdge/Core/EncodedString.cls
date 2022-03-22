@@ -56,8 +56,9 @@ final:
             
             assign mEncoding = pEncoding.
             
-            // force the encoding to be set correctly, and the value too
-            this-object:Value.
+            // Force the encoding to be set correctly, and the value too.
+            {&_proparse_ prolint-nowarn(exprnofx)}
+            this-object:Value. // Performs a GET on the property.
         end set.
     
     /* The value that should never be seen (ie always encoded). For all non-null values, the encoding is the
@@ -107,6 +108,7 @@ final:
             // the string needs encoding: we have limited options in ABL
             case mEncoding:
                 when EncodingTypeEnum:oech1 then
+                    {&_proparse_ prolint-nowarn(overflow)}
                     assign this-object:Value = 'oech1::':u + audit-policy:encrypt-audit-mac-key(string(this-object:Value)).
                 when EncodingTypeEnum:nopr0 then
                     assign this-object:Value = 'nopr0::':u + this-object:Value
@@ -166,6 +168,7 @@ final:
     end method.
     
     method override public character ToString():
+        {&_proparse_ prolint-nowarn(overflow)}
         return string(this-object:Value).
         
         // if the value is > 32k in length, return the default ToString value

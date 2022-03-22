@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2018, 2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : MappingFileServiceWriter
@@ -63,7 +63,7 @@ class OpenEdge.Web.DataObject.Writer.MappingFileServiceWriter inherits DataObjec
        @param DataObjectService The current service 
        @param MappedOperation The service operation to write */
     method override protected void WriteOperation(input pService as DataObjectService, 
-                                                  input pOperation as MappedOperation).
+                                                  input pOperation as MappedOperation):
         define variable svcData as JsonObject no-undo.
         define variable opMethod as JsonObject no-undo.
         
@@ -273,9 +273,7 @@ class OpenEdge.Web.DataObject.Writer.MappingFileServiceWriter inherits DataObjec
         define variable loop as integer no-undo.
         define variable cnt as integer no-undo.
         define variable tableHdl as handle no-undo.
-        define variable tableBaseHdl as handle no-undo.
         define variable svcData as JsonObject no-undo.
-        define variable schemas as JsonObject no-undo.
         
         if not valid-handle(pSchema)
           // this is part of a dataset and we write it out as the dataset.
@@ -548,20 +546,22 @@ class OpenEdge.Web.DataObject.Writer.MappingFileServiceWriter inherits DataObjec
     method protected void WriteUnknownOperation(input pOperation as MappedOperation,
                                                 input pJson as JsonObject):
         pJson:AddNull('unknown':u).
-        Logger:Warn(substitute('Unknown target type &1 for operation "&4 &5"',
-                                                pOperation:TargetType,
-                                                string(pOperation:Method),
-                                                pOperation:ServiceURI )).
+        Logger:Warn(substitute('Unknown target type &1 for operation "&2 &3"',
+                                pOperation:TargetType,
+                                string(pOperation:Method),
+                                pOperation:ServiceURI)).
     end method.
     
     /* Writes the contents of a VOID operation to the JSON
         
         @param MappedOperation The operation to write
         @param JsonObject The JSON output */
+    {&_proparse_ prolint-nowarn(varusage)}
     method protected JsonObject WriteVoidOperation(input pOperation as MappedOperation,
                                                    input pJson as JsonObject):
         // void is simple
         pJson:AddNull(string(ServiceMappingFileSchemaEnum:void)).
+        return pJson.
     end method.
     
     /* Writes the contents of anh ENTITY operation to the JSON

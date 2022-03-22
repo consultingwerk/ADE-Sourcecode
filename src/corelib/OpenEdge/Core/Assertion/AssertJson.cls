@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2014, 2019-2020 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014, 2019-2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : AssertJson
@@ -20,6 +20,29 @@ using Progress.Json.ObjectModel.JsonArray.
 using Progress.Json.ObjectModel.JsonObject.
 
 class OpenEdge.Core.Assertion.AssertJson:
+    /** Asserts that a JSON object has a specific number of properties
+        
+        @param JsonObject The JSON object being checked
+        @param integer The number of properties it must have
+        @throws AssertionFailedError Error thrown if the JSON object is not valid
+        @throws AssertionFailedError Error thrown if the property count is negative
+        @throws AssertionFailedError Error thrown if the number of properties is not equal to the count */
+    method public static void HasPropertyCount(input pJson as JsonObject,
+                                               input pCnt as integer):
+        var longchar[] propNames.
+        var integer propCnt.
+        
+        Assert:NotNull(pJson, 'JSON Object').
+        Assert:IsZeroOrPositive(pCnt, 'Property count').
+        
+        assign propNames = pJson:GetNames()
+               propCnt   = extent(propNames)
+               .
+        if propCnt eq ? then
+            assign propCnt = 0.
+        
+        Assert:Equals(pCnt, propCnt).
+    end method.
     
     /** Asserts that a Json object has a particularly-named property (of any type).
         

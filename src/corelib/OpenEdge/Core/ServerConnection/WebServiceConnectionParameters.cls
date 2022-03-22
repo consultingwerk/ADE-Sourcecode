@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2013, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : WebServiceConnectionParameters
@@ -72,6 +72,7 @@ class OpenEdge.Core.ServerConnection.WebServiceConnectionParameters inherits Con
         define variable cUrl as character no-undo.
         define variable cOptions as character no-undo.
         define variable oOptionsArray as JsonArray no-undo.
+        {&_proparse_ prolint-nowarn(varusage)}
         define variable oSingleOption as JsonObject no-undo.
         define variable oURLOptions as JsonObject no-undo.
         define variable iLoop as integer no-undo.

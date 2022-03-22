@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2015, 2018 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015, 2018, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : XmlEntityWriter
@@ -32,7 +32,6 @@ class OpenEdge.Net.HTTP.Filter.Payload.XmlEntityWriter inherits MessageWriter:
     end constructor.
     
     method override public int64 Write(input poData as Object):
-        define variable hDocument as handle no-undo.
         define variable oData as class Memptr no-undo.
         define variable lcXml as longchar no-undo.
         define variable fileStream as FileInputStream no-undo.

@@ -15,13 +15,15 @@ block-level on error undo, throw.
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.ByteBucket.
 using OpenEdge.Core.IAdaptable.
+using OpenEdge.Core.StringConstant.
 using OpenEdge.Logging.ILogWriter.
 using OpenEdge.Logging.ISupportLogging.
-using OpenEdge.Logging.LoggerBuilder.
 using OpenEdge.Logging.LogLevelEnum.
+using OpenEdge.Logging.LoggerBuilder.
 using OpenEdge.Net.HTTP.ClientOptions.
 using OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter.
 using OpenEdge.Net.HTTP.Filter.Payload.MessageWriter.
+using OpenEdge.Net.HTTP.Filter.Payload.RawMessage.
 using OpenEdge.Net.HTTP.Filter.Writer.EntityWriterBuilder.
 using OpenEdge.Net.HTTP.Filter.Writer.RequestWriterBuilder.
 using OpenEdge.Net.HTTP.HttpHeaderBuilder.
@@ -32,7 +34,7 @@ using OpenEdge.Net.HTTP.IHttpRequest.
 using OpenEdge.Net.HTTP.IHttpResponse.
 using OpenEdge.Net.HTTP.ISecureConnectionAuthenticatedRequest.
 using OpenEdge.Net.HTTP.ISupportProxy.
-using OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary.
+using OpenEdge.Net.HTTP.ITraceableRequest.
 using OpenEdge.Net.HTTP.MethodEnum.
 using OpenEdge.Net.HTTP.RequestBuilder.
 using OpenEdge.Net.HTTP.ResponseBuilder.
@@ -45,6 +47,7 @@ using OpenEdge.Net.UriSchemeEnum.
 using OpenEdge.Security.ICredentials.
 using Progress.Lang.AppError.
 using Progress.Lang.Error.
+using OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary.
 
 class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
         implements IHttpClientLibrary, ISupportLogging:
@@ -61,10 +64,12 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
     /* Error numbers for errors returned in this class. Private since this class
        alone will use them and read only to avoid anyone messing with them.
        A property to prevent changes. */
+    {&_proparse_ prolint-nowarn(varusage)}
     define private property miErrorNo_RequestTimeout        as integer initial 100 no-undo get.
     define private property miErrorNo_ConnectionTimeout     as integer initial 101 no-undo get.
     define private property miErrorNo_ConnectionFailure     as integer initial 102 no-undo get.
     define private property miErrorNo_RequestWriteTimeout   as integer initial 103 no-undo get.
+    {&_proparse_ prolint-nowarn(varusage)}
     define private property miErrorNo_RequestReadTimeout    as integer initial 104 no-undo get.
     define private property miErrorNo_RequestReadTerminated as integer initial 105 no-undo get.
     define private property miErrorNo_BadRequest            as integer initial 106 no-undo get.
@@ -92,6 +97,9 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
 
     /* used for debug/logging purposes */
     define private variable miChunkNumber as integer no-undo.
+    
+    /* instance variable to let socket callbacks know whether to log certain info or not */
+    define private variable mTracingRequest as logical no-undo.
 
     /** Constructor.
         
@@ -172,7 +180,9 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
         define variable cChunkFile as character no-undo.
         define variable writeBytes as int64 no-undo.
         
-        if Logger:LogLevel ge LogLevelEnum:DEBUG then
+        if not mTracingRequest
+        and Logger:LogLevel ge LogLevelEnum:DEBUG
+        then
         do:
             assign miChunkNumber = miChunkNumber + 1
                    // we don't want to write less than 0 or more than the total bytes in the Data member
@@ -218,6 +228,8 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
         define variable baseRequest as IHttpRequest no-undo.
         define variable connectRequest as IHttpRequest no-undo.
         define variable connectResponse as IHttpResponse no-undo.
+        define variable rr as RawMessage no-undo.
+        define variable tracingCurrentRequest as logical no-undo.
         
         if type-of(pProxyReq, IAdaptable) then
             assign baseRequest = cast(cast(pProxyReq, IAdaptable):GetAdapter(get-class(IHttpRequest)), IHttpRequest).
@@ -245,7 +257,15 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
         if baseRequest:HasHeader('Proxy-Authorization':u) then
             connectRequest:SetHeader(baseRequest:GetHeader('Proxy-Authorization':u)).
         
-        MakeSyncRequest(moSocketLib, connectRequest, connectResponse).
+        /* Construct the complete HTTP request for the CONNECT request */
+        assign rr = SerializeRequest(connectRequest)
+               tracingCurrentRequest = mTracingRequest
+               // do not trace the CONNECT request
+               mTracingRequest       = no
+               .
+        MakeSyncRequest(moSocketLib, connectRequest, connectResponse, rr).
+        // reset for the main request
+        assign mTracingRequest = tracingCurrentRequest.
         
         // Per https://tools.ietf.org/html/rfc2817 section 5.3, any 2xx status code is good
         if (200 <= connectResponse:StatusCode and connectResponse:StatusCode < 300) then
@@ -269,17 +289,67 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
     
     /* Executes a synchronous request against the currently-connected server.
        
+       DO NOT USE this method - use the version that takes a RawMessage parameter
+       for the raw request. This method will be relatively slow.
+       
        This method SHOULD NOT perform Connect() and Disconnect() operations.
        
        @param ClientSocket The server/socket on which to make the request
        @param HttpRequest The request to execute
-       @param HttpResponse The response from the server for that request    */
+       @param HttpResponse The response from the server for that request
+       @param ByteBucket The formatted bytes representing the request */
+    @deprecated(since='12.5.0').
     method protected void MakeSyncRequest(input pServer as ClientSocket,
                                           input pRequest as IHttpRequest,
-                                          input pResponse as IHttpResponse ):
-        define variable oMessageBody as ByteBucket no-undo.
+                                          input pResponse as IHttpResponse,
+                                          input pRequestBody as ByteBucket):
+        var RawMessage rr = new RawMessage().
+        var integer pos, startAt.
+        
+        Logger:Warn('MakeSyncRequest(ClientSocket,IHttpRequest,IHttpResponse,ByteBucket) is being deprecated from OpenEdge release 12.5.0. Please refactor.').
+                
+        // request line
+        pos = pRequestBody:IndexOf(StringConstant:CRLF).
+        if pos gt 0 then
+            rr:StartLine:PutBytes(pRequestBody:GetBytes(1, pos + 1)).
+        
+        // headers
+        assign startAt = pos + 2   // LF + next
+               pos     = pRequestBody:IndexOf(StringConstant:CRLF + StringConstant:CRLF, startAt)
+               .
+        if pos gt 0 then
+            rr:Headers:PutBytes(pRequestBody:GetBytes(startAt, pos + 3 - startAt + 1)).
+        
+        // body
+        assign startAt = pos + 4.
+        if startAt lt pRequestBody:Size then
+        do:
+            assign rr:Body = ByteBucket:Instance().
+            rr:Body:PutBytes(pRequestBody:GetBytes(startAt, pRequestBody:Size - startAt + 1)).
+        end.
+        MakeSyncRequest(pServer, pRequest, pResponse, rr).
+    end method.
+    
+    /* Executes a synchronous request against the currently-connected server.
+       
+       This method SHOULD NOT perform Connect() and Disconnect() operations.
+       
+       @param ClientSocket The server/socket on which to make the request
+       @param HttpRequest The request to execute
+       @param HttpResponse The response from the server for that request
+       @param RawMessage The formatted bytes representing the request */
+    @since(rel='12.5.0').
+    method protected void MakeSyncRequest(input pServer as ClientSocket,
+                                          input pRequest as IHttpRequest,
+                                          input pResponse as IHttpResponse,
+                                          input pRawRequest as RawMessage):
         define variable dTimeout as decimal no-undo.
-        define variable startTime as datetime-tz no-undo.
+        define variable traceRequest as ITraceableRequest no-undo.
+        define variable loop as integer no-undo.
+        define variable cnt as integer no-undo.
+        define variable timer as datetime-tz extent 2 no-undo.
+        define variable responseBody as ByteBucket no-undo.
+        define variable requestEntity as Progress.Lang.Object no-undo.
         
         Assert:NotNull(pServer, 'Server connection').
         Assert:NotNull(pRequest, 'HTTP request').
@@ -292,16 +362,51 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
                                             moSocketConnectionParam:URI:Port),
                                       miErrorNo_ConnectionFailure).
         
-        /* Construct the complete HTTP request. */
-        assign oMessageBody = ByteBucket:Instance().
-        ExtractBody(pRequest, oMessageBody).
-        
-        
+        // assign data to the trace.
+        if mTracingRequest then
+        do on error undo, throw:
+            // given that mTracingRequest is true, these should not fail
+            if type-of(pRequest, IAdaptable) then
+                assign traceRequest = cast(cast(pRequest, IAdaptable):GetAdapter(get-class(ITraceableRequest)), ITraceableRequest).
+            else
+            if type-of(pRequest, ITraceableRequest) then
+                assign traceRequest = cast(pRequest, ITraceableRequest).
+            
+            assign cnt = extent(traceRequest:RequestRules)
+                   requestEntity   = pRequest:Entity
+                   pRequest:Entity = pRawRequest:Body
+                   .
+            // apply all of the REQUEST rules
+            do loop = 1 to cnt
+            on error undo, throw:
+                if valid-object(traceRequest:RequestRules[loop]) then
+                    traceRequest:RequestRules[loop]:ApplyPolicy(pRequest, traceRequest:TraceData).
+                
+                catch err as Progress.Lang.Error:
+                    Logger:Error(substitute('Error applying policy with request tracing rule &1':u, traceRequest:RequestRules[loop]:GetClass():TypeName), err).
+                end catch.
+            end.
+            finally:
+                // reset the request's entity
+                assign pRequest:Entity = requestEntity.
+            end finally.
+        end.
+        else
         if Logger:LogLevel ge LogLevelEnum:DEBUG then
         do:
             Logger:Debug(substitute('REQUEST: FILE= &1':u, session:temp-dir + 'request-raw.txt':u)).
-            copy-lob from oMessageBody:GetBytes():Value
+            
+            copy-lob from pRawRequest:StartLine:Value
                      to   file session:temp-dir + 'request-raw.txt':u.
+            
+            copy-lob from pRawRequest:Headers:Value
+                     to   file session:temp-dir + 'request-raw.txt':u
+                     append.
+            
+            if valid-object(pRawRequest:Body) then
+                copy-lob from pRawRequest:Body:Value
+                         to   file session:temp-dir + 'request-raw.txt':u
+                         append.
             
             Logger:Debug(substitute('RESPONSE: FILE= &1':u, session:temp-dir + 'response-data-received.txt':u)).
             assign miChunkNumber = 0.
@@ -310,19 +415,26 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
         end.
         
         /* GO! */
-        assign startTime = now
-               dTimeout  = this-object:Options:RequestTimeout
+        assign dTimeout = this-object:Options:RequestTimeout
+               timer[1] = now
                .
         do on stop undo, return error new AppError(substitute('Request write timeout for server &1 on port &2 ',
-                                    moSocketConnectionParam:URI:Host,
-                                    moSocketConnectionParam:URI:Port), miErrorNo_RequestWriteTimeout)
+                                                        moSocketConnectionParam:URI:Host,
+                                                        moSocketConnectionParam:URI:Port), miErrorNo_RequestWriteTimeout)
            stop-after dTimeout:
-            pServer:WriteData(oMessageBody:GetBytes()).
+            pServer:WriteData(pRawRequest:StartLine).
+            pServer:WriteData(pRawRequest:Headers).
+            if valid-object(pRawRequest:Body) then
+                pServer:WriteData(pRawRequest:Body).
         end.
         
+        assign timer[2] = now.
+        if mTracingRequest then
+            assign traceRequest:TraceData:TimeSend = interval(timer[2], timer[1], 'milliseconds':u).
         
-        /* we can reuse the bytebucket */
-        assign moResponseWriter = new ClientSocketResponseWriter(pResponse, oMessageBody).
+        assign responseBody     = ByteBucket:Instance()
+               moResponseWriter = new ClientSocketResponseWriter(pResponse, responseBody)
+               .
         moResponseWriter:Open().
         
         /* set the request  for context */
@@ -333,15 +445,15 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
            
            Do NOT use the STOP-AFTER modifier; let the socket's wait-for deal
            with its own timeouts */
-        assign startTime = now.
+        assign timer[1] = now.
         do on error undo, throw
            on stop  undo, retry:  // trap stop and/or timeout conditions
             
             if retry then // STOP
                 undo, throw new AppError(substitute('Stop condition raised while waiting for response from server &1 on port &2 ',
-                                            moSocketConnectionParam:URI:Host,
-                                            moSocketConnectionParam:URI:Port),
-                                      miErrorNo_RequestReadTerminated).
+                                                    moSocketConnectionParam:URI:Host,
+                                                    moSocketConnectionParam:URI:Port),
+                                                    miErrorNo_RequestReadTerminated).
             
             /* for cases where we re-use the socket object, we need to handle subscriptions, and not
                as previously in Initialize()/Destroy() */
@@ -359,10 +471,36 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
         end.
         
         moResponseWriter:Close().
-        
+
+        assign timer[2] = now.
+        // Add the message body here because we have it all of its raw/bytes glory.
+        if mTracingRequest then
+        do on error undo, throw:
+            assign traceRequest:TraceData:TimeReceived = interval(timer[2], timer[1], 'milliseconds':u)
+                   pResponse:Entity                    = responseBody
+                   cnt = extent(traceRequest:ResponseRules)
+                   .
+            traceRequest:TraceData:SetResponseInfo(pResponse).
+            // apply all of the RESPONSE rules
+            do loop = 1 to cnt
+            on error undo, throw:
+                if valid-object(traceRequest:ResponseRules[loop]) then
+                    traceRequest:ResponseRules[loop]:ApplyPolicy(pResponse, traceRequest:TraceData).
+                     
+                catch err as Progress.Lang.Error:
+                    Logger:Error(substitute('Error applying policy with response tracing rule &1':u, traceRequest:ResponseRules[loop]:GetClass():TypeName), err).
+                end catch.
+            end.
+            
+            finally:
+                // it hasn't been set yet
+                assign pRequest:Entity = ?.
+            end finally.
+        end.
+
         // HEAD requests have no bodies, so don't bother
         if pRequest:Method ne MethodEnum:HEAD:ToString() then
-            ExtractEntity(pResponse, oMessageBody).
+            ExtractEntity(pResponse, responseBody).
         
         finally:
             assign moResponseWriter = ?.
@@ -382,10 +520,12 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
         define variable dTimeout as decimal no-undo.
         define variable cUserAgent as character no-undo.
         define variable oProxyRequest as ISupportProxy no-undo.
-        define variable startTime as datetime-tz no-undo.
         define variable proxyURI as URI no-undo.
         define variable scar as ISecureConnectionAuthenticatedRequest no-undo.
         define variable creds as ICredentials no-undo.
+        define variable traceRequest as ITraceableRequest no-undo.
+        define variable timer as datetime extent 2 no-undo.
+        define variable rawRequest as RawMessage no-undo.
         
         Assert:NotNull(poRequest,  'Http request').
         Assert:NotNull(poResponse, 'Http response').
@@ -395,15 +535,22 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
         
         /* Set the User-Agent string. Will look something like
                 OpenEdge-HttpClient/0.2.0 (WIN32/64) OpenEdge/11.5.0.0.1108 Lib-ABLSockets/0.2.0
-           */
+         */
         if poRequest:HasHeader('User-Agent':u) then
             assign cUserAgent = poRequest:GetHeader('User-Agent':u):Value.
-                        
+        
         assign cUserAgent = substitute('&1 &2/&3':u,
                                 cUserAgent,
                                 this-object:LibraryName,
                                 this-object:LibraryVersion).
         poRequest:SetHeader(HttpHeaderBuilder:Build('User-Agent':u):Value(cUserAgent):Header).
+        
+        // are we tracing this request?
+        if type-of(poRequest, IAdaptable) then
+            assign traceRequest = cast(cast(poRequest, IAdaptable):GetAdapter(get-class(ITraceableRequest)), ITraceableRequest).
+        else
+        if type-of(poRequest, ITraceableRequest) then
+            assign traceRequest = cast(poRequest, ITraceableRequest).
         
         /* Ready! */
         if type-of(poRequest, IAdaptable) then
@@ -440,11 +587,11 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
             
             assign moSocketConnectionParam:ClientCredentials = creds.
             
-            // Ensure that SSL sessions are *not* reused. 
+            // Ensure that SSL sessions are *not* reused.
             // This works around https://progresssoftware.atlassian.net/browse/OCTA-34701
             if moSocketConnectionParam:ReuseSession then
             do:
-                Logger:Warn(substitute('ReuseSession is TRUE for the connection to &1:&2. Setting to FALSE For TLS client authentication to avoid accidental credential reuse', 
+                Logger:Warn(substitute('ReuseSession is TRUE for the connection to &1:&2. Setting to FALSE For TLS client authentication to avoid accidental credential reuse',
                                         moSocketConnectionParam:URI:Host,
                                         moSocketConnectionParam:URI:Port)).
                 
@@ -452,22 +599,35 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
                 assign moSocketConnectionParam:ReuseSession = false.
                 
                 // If the socket exists, then there has been at least one connection
-                // made with it, and so the existing SSL session will be reused. Destroy 
+                // made with it, and so the existing SSL session will be reused. Destroy
                 // the server handle to make sure that we don't reuse that session.
                 if valid-object(moSocketLib:Server) then
                     moSocketLib:DestroyServer().
             end.
         end.
         
+        /* Construct the complete HTTP request. */
+        assign rawRequest = SerializeRequest(poRequest).
+        
         /* Steady! */
-        assign startTime = now.
+        assign timer[1] = now.
         do on stop undo, return error new AppError(substitute('Connection timeout for server &1 on port &2 ',
                                     moSocketConnectionParam:URI:Host,
                                     moSocketConnectionParam:URI:Port), miErrorNo_ConnectionTimeout)
            stop-after dTimeout:
+            
             moSocketLib:Connect(moSocketConnectionParam).
         end.
-        
+        assign timer[2]        = now
+               mTracingRequest = (valid-object(traceRequest) and traceRequest:TracingEnabled)
+               .
+        if mTracingRequest then
+            assign traceRequest:TraceData:TimeConnect = interval(timer[2], timer[1], 'milliseconds':u)
+                   traceRequest:TraceData:ClientHost  = moSocketLib:LocalHost
+                   traceRequest:TraceData:ClientPort  = moSocketLib:LocalPort
+                   traceRequest:TraceData:ServerHost  = moSocketLib:RemoteHost
+                   traceRequest:TraceData:ServerPort  = moSocketLib:RemotePort
+                   .
         /* return a useful error when the server cannot connect */
         if not moSocketLib:Connected then
             return error new AppError(
@@ -491,7 +651,7 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
                        .
         end.
         
-        MakeSyncRequest(moSocketLib, poRequest, poResponse).
+        MakeSyncRequest(moSocketLib, poRequest, poResponse, rawRequest).
         
         // Reset the ProxyURI for tunnelled requests
         if valid-object(proxyURI) then
@@ -509,32 +669,36 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
         end finally.
     end method.
     
-    /** Constructs the message body from the request's Entity object
-        
-        @param IHttpRequest The request form which to extract the body
-        @param ByteBucket The message body in plain-text form */
-    method private void ExtractBody(input poRequest as IHttpRequest,
-                                    input poMessageBody as ByteBucket):
+    method private RawMessage SerializeRequest(input pRequest as IHttpRequest):
         define variable oBodyWriter as MessageWriter no-undo.
         define variable errMsg as character no-undo.
         
-        assign oBodyWriter = RequestWriterBuilder:Build(poRequest)
-                                    :WriteTo(poMessageBody)
-                                    :Writer.
+        assign oBodyWriter = RequestWriterBuilder:Build(pRequest):Writer.
         if not valid-object(oBodyWriter) then
         do:
             assign errMsg = substitute('Unable to build request for transmission: no builder available for HTTP Version+Method: "&1+&2" ',
-                                            poRequest:Version, poRequest:Method ).
+                                       pRequest:Version, pRequest:Method ).
             Logger:Error(errMsg).
             return error new AppError(errMsg, miErrorNo_BadRequest).
         end.
         
         oBodyWriter:Open().
         /* writes the message's contents into the message body */
-        oBodyWriter:Write(poRequest).
+        oBodyWriter:Write(pRequest).
         oBodyWriter:Close().
+        
+        if not type-of(oBodyWriter:Entity, RawMessage) then
+        do:
+            assign errMsg = substitute('Unable to build request for transmission: builder entity type &1 is not &2',
+                                       oBodyWriter:Entity:GetClass():TypeName,
+                                       get-class(RawMessage):TypeName).
+            Logger:Error(errMsg).
+            return error new AppError(errMsg, miErrorNo_BadRequest).
+        end.
+        
+        return cast(oBodyWriter:Entity, RawMessage).
     end method.
-
+    
     /** Constructs the Entity object for the response, based on the
         ContentType
         

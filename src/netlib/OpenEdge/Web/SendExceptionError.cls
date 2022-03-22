@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2015-2016, 2020 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2016, 2020-2021 by Progress Software Corporation. All rights reserved.
 *************************************************/  
 /*------------------------------------------------------------------------
    File        : SendExceptionError
@@ -18,7 +18,7 @@ using OpenEdge.Net.HTTP.StatusCodeEnum.
 using OpenEdge.Net.HTTP.StatusCodeHelper.
 using OpenEdge.Web.SendExceptionError.
 
-class OpenEdge.Web.SendExceptionError inherits ApplicationError:  
+class OpenEdge.Web.SendExceptionError inherits ApplicationError serializable:  
     /* (mandatory) The error HTTP status code. */  
     define public property StatusCode as StatusCodeEnum no-undo get. private set.
         
@@ -38,11 +38,12 @@ class OpenEdge.Web.SendExceptionError inherits ApplicationError:
     
        @param StatusCodeEnum The error status being raised */    
     constructor public SendExceptionError(input poStatusCode as StatusCodeEnum):
+        {&_proparse_ prolint-nowarn(varusage)}
         define variable innerErr as Progress.Lang.Error no-undo.
         
         super(innerErr).
         SetMessage(poStatusCode, StatusCodeHelper:GetMessage(poStatusCode)).
-    end.
+    end constructor.
     
     /* Constructor.
     
@@ -50,6 +51,7 @@ class OpenEdge.Web.SendExceptionError inherits ApplicationError:
        @param character The status message */    
     constructor public SendExceptionError(input poStatusCode as StatusCodeEnum,
                                           input pcStatusMessage  as character):
+        {&_proparse_ prolint-nowarn(varusage)}
         define variable innerErr as Progress.Lang.Error no-undo.
         
         super(innerErr).
@@ -121,4 +123,5 @@ class OpenEdge.Web.SendExceptionError inherits ApplicationError:
     method override public character ToString():
         return substitute('HTTP Error: &2 (&1)', StatusCode, StatusMessage).
     end method.
-end.
+
+end class.

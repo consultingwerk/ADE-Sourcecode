@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005,2011 by Progress Software Corporation. All rights *
+* Copyright (C) 2005,2011-2021 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -19,6 +19,7 @@ History:  kmcintos 04/29/2005  Added new dump streams for auditing
           fernando 11/10/2005  Added streams for _client-session and _db-detail 20051110-020
           fernando 02/27/2007  Handle critical field change - OE00147106
           kmayur   06/21/2011  Added variable for constraint dump OE00195067
+          tmasood  08/03/2021  Generate incrdump.e in temp-dir if write access are not provided
 -----------------------------------------------------------------------------*/
 
 DEFINE {1} STREAM ddl.
@@ -33,8 +34,7 @@ DEFINE {1} STREAM dumpCliSess.
 DEFINE {1} STREAM dumpDbDet.
 
 &IF "{2}" NE "STREAMS" &THEN
-  &GLOBAL-DEFINE errFileName "incrdump.e"
-  
+    
   DEFINE {1} WORKFILE missing NO-UNDO
     FIELD name AS CHARACTER INITIAL ""
     FIELD crit AS LOGICAL   INITIAL NO. /* for OE00147106 */

@@ -31,8 +31,6 @@
     Notes       :
   ----------------------------------------------------------------------*/
 
-USING Ccs.BusinessLogic.* FROM PROPATH .
-
 INTERFACE Ccs.BusinessLogic.IGetDataRequest:
 
     /*------------------------------------------------------------------------------
@@ -47,14 +45,14 @@ INTERFACE Ccs.BusinessLogic.IGetDataRequest:
         Purpose: Returns the named query instance
         Notes:
     ------------------------------------------------------------------------------*/
-    DEFINE PUBLIC PROPERTY NamedQuery AS INamedQuery NO-UNDO
+    DEFINE PUBLIC PROPERTY NamedQuery AS Ccs.BusinessLogic.INamedQuery NO-UNDO
     GET.
 
     /*------------------------------------------------------------------------------
         Purpose: Returns the Table requests
         Notes:
     ------------------------------------------------------------------------------*/
-    DEFINE PUBLIC PROPERTY TableRequests AS IGetDataTableRequest EXTENT NO-UNDO
+    DEFINE PUBLIC PROPERTY TableRequests AS Ccs.BusinessLogic.IGetDataTableRequest EXTENT NO-UNDO
     GET.
 
 END INTERFACE.

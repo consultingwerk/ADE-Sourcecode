@@ -11,7 +11,7 @@ Copyright (c) 2014-2017 by Progress Software Corporation. All rights reserved.
     Notes       : 
   ----------------------------------------------------------------------*/
 
-using Progress.Lang.*.
+using Progress.Lang.Object.
 using OpenEdge.Core.AssertionFailedError.
 using OpenEdge.Core.Assertion.AssertObject.
 using OpenEdge.Core.Assert.

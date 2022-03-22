@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2013, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : Iterator
@@ -37,7 +37,7 @@ class OpenEdge.Core.Collections.Iterator use-widget-pool implements IIterator :
     
     constructor public Iterator (poCol as ICollection,tt as handle,ofield as char, sortfield as char):
         this-object(poCol,tt,ofield,sortfield,'').
-    end.
+    end constructor.
     
     constructor public Iterator (poCol as ICollection,tt as handle,ofield as char, sortfield as char, querystring as char):
         super ().    
@@ -66,7 +66,7 @@ class OpenEdge.Core.Collections.Iterator use-widget-pool implements IIterator :
                                     then ' by ' + sortExp
                                     else ''). 
         QueryHandle:forward-only = forwardOnly.
-    end. 
+    end method. 
        
     method public logical HasNext(  ):
         define variable offend as logical no-undo.

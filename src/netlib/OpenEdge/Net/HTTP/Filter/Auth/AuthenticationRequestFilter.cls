@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2015, 2017 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015, 2017, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : AuthenticationRequestFilter
@@ -64,7 +64,7 @@ class OpenEdge.Net.HTTP.Filter.Auth.AuthenticationRequestFilter
         else
         if type-of(poRequest, IHttpRequest) then
             assign this-object:Message = cast(poRequest, IHttpRequest).
-    end method.
+    end constructor.
     
     destructor AuthenticationRequestFilter():
         Destroy().

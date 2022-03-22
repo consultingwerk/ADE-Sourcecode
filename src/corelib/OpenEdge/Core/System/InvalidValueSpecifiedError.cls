@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2013, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : InvalidValueSpecifiedError
@@ -27,6 +27,7 @@ class OpenEdge.Core.System.InvalidValueSpecifiedError inherits ApplicationError 
     end constructor.
     
     constructor protected InvalidValueSpecifiedError ():
+        {&_proparse_ prolint-nowarn(varusage)}
         define variable oNullError as Error no-undo.
         super(oNullError).
     end constructor.

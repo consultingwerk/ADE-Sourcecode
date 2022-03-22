@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2017-2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2017-2018, 2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : ABLSubstituteFormat
@@ -33,6 +33,7 @@ class OpenEdge.Logging.Format.ABLSubstituteFormat implements ILoggerFilter:
         then
             return.
         
+        {&_proparse_ prolint-nowarn(overflow)}
         assign args  = cast(ctx, ILongcharArrayHolder):Value
                iSize = extent(args)
                .

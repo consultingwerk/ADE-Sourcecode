@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2013, 2018-2019 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2013, 2018-2019, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : Session
@@ -65,22 +65,22 @@ class OpenEdge.Core.Session:
         return oProcedures.
     end method.
     
-    /** Resolves a weak reference into an object instance. A weak reference is an integer
+    /** Resolves a weak reference into an object instance. A weak reference is an int64
         representation of an object reference. This method is analogous to the WIDGET-HANDLE()
         function.
         
         Notes: * Based on http://msdn.microsoft.com/en-us/library/ms404247(v=VS.90).aspx
                * Performance of ResolveWeakReference() will probably suck.
                * An ABL statement "OBJECT-REFERENCE(int)" would entirely replace this method.    
-        @param integer A weak reference to an object.
+        @param int64 A weak reference to an object.
         @return Object The object instance corresponding to that reference. The unknown value/null
                 is returned if the referecen cannot be resolved.  */
-    method static public Object ResolveWeakReference(input piReference as integer):
+    method static public Object ResolveWeakReference (input piReference as int64):
         define variable oInstance as Object no-undo.
         
         assign oInstance = session:first-object.
         do while valid-object(oInstance):
-            if piReference eq integer(oInstance) then
+            if piReference eq int64(oInstance) then
                 return oInstance.
             
             assign oInstance = oInstance:Next-Sibling.
@@ -94,7 +94,7 @@ class OpenEdge.Core.Session:
         @param Class The type. This can be a class or an interface. 
         @return Object The reference to that type, if any. Unknown value if
                        there's no running instance of that name. */
-    method static public Object GetFirstClassInstance(input poType as Progress.Lang.Class):
+    method static public Object GetFirstClassInstance (input poType as Progress.Lang.Class):
         define variable oInstance as Object no-undo.
         
         Assert:NotNull(poType, 'type').
@@ -115,7 +115,7 @@ class OpenEdge.Core.Session:
         @param Class The type. This can be a class or an interface.
         @return Object The reference to that type, if any. Unknown value if
                        there's no running instance of that name. */
-    method static public Array GetAllInstances(input poType as Progress.Lang.Class):
+    method static public Array GetAllInstances (input poType as Progress.Lang.Class):
         define variable oInstance as Array no-undo.
         define variable oTemp as Object no-undo.
         

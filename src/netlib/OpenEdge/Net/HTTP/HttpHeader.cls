@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2015-2018 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2018, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : HttpHeader
@@ -71,8 +71,8 @@ class OpenEdge.Net.HTTP.HttpHeader:
         assign this-object:Value = pcValue.
     end constructor.
     
-    /* Default constructor */
-    constructor private HttpHeader():        
+    constructor private HttpHeader():
+        /* Default (private) constructor */        
     end constructor.
     
     /** Constructor
@@ -114,13 +114,15 @@ class OpenEdge.Net.HTTP.HttpHeader:
         define variable cParam as character no-undo.
         define variable cValue as character no-undo.
         define variable cName as character no-undo.
-        define variable iLength as integer no-undo.
         define variable iPos as integer no-undo.
+        {&_proparse_ prolint-nowarn(varusage)}
+        define variable iLength as integer no-undo.
         
         Assert:NotNullOrEmpty(this-object:ParamDelimiter, 'Param delimiter').
         
         assign iMax = num-entries(this-object:Value, this-object:ParamDelimiter).
         /* first entry is the content type (eg text/plain) */
+        LOOPBLK:
         do iLoop = 2 to iMax:
             assign cParam  = trim(entry(iLoop, this-object:Value, this-object:ParamDelimiter))
                    /* the parameter value may contain quoted = characters, so use everthing from the 
@@ -133,7 +135,7 @@ class OpenEdge.Net.HTTP.HttpHeader:
             
             //Ignore empty/blank entries 
             if cName eq '':u then
-                next.
+                next LOOPBLK.
             
             SetParameterValue(cName, cValue).
         end.
@@ -174,7 +176,7 @@ class OpenEdge.Net.HTTP.HttpHeader:
             find first hdrParam where
                        hdrParam.ParentHeader eq int64(this-object) and
                        hdrParam.ParamName    eq pcParamName
-                       .
+                       no-error.
         else
         do:
             create hdrParam.
@@ -206,7 +208,7 @@ class OpenEdge.Net.HTTP.HttpHeader:
             find first hdrParam where
                        hdrParam.ParentHeader eq int64(this-object) and
                        hdrParam.ParamName    eq pcParamName
-                       .
+                       no-error.
         if available hdrParam then
             return hdrParam.ParamValue.
         

@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015-2016 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2015-2016, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : TelerikPushNotificationMessageBuilder
@@ -72,7 +72,6 @@ class OpenEdge.Mobile.TelerikPushNotificationMessageBuilder inherits PushNotific
        @return character ISO-DATE format */
     method private character FormatDate(input ptDate as datetime-tz):
         define variable dtTemp as datetime-tz no-undo.
-        define variable cIsoDate as character no-undo.
         
         Assert:NotNull(ptDate, 'Date to format').
         
@@ -88,9 +87,7 @@ class OpenEdge.Mobile.TelerikPushNotificationMessageBuilder inherits PushNotific
         define variable oPlatform as JsonObject no-undo.
         define variable oParent as JsonObject no-undo.
         define variable oChild as JsonConstruct no-undo.
-        define variable tSendDate as datetime no-undo.
         define variable tOptionValue as datetime-tz no-undo.
-        define variable lOptionValue as logical no-undo.
         define variable oFilterOperand as PushNotificationFilterOperandEnum no-undo.
         define variable cPlatforms as character no-undo.
         define variable iLoop as integer no-undo.
@@ -318,7 +315,7 @@ class OpenEdge.Mobile.TelerikPushNotificationMessageBuilder inherits PushNotific
             when PushNotificationFilterOperandEnum:Equals      or
             when PushNotificationFilterOperandEnum:Includes    or
             when PushNotificationFilterOperandEnum:NotIncludes then
-                . /* noop; operator stays the same */
+                /* noop; operator stays the same */ .
             otherwise
                 undo, throw new AppError(substitute('&1 operand not supported for array filter',
                                                     string(poOperand)), 0). 
@@ -359,7 +356,7 @@ class OpenEdge.Mobile.TelerikPushNotificationMessageBuilder inherits PushNotific
         case poOperand:
             when PushNotificationFilterOperandEnum:Equals or 
             when PushNotificationFilterOperandEnum:NotEqual then
-                . /* no-op */
+                /* noop; operand stays the same */ .
             when PushNotificationFilterOperandEnum:Includes then
                 assign poOperand = PushNotificationFilterOperandEnum:Equals. 
                 
@@ -427,7 +424,7 @@ class OpenEdge.Mobile.TelerikPushNotificationMessageBuilder inherits PushNotific
         end case.   /* operand */
         
         return this-object.
-    end.        
+    end method.
     
     /** A general method to add logical/boolean filter values to the notification
         query/filter. Only Equals and NotEqual supported
@@ -479,7 +476,6 @@ class OpenEdge.Mobile.TelerikPushNotificationMessageBuilder inherits PushNotific
     method override public PushNotificationMessageBuilder AddNumericFilter(input pcFilterName as character,
                                                                            input pdFilterValue as decimal,
                                                                            input poOperand as PushNotificationFilterOperandEnum):
-        define variable oFilterObject as JsonObject no-undo.
         define variable oFilterClause as JsonObject no-undo.
         define variable oFilterValue as JsonObject no-undo.
         
@@ -642,7 +638,6 @@ class OpenEdge.Mobile.TelerikPushNotificationMessageBuilder inherits PushNotific
        @param JsonConstruct The filter data - an array or an object */
     method private void AddFilter (input poFilterObject as JsonConstruct):
         define variable oFilterArray as JsonArray no-undo.
-        define variable oFilterParent as JsonObject no-undo.
         
         Assert:NotNull(poFilterObject, 'Filter object').
         

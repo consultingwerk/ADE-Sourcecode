@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2015, 2018 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015, 2018, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : DefaultMessageWriterBuilder
@@ -35,12 +35,11 @@ class OpenEdge.Net.HTTP.Filter.Writer.DefaultMessageWriterBuilder inherits Messa
     constructor public DefaultMessageWriterBuilder(input pcContentType as character,
                                                    input poRegistry as BuilderRegistry):
         super(pcContentType, poRegistry).
-    end method.
+    end constructor.
     
     method private MessageWriter NewMessageWriter():
         define variable oWriter as MessageWriter no-undo.
         define variable oWriterType as class Progress.Lang.Class no-undo.
-        define variable cEntityType as character no-undo.
         define variable oEntity as Progress.Lang.Object no-undo.
         
         assign oWriterType = this-object:GetWriter(this-object:ContentType).

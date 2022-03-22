@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2018 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2018, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : ResponseElementWriterBuilder 
@@ -81,7 +81,7 @@ class OpenEdge.Web.DataObject.Writer.ResponseElementWriterBuilder inherits Confi
         Assert:NotNull(pElementType, 'Element type').
         
         assign this-object:ElementType = pElementType.
-    end method.
+    end constructor.
     
     /** Specifies the Entity object to use for the message body   
         

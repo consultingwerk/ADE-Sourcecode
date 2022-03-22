@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2020 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2020-2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : UpdateDataRequestValueWriter
@@ -79,7 +79,6 @@ class OpenEdge.Web.DataObject.Writer.UpdateDataRequestValueWriter inherits Objec
     end method.
     
     method override public void Write(input pData as Progress.Lang.Object):
-        define variable jsonData as JsonConstruct no-undo.
         define variable stringData as longchar no-undo.
         define variable kvp as KeyValuePair no-undo.
         

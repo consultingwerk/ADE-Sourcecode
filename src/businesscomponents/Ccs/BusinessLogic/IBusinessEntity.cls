@@ -30,11 +30,8 @@
     Notes       :
   ----------------------------------------------------------------------*/
 
-USING Ccs.Common.*        FROM PROPATH .
-USING Ccs.BusinessLogic.* FROM PROPATH .
-
 INTERFACE Ccs.BusinessLogic.IBusinessEntity
-    INHERITS IService:
+    INHERITS Ccs.Common.IService:
 
     /*------------------------------------------------------------------------------
         Purpose: Returns an empty instance of the primary ProDataset to the caller
@@ -51,8 +48,8 @@ INTERFACE Ccs.BusinessLogic.IBusinessEntity
         @param phDataset OUTPUT Dataset
         @return The IGetDataResponse instance
     ------------------------------------------------------------------------------*/
-    METHOD PUBLIC IGetDataResponse getData (poRequest AS IGetDataRequest,
-                                            OUTPUT DATASET-HANDLE phDataset).
+    METHOD PUBLIC Ccs.BusinessLogic.IGetDataResponse getData (poRequest AS Ccs.BusinessLogic.IGetDataRequest,
+                                                              OUTPUT DATASET-HANDLE phDataset).
 
     /*------------------------------------------------------------------------------
         Purpose: Returns the count of the total number of result records or a guess
@@ -61,6 +58,6 @@ INTERFACE Ccs.BusinessLogic.IBusinessEntity
         @param poRequest The IGetDataRequest instance with the getResultCount request parameters
         @return The IGetResultCountResponse instance
     ------------------------------------------------------------------------------*/
-    METHOD PUBLIC IGetResultCountResponse getResultCount (poRequest AS IGetDataRequest).
+    METHOD PUBLIC Ccs.BusinessLogic.IGetResultCountResponse getResultCount (poRequest AS Ccs.BusinessLogic.IGetDataRequest).
 
 END INTERFACE.

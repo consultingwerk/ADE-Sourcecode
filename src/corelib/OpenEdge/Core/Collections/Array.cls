@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2013-2014, 2017, 2020 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2013-2014, 2017, 2020-2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : Array
@@ -347,8 +347,8 @@ class OpenEdge.Core.Collections.Array serializable
         
         @param ICollection The collection of objects to check
         @return logical True if all the elements match */
-    method public logical ContainsAll(input poCollection as ICollection).
-        define variable oIterator as IIterator.
+    method public logical ContainsAll(input poCollection as ICollection):
+        define variable oIterator as IIterator no-undo.
         
         Assert:NotNull(poCollection, 'Check collection').
         
@@ -417,8 +417,8 @@ class OpenEdge.Core.Collections.Array serializable
        @param ICollection The collection containing the elements to remove 
        @return logical TRUE if any elements were removed */
     method public logical RemoveAll( input c as ICollection):
-        define variable oIterator as IIterator.
-        define variable oRemove  as Object. 
+        define variable oIterator as IIterator no-undo.
+        define variable oRemove  as Object no-undo.
         define variable lAny as logical no-undo.
         
         oIterator = c:Iterator().

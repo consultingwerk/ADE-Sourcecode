@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2015-2016 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2016, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : DefaultResponseBuilder
@@ -55,7 +55,6 @@ class OpenEdge.Net.HTTP.DefaultResponseBuilder inherits ResponseBuilder:
         @return IHttpResponse The new, decorating Response */
     method private IHttpResponse DecorateResponse(input poDecorationType as Progress.Lang.Class,
                                                   input poDecoratedResponse as IHttpResponse):
-        define variable oDecorator as IHttpResponse no-undo.
         define variable oDecoratorType as Progress.Lang.Class no-undo.
         define variable oResponse as IHttpResponse no-undo.
         define variable oAdapter as Progress.Lang.Object no-undo.

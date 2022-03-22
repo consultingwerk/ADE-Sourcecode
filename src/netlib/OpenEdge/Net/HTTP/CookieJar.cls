@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014-2016, 2018-2019 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2014-2016, 2018-2019, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : CookieJar
@@ -21,14 +21,15 @@ using OpenEdge.Logging.LogLevelEnum.
 using OpenEdge.Logging.LoggerBuilder.
 using OpenEdge.Net.HTTP.Cookie.
 using OpenEdge.Net.HTTP.CookieCollection.
+using OpenEdge.Net.HTTP.CookieJar.
 using OpenEdge.Net.HTTP.ICookieJar.
+using OpenEdge.Net.HTTP.SameSiteEnum.
 using OpenEdge.Net.URI.
 using OpenEdge.Net.UriSchemeEnum.
 using Progress.Json.ObjectModel.JsonArray.
 using Progress.Json.ObjectModel.JsonObject.
 using Progress.Json.ObjectModel.ObjectModelParser.
 using Progress.Lang.Object.
-using OpenEdge.Net.HTTP.CookieJar.
 
 class OpenEdge.Net.HTTP.CookieJar use-widget-pool 
             implements ICookieJar, ISupportInitialize, ISupportLogging:
@@ -68,8 +69,8 @@ class OpenEdge.Net.HTTP.CookieJar use-widget-pool
     define static private temp-table PersistentCookie no-undo
         like SessionCookie.
         
-    /* static constructor */    
     constructor static CookieJar():
+        /* Static Constructor */    
     end constructor.
     
     /* Default constructor */
@@ -108,7 +109,7 @@ class OpenEdge.Net.HTTP.CookieJar use-widget-pool
         @param URI The host/URI for which to return the cookies.
         @param Cookie[] Output array of the cookies 
         @return integer The number of cookies returned */
-    method public integer GetCookies(input poUri as URI, output poCookies as Cookie extent).
+    method public integer GetCookies(input poUri as URI, output poCookies as Cookie extent):
         define variable oCookies as CookieCollection no-undo.
         define variable oCookie as Cookie no-undo.
         define variable cPath as character no-undo.
@@ -147,39 +148,43 @@ class OpenEdge.Net.HTTP.CookieJar use-widget-pool
             If the path is not specified, it as assumed to be the same path as the document being 
             described by the header which contains the cookie.  */
         
+        {&_proparse_ prolint-nowarn(wholeindex)}
+        SESSIONBLK:
         for each lbSession where
                  ( poURI:Host matches ('*~.':u + lbSession.Domain) or
-                   lbSession.Domain eq poURI:Host                    ) and
-                 poURI:Path begins lbSession.Path   :
+                   lbSession.Domain eq poURI:Host ) and
+                 poURI:Path begins lbSession.Path:
             
             /* exclude fuzzy matches when the cookie's domain does not have a leading . */
             if not lbSession.Domain begins '.':u and
                lbSession.Domain ne poURI:Host then
-                next.
+                next SESSIONBLK.
                              
             assign oCookie = cast(lbSession.WholeCookie, Cookie).
             case CheckCookie(poUri, oCookie):
                 when  1 then oCookies:Add(oCookie).
                 when -1 then delete lbSession.
-                when  0 then next.
+                when  0 then next SESSIONBLK.
             end case.
         end.
         
+        {&_proparse_ prolint-nowarn(wholeindex)}
+        PERSISTENTBLK:
         for each lbPersistent where
                  ( poURI:Host matches ('*~.':u + lbPersistent.Domain) or
-                   lbPersistent.Domain eq poURI:Host                    ) and
-                 poURI:Path begins lbPersistent.Path   :
+                   lbPersistent.Domain eq poURI:Host ) and
+                 poURI:Path begins lbPersistent.Path:
             
             /* exclude fuzzy matches when the cookie's domain does not have a leading . */
             if not lbPersistent.Domain begins '.':u and
                lbPersistent.Domain ne poURI:Host then
-                next.
+                next PERSISTENTBLK.
                 
             assign oCookie = cast(lbPersistent.WholeCookie, Cookie).
             case CheckCookie(poUri, oCookie):
                 when  1 then oCookies:Add(oCookie).
                 when -1 then delete lbPersistent.
-                when  0 then next.
+                when  0 then next PERSISTENTBLK.
             end case.
         end.
         
@@ -203,7 +208,13 @@ class OpenEdge.Net.HTTP.CookieJar use-widget-pool
            not poUri:Scheme eq string(UriSchemeEnum:http)  and
            not poUri:Scheme eq string(UriSchemeEnum:https) then
             return 0.
-        
+
+        // Cookies with SameSite=None must bet set with the Secure attribute.
+        if valid-object(poCookie:SameSite) and
+           poCookie:SameSite eq SameSiteEnum:None and
+           not poCookie:Secure then
+            return 0.   
+
         if poCookie:Secure and
            not poUri:Scheme eq string(UriSchemeEnum:https) then
             return 0.           
@@ -319,7 +330,7 @@ class OpenEdge.Net.HTTP.CookieJar use-widget-pool
     
     /** Adds a collection of  cookies to the jar.
         @param Cookie The cookies to add */
-    method public void AddCookies(input poCookies as Cookie extent ).
+    method public void AddCookies(input poCookies as Cookie extent ):
         define variable iMax as integer no-undo.
         define variable iLoop as integer no-undo.
         
@@ -359,8 +370,6 @@ class OpenEdge.Net.HTTP.CookieJar use-widget-pool
     method public void AddCookie(input pcDomain as character,
                                  input pcPath   as character,
                                  input poCookie as Cookie):
-        define variable iLoop as integer no-undo.
-        define variable iMax as integer no-undo.
         define variable cDomain as character no-undo.
         define variable iMinSlugs as integer no-undo.
         
@@ -474,6 +483,6 @@ class OpenEdge.Net.HTTP.CookieJar use-widget-pool
         
         empty temp-table lbCookie.
         
-        Logger:Debug(substitute('Cleared session cookies: ', iso-date(now))).
+        Logger:Debug(substitute('Cleared session cookies at &1', iso-date(now))).
     end method.
 end class.

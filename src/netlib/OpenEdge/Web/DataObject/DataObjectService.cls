@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2017-2020 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2017-2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : DataObjectService
@@ -7,7 +7,7 @@ Copyright (c) 2017-2020 by Progress Software Corporation and/or one of its subsi
     Author(s)   : pjudge
     Created     : 2017-08-31
     Notes       : * the service provides access to contained schemas and operations within,
-                    as well as a means to update/save itself in a registry 
+                    as well as a means to update/save itself in a registry
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
@@ -41,10 +41,10 @@ class OpenEdge.Web.DataObject.DataObjectService:
         //KEYS
         field ParentSvc         as int64
         field URI               as character case-sensitive // / or another path
-        field Method            as character                // HTTP method (GET|PUT|POST|DELETE|...) 
+        field Method            as character                // HTTP method (GET|PUT|POST|DELETE|...)
         //DATA
         field Name            as character              //an optional name
-        field MappedOperation as Progress.Lang.Object   // OpenEdge.Web.DataObject.MappedOperation  
+        field MappedOperation as Progress.Lang.Object   // OpenEdge.Web.DataObject.MappedOperation
         index idx1 as primary unique ParentSvc URI Method
         index idx2 ParentSvc Name
         .
@@ -86,7 +86,7 @@ class OpenEdge.Web.DataObject.DataObjectService:
     
     /* Constructor
        
-       @param character The service name 
+       @param character The service name
        @param SemanticVersion The service version */
     constructor public DataObjectService(input pName as character,
                                          input pVersion as SemanticVersion):
@@ -95,7 +95,7 @@ class OpenEdge.Web.DataObject.DataObjectService:
         Assert:NotNullOrEmpty(pName, 'Service name').
         Assert:NotNull(pVersion, 'Service version').
         
-        assign this-object:mName           = NormaliseServiceName(pName) 
+        assign this-object:mName           = NormaliseServiceName(pName)
                this-object:Version         = pVersion
                this-object:ArgumentWriters = new BuilderRegistry(get-class(ArgumentValueWriter))
                .
@@ -103,12 +103,12 @@ class OpenEdge.Web.DataObject.DataObjectService:
     
     /* Constructor
        
-       @param character The service name 
+       @param character The service name
        @param character The service version */
     constructor public DataObjectService(input pName as character,
                                          input pVersion as character):
         this-object(pName, SemanticVersion:Parse(pVersion)).
-    end method.
+    end constructor.
     
     /* Destructor */
     destructor DataObjectService():
@@ -141,7 +141,7 @@ class OpenEdge.Web.DataObject.DataObjectService:
     end method.
     
 /* OPERATIONS */
-    /* Indicates whether a mapped operation exists with a given name  
+    /* Indicates whether a mapped operation exists with a given name
        
        @param character The operation name
        @return logical TRUE if the service exists */
@@ -174,7 +174,7 @@ class OpenEdge.Web.DataObject.DataObjectService:
     /* Returns details about an operation in this service
        
        @param character The relative URI
-       @param MethodEnum The HTTP method    
+       @param MethodEnum The HTTP method
        @return MappedOperation The operation map for this Method/URI */
     method public MappedOperation GetOperation(input pServiceURI as character,
                                                input pMethod as MethodEnum):
@@ -195,7 +195,7 @@ class OpenEdge.Web.DataObject.DataObjectService:
     /* Returns details about the operation, for a service by name. If more than one
        operation exists with the same name, pick the first.
        
-       @param character An optional name for the operation 
+       @param character An optional name for the operation
        @return MappedOperation The operation map for this name  */
     method public MappedOperation GetOperation(input pOperationName as character):
         define variable operation as MappedOperation no-undo.
@@ -210,7 +210,7 @@ class OpenEdge.Web.DataObject.DataObjectService:
             find first lbOperation where
                        lbOperation.ParentSvc eq int64(this-object) and
                        lbOperation.Name      eq pOperationName
-                       .
+                       no-error.
         if available lbOperation then
             assign operation = cast(lbOperation.MappedOperation, MappedOperation).
         
@@ -218,7 +218,7 @@ class OpenEdge.Web.DataObject.DataObjectService:
     end method.
     
     /* Removes an operation mapping from the collection operation maps.
-       No-op if none exists.  
+       No-op if none exists.
        
        @param character The relative URI
        @param MethodEnum The HTTP method */
@@ -249,7 +249,7 @@ class OpenEdge.Web.DataObject.DataObjectService:
         get first qryOps.
         do while available lbOperation:
             assign operations[query qryOps:current-result-row] = cast(lbOperation.MappedOperation, MappedOperation).
-            get next qryOps. 
+            get next qryOps.
         end.
         
         return operations.
@@ -260,7 +260,7 @@ class OpenEdge.Web.DataObject.DataObjectService:
     
     /* Adds a new operation map for a service.
        
-       @param  MappedOperation The operation map for this Method/URI 
+       @param  MappedOperation The operation map for this Method/URI
        @return logical TRUE if the operation already exists. */
     method public logical PutOperation(input pMappedOperation as MappedOperation):
         define variable operationExists as logical no-undo.
@@ -277,7 +277,7 @@ class OpenEdge.Web.DataObject.DataObjectService:
         if not operationExists then
         do:
             create lbOperation.
-            // The Service URI will always have a leading / 
+            // The Service URI will always have a leading /
             assign lbOperation.URI       = pMappedOperation:ServiceURI
                    lbOperation.Method    = string(pMappedOperation:Method)
                    lbOperation.ParentSvc = int64(this-object)
@@ -300,7 +300,7 @@ class OpenEdge.Web.DataObject.DataObjectService:
                 pMappedOperation:Schemas:Put(schemaOption:SchemaName, schemaClone).
         end.
         return operationExists.
-    end method.    
+    end method.
     
 /** SCHEMAS **/
     /* Saves a schema for a given service.
@@ -327,7 +327,7 @@ class OpenEdge.Web.DataObject.DataObjectService:
             when string(DataTypeEnum:Temp-Table) or
             when string(DataTypeEnum:Buffer)     or
             when string(DataTypeEnum:Dataset)    then
-                .   // NO-OP
+                /* no-op */ .
             otherwise
                 return error new AppError(substitute('Unsupported schema type: &1', pSchema:type), 0).
         end case.
@@ -347,11 +347,12 @@ class OpenEdge.Web.DataObject.DataObjectService:
             when string(DataTypeEnum:Dataset) then
             do:
                 assign cnt = pSchema:num-buffers.
+                COUNTLOOP:
                 do loop = 1 to cnt:
-                    assign tbl = pSchema:get-buffer-handle(loop). 
+                    assign tbl = pSchema:get-buffer-handle(loop).
                     // It's posible to have a TT and a PDS with the same name; we'll keep the dataset
                     if tbl:name eq pSchema:name then
-                        next.
+                        next COUNTLOOP.
                     PutSchema(tbl:name, tbl:table-handle).
                 end.
             end.
@@ -360,11 +361,11 @@ class OpenEdge.Web.DataObject.DataObjectService:
         // do we need to clone this schema for any operation?
         for each lbOper where lbOper.ParentSvc eq int64(this-object):
             assign oper = cast(lbOper.MappedOperation, MappedOperation).
-            // only go further if there are options 
+            // only go further if there are options
             if oper:Options:SchemaOptions:ContainsKey(pSchemaName) then
             do:
-                // even if a clone exists, reapply because the schema may have changed 
-                assign schemaClone = CloneServiceSchema(cast(oper:Schemas:Get(pSchemaName), SchemaOption)). 
+                // even if a clone exists, reapply because the schema may have changed
+                assign schemaClone = CloneServiceSchema(cast(oper:Schemas:Get(pSchemaName), SchemaOption)).
                 if valid-object(schemaClone) then
                     oper:Schemas:Put(pSchemaName, schemaClone).
             end.
@@ -397,7 +398,7 @@ class OpenEdge.Web.DataObject.DataObjectService:
         end.
     end method.
     
-    /* Indicates whether a mapped operation exists with a given name  
+    /* Indicates whether a mapped operation exists with a given name
        
        @param character The operation name
        @return logical TRUE if the service exists */
@@ -426,7 +427,7 @@ class OpenEdge.Web.DataObject.DataObjectService:
         get first qrySchema.
         do while available lbSchema:
             assign schemas[query qrySchema:current-result-row] = lbSchema.DataStructure.
-            get next qrySchema. 
+            get next qrySchema.
          end.
         
         return schemas.
@@ -452,7 +453,7 @@ class OpenEdge.Web.DataObject.DataObjectService:
         return ?.
     end method.
     
-    /* Helper method to find and position the Operation buffer to a given service/method. Caller must check 
+    /* Helper method to find and position the Operation buffer to a given service/method. Caller must check
        availablity themselves.
        
        @param character The service URI
@@ -470,15 +471,15 @@ class OpenEdge.Web.DataObject.DataObjectService:
                     pOperation.ParentSvc eq int64(this-object) and
                     pOperation.URI       eq pServiceURI and
                     pOperation.Method    eq pMethod)
-        then 
+        then
             find pOperation where
                  pOperation.ParentSvc eq int64(this-object) and
                  pOperation.URI       eq pServiceURI and
-                 pOperation.Method    eq pMethod 
-                 .
+                 pOperation.Method    eq pMethod
+                 no-error.
     end method.
     
-    /* Helper method to find and position the Service buffer to a given service. Caller must check 
+    /* Helper method to find and position the Service buffer to a given service. Caller must check
        availablity themselves.
        
        @param character The schema name
@@ -490,22 +491,22 @@ class OpenEdge.Web.DataObject.DataObjectService:
         
         if can-find(pbSchema where
                     pbSchema.ParentSvc  eq int64(this-object) and
-                    pbSchema.SchemaName eq pcSchemaName) then   
-            find pbSchema where 
+                    pbSchema.SchemaName eq pcSchemaName) then
+            find pbSchema where
                  pbSchema.ParentSvc  eq int64(this-object) and
-                 pbSchema.SchemaName eq pcSchemaName   
-                 .
+                 pbSchema.SchemaName eq pcSchemaName
+                 no-error.
     end method.
     
     /* Makes sure the service name is 'nice' and clean.
        
-       @param character A service name that may be empty or have /'s  
+       @param character A service name that may be empty or have /'s
        @return character A non-slashed, non-empty name */
     method static public character NormaliseServiceName(input pName as character):
         assign pName = trim(pName, '/':u).
         
         if    pName eq '':u
-           or pName eq ? 
+           or pName eq ?
         then
             assign pName = ROOT_SERVICE_NAME.
         
@@ -530,7 +531,7 @@ class OpenEdge.Web.DataObject.DataObjectService:
             return schemaClone.
         
         case hSchema:type:
-            when string(DataTypeEnum:Dataset) then 
+            when string(DataTypeEnum:Dataset) then
                 create dataset hClone.
             when string(DataTypeEnum:Temp-Table) then
             do:
@@ -606,7 +607,7 @@ class OpenEdge.Web.DataObject.DataObjectService:
             // recurse
             ApplySchemaOptions(schemaElement, childOption).
         end.
-    end.
+    end method.
     
     /* Merges service information into this one. The source of the
        merge data must have the same name and version, otherwise
@@ -616,11 +617,11 @@ class OpenEdge.Web.DataObject.DataObjectService:
        argument writers in this object with those that are passed in
        (the source service).
        
-       If there are schemas, operations and argument writers in the 
+       If there are schemas, operations and argument writers in the
        source service that are not in this service, they will be added.
        
-       If there are schemas, operations and argument writers in the 
-       THIS service that are not in the source service, they will be 
+       If there are schemas, operations and argument writers in the
+       THIS service that are not in the source service, they will be
        not be touched.
        
        @param DataObjectService A service to merge into this one. */
@@ -629,9 +630,9 @@ class OpenEdge.Web.DataObject.DataObjectService:
         define buffer bOper for Operation.
         
         Assert:NotNull(pSvc, 'Merge source Data Object Service').
-        
-        if  not pSvc:Name eq this-object:Name
-        and not pSvc:Version:Equals(this-object:Version)
+
+        if not pSvc:Name eq this-object:Name
+        or not pSvc:Version:Equals(this-object:Version)
         then
             undo, throw new AppError(substitute('Merge source service name and version do not match: &1', ToString()), 0).
         

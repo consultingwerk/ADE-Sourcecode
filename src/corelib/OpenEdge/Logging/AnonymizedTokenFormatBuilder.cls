@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2018 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2018, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : AnonymizedTokenFormatBuilder
@@ -20,7 +20,7 @@ class OpenEdge.Logging.AnonymizedTokenFormatBuilder inherits LogFilterBuilder:
     /* Constructor */
     constructor public AnonymizedTokenFormatBuilder(input filterName as character):
         super(filterName).
-    end method.
+    end constructor.
     
     /* Creates the instance.
        

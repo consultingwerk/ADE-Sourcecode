@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014-2016 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2014-2016, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : HttpRequest
@@ -42,8 +42,8 @@ class OpenEdge.Net.HTTP.HttpRequest inherits HttpMessage
     define private variable moURI as URI no-undo.
     define private variable mcMethod as character no-undo.
     
-    /** Default constructor */
     constructor public HttpRequest():
+        /** Default constructor */
     end constructor.
     
     /** Constructor.
@@ -117,8 +117,6 @@ class OpenEdge.Net.HTTP.HttpRequest inherits HttpMessage
     
         @param Cookie The cookie to add. */
     method override public void SetCookie(input poCookie as Cookie):
-        define variable oHeader as HttpHeader no-undo.
-        
         super:SetCookie(input poCookie).
         
         if HasHeader('Cookie':u) then

@@ -1,11 +1,11 @@
 /************************************************
-Copyright (c) 2016-2019 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2016-2019, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : FileLogFilterBuilder
     Purpose     : Builds a (named) file logger
-    Syntax      : 
-    Description : 
+    Syntax      :
+    Description :
     Author(s)   : pjudge
     Created     : 2016-11-14
     Notes       : * Token substitutions are allowed for file names
@@ -15,50 +15,43 @@ Copyright (c) 2016-2019 by Progress Software Corporation. All rights reserved.
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
+using OpenEdge.Core.File.
 using OpenEdge.Core.ISupportInitialize.
-using OpenEdge.Core.StringConstant.
 using OpenEdge.Core.Util.TokenResolver.
 using OpenEdge.Logging.Filter.ILoggerFilter.
 using OpenEdge.Logging.Filter.LogFilterBuilder.
-using OpenEdge.Logging.LogLevelEnum.
 using OpenEdge.Logging.LoggerFilterRegistry.
 using OpenEdge.Logging.Writer.IFileWriter.
 using OpenEdge.Logging.Writer.VoidWriter.
 using Progress.IO.FileOutputStream.
-using Progress.Json.ObjectModel.JsonObject.
 using Progress.Lang.AppError.
 
 class OpenEdge.Logging.Writer.FileLogWriterBuilder inherits LogFilterBuilder:
-    // illegal characters for file names (on windows). 
-    define protected property illegalChars as character extent 7 no-undo 
-        initial ['<','>',':','"','|','?','*':u]
-        get.
-    
     /* Constructor */
     constructor public FileLogWriterBuilder(input filterName as character):
         super(filterName).
-    end method.
+    end constructor.
     
     /** Returns a filter writer from a registry; either the optional one set via loggerFilterRegistry or
-        the default LoggerFilterRegistry:Registry. It's the caller's responsibility to invoke and 
-        use the filter type returned. 
+        the default LoggerFilterRegistry:Registry. It's the caller's responsibility to invoke and
+        use the filter type returned.
         
         @return Progress.Lang.Class The type of the filter writer. */
     method override protected Progress.Lang.Class GetFilterType(input filterTypeName as character):
-        define variable filterType as class Progress.Lang.Class no-undo.                
+        define variable filterType as class Progress.Lang.Class no-undo.
         
         assign filterType = super:GetFilterType(this-object:FilterType).
         
         /* If we get the VoidWriter when we didn't ask for it AND if the
            log-manager is running, use the log manager instead.       */
         if not valid-object(filterType) or
-          ( filterType:IsA(get-class(VoidWriter)) 
-            and this-object:FilterType ne LoggerFilterRegistry:VOID_WRITER 
+          ( filterType:IsA(get-class(VoidWriter))
+            and this-object:FilterType ne LoggerFilterRegistry:VOID_WRITER
             and log-manager:logfile-name ne ?                              )
         then
             assign filterType = this-object:GetFilterType(LoggerFilterRegistry:LOG_MANAGER_WRITER).
         
-        return filterType.            
+        return filterType.
     end method.
     
     /* Creates the instance.
@@ -70,9 +63,7 @@ class OpenEdge.Logging.Writer.FileLogWriterBuilder inherits LogFilterBuilder:
         define variable fileStream as FileOutputStream no-undo.
         define variable appendToFile as logical no-undo.
         define variable logfileName as character no-undo.
-        define variable chrLoop as integer no-undo.
-        define variable chrMax as integer no-undo.
-        define variable chrStart as integer no-undo.
+        var File logfile.
         
         assign filterType = GetFilterType(this-object:FilterType).
         
@@ -98,26 +89,21 @@ class OpenEdge.Logging.Writer.FileLogWriterBuilder inherits LogFilterBuilder:
                 // we cannot create a meaningful writer
                 if     logfileName eq ?
                    and log-manager:logfile-name eq ?
-                then 
+                then
                     return filter.
                 
-                assign logfileName = replace(TokenResolver:Resolve(logfileName), StringConstant:BACKSLASH, '/':u).
-                
-                // certain characters are illegal on windows
-                if opsys eq 'win32':u then
+                // might be ? for LOG-MANAGER
+                if not logfileName eq ? then
                 do:
-                    assign chrMax   = extent(illegalChars)
-                           chrStart = 3.
-                    if logfileName begins '/':u then
-                        assign chrStart = 1.
+                    // the File's ctor will barf on illegal characters
+                    assign logfile = new File(TokenResolver:Resolve(logfileName)).
+                
+                    // If the folder or file cannot be written to, throw an error now, before we go any further
+                    if not logfile:CanWriteToFile() then
+                        undo, throw new AppError(substitute('Unable to write to &1', logfile:Name), 0).
                     
-                    do chrLoop = 1 to chrMax:
-                        if index(logfileName, illegalChars[chrLoop], chrStart) gt 0 then
-                            return error new AppError(substitute('Illegal character &1 in filename &2',
-                                                        illegalChars[chrLoop],
-                                                        logfileName),
-                                                     0). 
-                    end.
+                    // this is the token-resolved, forward-slashed file name
+                    assign logfileName = logfile:Name.
                 end.
                 
                 assign appendToFile = GetOptionLogicalValue('appendTo':u).

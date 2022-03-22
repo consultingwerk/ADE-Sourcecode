@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2017 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2017, 2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : ServiceRegistryEventArgs
@@ -40,7 +40,7 @@ class OpenEdge.Web.DataObject.ServiceRegistryEventArgs inherits EventArgs:
         Assert:NotNull(pService, 'Data Service').
         
         assign this-object:Service = pService.
-    end method.
+    end constructor.
                     
     /* Constructor
        

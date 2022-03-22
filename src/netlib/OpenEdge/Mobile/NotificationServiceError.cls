@@ -16,7 +16,7 @@ using OpenEdge.Core.System.ApplicationError.
 using OpenEdge.Mobile.NotificationServiceError.
 using Progress.Lang.Error.
 
-class OpenEdge.Mobile.NotificationServiceError inherits ApplicationError: 
+class OpenEdge.Mobile.NotificationServiceError inherits ApplicationError serializable: 
 
     constructor static NotificationServiceError ():
         ApplicationError:AddError(

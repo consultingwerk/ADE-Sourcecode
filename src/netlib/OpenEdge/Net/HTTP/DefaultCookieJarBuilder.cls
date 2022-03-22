@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2015, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : DefaultCookieJarBuilder
@@ -30,7 +30,7 @@ class OpenEdge.Net.HTTP.DefaultCookieJarBuilder inherits CookieJarBuilder:
 
     constructor public DefaultCookieJarBuilder():
         super().
-    end method.
+    end constructor.
 
     /** Returns a useable HttpClient based on the config.
         

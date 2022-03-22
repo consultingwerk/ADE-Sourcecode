@@ -39,10 +39,12 @@ using OpenEdge.Net.HTTP.IAuthenticatedRequest.
 using OpenEdge.Net.HTTP.IHttpRequest.
 using OpenEdge.Net.HTTP.ISecureConnectionAuthenticatedRequest.
 using OpenEdge.Net.HTTP.ISupportProxy.
+using OpenEdge.Net.HTTP.ITraceableRequest.
 using OpenEdge.Net.HTTP.MethodEnum.
 using OpenEdge.Net.HTTP.ProxyHttpRequest.
 using OpenEdge.Net.HTTP.RequestBuilder.
 using OpenEdge.Net.HTTP.TlsConnectionAuthenticatedRequest.
+using OpenEdge.Net.HTTP.TraceableRequest.
 using OpenEdge.Net.HTTP.TransferEncodingEnum.
 using OpenEdge.Net.ISupportMultipartEntity.
 using OpenEdge.Net.ServerConnection.ISocketConnectionCredentialsHandler.
@@ -111,6 +113,10 @@ class OpenEdge.Net.HTTP.RequestBuilder abstract inherits ConfigBuilder
         /* default for secure client connections */
         poRegistry:Put(get-class(ISecureConnectionAuthenticatedRequest):TypeName, 
                        get-class(TlsConnectionAuthenticatedRequest)).
+
+        /* default for traceable requests */
+        poRegistry:Put(get-class(ITraceableRequest):TypeName, 
+                       get-class(TraceableRequest)).
     end method.
     
     /** Constructor.
@@ -542,7 +548,21 @@ class OpenEdge.Net.HTTP.RequestBuilder abstract inherits ConfigBuilder
         SetHeaderOption(poHeader).
         return this-object.
     end method.
-        
+
+    /** Sets the value of the AllowTracing option.
+    
+        @param Logical Will tracing be enabled for this request? (Unknown = False)
+        @return RequestBuilder This builder instance */
+    method public RequestBuilder AllowTracing(input plTracing as logical):
+        /* Did not give an explicit "true" value, so assume "false". */
+        if plTracing eq ? then
+            assign plTracing = false.
+
+        SetOption("allowTracing":u, plTracing).
+
+        return this-object.
+    end method.
+
     /** Sets the transfer encoding for the request 
         
         @param TransferEncodingEnum The encoding to use
@@ -893,7 +913,6 @@ class OpenEdge.Net.HTTP.RequestBuilder abstract inherits ConfigBuilder
         @return IHttpRequest The new, decorating request */
     method static public IHttpRequest DecorateRequest(input poDecorationType as Progress.Lang.Class,
                                                       input poDecoratedRequest as IHttpRequest):
-        define variable oDecorator as IHttpRequest no-undo.
         define variable oDecoratorType as Progress.Lang.Class no-undo.
         define variable oRequest as IHttpRequest no-undo.
         define variable oAdapter as Progress.Lang.Object no-undo.

@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2013, 2017, 2020 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2013, 2017, 2020-2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : EntrySet
@@ -102,8 +102,8 @@ class OpenEdge.Core.Collections.EntrySet serializable inherits MapBackedCollecti
     /* abstract because this could be a collection of keys or values */
     method override public logical RemoveAll(poRemoveCol as ICollection):
         define variable oIterator as IIterator no-undo.
-        define variable oEntry as Object    no-undo.
-        define variable oKey as Object    no-undo.
+        define variable oEntry as Object no-undo.
+        define variable oKey as Object no-undo.
         define variable lRemoved as logical no-undo.
         
         oIterator = poRemoveCol:Iterator().
@@ -113,15 +113,17 @@ class OpenEdge.Core.Collections.EntrySet serializable inherits MapBackedCollecti
             
             oKey = OwningMap:Get(cast(oEntry, IMapEntry):Key).
             
-            if cast(oEntry, IMapEntry):Key:Equals(oKey) then
+            if cast(oEntry, IMapEntry):Key:Equals(oKey) then do:
                 OwningMap:Remove(oKey).
+                assign lRemoved = true.
+            end.
         end.            
 
         return lRemoved.        
     end method.
     
     /* abstract because this could be a collection of keys or values */
-    method override public logical RetainAll(input poRetainCollection as ICollection).
+    method override public logical RetainAll(input poRetainCollection as ICollection):
         define variable oIterator as IIterator no-undo.
         define variable oMapEntry as IMapEntry no-undo.
         define variable lAny as logical no-undo.   

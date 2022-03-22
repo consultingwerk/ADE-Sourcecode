@@ -1,3 +1,0 @@
-
-Button images   20x19 pixels
-Progress Button 24x23 pixels

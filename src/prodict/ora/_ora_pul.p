@@ -1,7 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000,2007-2011 by Progress Software Corporation. All rights *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
+* Copyright (C) 2000,2007-2011,2021 by Progress Software Corporation.* 
+* All rights  reserved. Prior versions of this work may contain      * 
+* portions contributed by participants of Possenet.                  *
 *                                                                    *
 *********************************************************************/
 
@@ -42,6 +42,7 @@ History:
     fernando   06/11/07 Unicode support
     fernando   12/31/08 don't set mandatory for blob/clob fields
     kmayur     06/21/11 added support for constraint pull - OE00195067
+    musingh    08/06/21 made changes for unique FBI - OCTA-37388
 --------------------------------------------------------------------*/
 /*h-*/
 
@@ -79,7 +80,7 @@ DEFINE VARIABLE h1 AS INTEGER NO-UNDO.
   &for-obj-name  = "ds_objects-2.name"
   &idx-fields    = "bo# obj# unique$ "
   &idx-tbl-break = "break by ds_objects-2.name"
-  &idx-uniq-cond = "(ds_indexes.unique$ = 1)"
+  &idx-uniq-cond = "(ds_indexes.unique$ = 1 or ds_indexes.unique$ = 17)"
   &idx-where     = " "
   &idxid         = "bo#"
   &init          = "( IF  ds_columns.default$ = """"SYSDATE""""

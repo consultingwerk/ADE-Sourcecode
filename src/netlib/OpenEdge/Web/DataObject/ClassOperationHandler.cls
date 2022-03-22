@@ -1,14 +1,14 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2019 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2019, 2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : ClassOperationHandler
     Purpose     : Delegate for mapped file operations for the DOH
-    Syntax      : 
-    Description : 
+    Syntax      :
+    Description :
     Author(s)   : pjudge
     Created     : Fri May 20 12:15:00 EDT 2016
-    Notes       : 
+    Notes       :
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
@@ -41,22 +41,22 @@ class OpenEdge.Web.DataObject.ClassOperationHandler  inherits OperationHandler:
     
        This is a big, big, huge ugly method because we have to keep the variables used
        by the ParameterList object in scope - particularly for output values -
-       and so cannot create the param list anywhere but in the same method in 
+       and so cannot create the param list anywhere but in the same method in
        which we invoke the method.
        
        @param IWebRequest The request that resulting in the exception
-       @param P.L.Object The message body of the incoming request. Typically 
-                         will be transformed from bytes into something useful; may also have an envelope removed. 
+       @param P.L.Object The message body of the incoming request. Typically
+                         will be transformed from bytes into something useful; may also have an envelope removed.
        @param IHttpResponse The current response object, if any
        @param DataObjectService The service being operated on
        @param MappedOperation The mapped operation
-       @param P.L.Object The business entity (business logic service)  
+       @param P.L.Object The business entity (business logic service)
        @return integer A non-null status code use to deal with errors */
-    method override public integer Execute(input poRequest as IWebRequest, 
-                                           input poMessageBody as Progress.Lang.Object, 
+    method override public integer Execute(input poRequest as IWebRequest,
+                                           input poMessageBody as Progress.Lang.Object,
                                            input poResponse as IHttpResponse,
                                            input pService as DataObjectService,
-                                           input poOperation as MappedOperation, 
+                                           input poOperation as MappedOperation,
                                            input poEntity as Progress.Lang.Object ):
         define variable execTime as datetime extent 2 no-undo.
         define variable paramTime as datetime extent 2 no-undo.
@@ -141,7 +141,7 @@ class OpenEdge.Web.DataObject.ClassOperationHandler  inherits OperationHandler:
             end case.    /* scalar */
             
             assign paramTime[2] = now.
-            Logger:Trace(substitute('&4: SetParameter(&1 [&6], &2&7, &3) &5 (&8ms)', 
+            Logger:Trace(substitute('&4: SetParameter(&1 [&6], &2&7, &3) &5 (&8ms)',
                                 lbArg.ParamIndex,
                                 oOperArg:Parameter:DataType,
                                 string(oOperArg:Parameter:IoMode),
@@ -153,8 +153,8 @@ class OpenEdge.Web.DataObject.ClassOperationHandler  inherits OperationHandler:
         end.    // PARAM-LOOP
         
         assign execTime[2] = now.
-        Logger:Debug(substitute('Arguments for &1:&2 initialized in &3ms', 
-                                poOperation:TargetName, poOperation:TargetFunction, 
+        Logger:Debug(substitute('Arguments for &1:&2 initialized in &3ms',
+                                poOperation:TargetName, poOperation:TargetFunction,
                                 interval(execTime[2], execTime[1], string(DateTimeAddIntervalEnum:Milliseconds)))).
         
         /* FIND THE METHOD TO INVOKE */
@@ -171,7 +171,7 @@ class OpenEdge.Web.DataObject.ClassOperationHandler  inherits OperationHandler:
              lbArg.ParamIndex eq 0
              no-error.
         /* either we haven't set up a return parameter or there is none. Either way ignore it. */
-        if available lbArg and oMethod:ReturnType ne DataType:Void then 
+        if available lbArg and oMethod:ReturnType ne DataType:Void then
         do:
             assign oOperArg = cast(lbArg.Argument, OperationArgument)
                    oValueWriter = ArgumentValueWriterBuilder:Build(oOperArg)
@@ -195,6 +195,7 @@ class OpenEdge.Web.DataObject.ClassOperationHandler  inherits OperationHandler:
                 {OpenEdge/Web/DataObject/doh_execute_invoke.i &VAR-DATA-TYPE=Character  }
                 {OpenEdge/Web/DataObject/doh_execute_invoke.i &VAR-DATA-TYPE=Logical    }
                 {OpenEdge/Web/DataObject/doh_execute_invoke.i &VAR-DATA-TYPE=Rowid      }
+                {&_proparse_ prolint-nowarn(recidkeyword)}
                 {OpenEdge/Web/DataObject/doh_execute_invoke.i &VAR-DATA-TYPE=Recid      }
                 {OpenEdge/Web/DataObject/doh_execute_invoke.i &VAR-DATA-TYPE=Raw        }
                 {OpenEdge/Web/DataObject/doh_execute_invoke.i &VAR-DATA-TYPE=Memptr     }
@@ -225,19 +226,19 @@ class OpenEdge.Web.DataObject.ClassOperationHandler  inherits OperationHandler:
             oMethod:Invoke(poEntity, oParamList).
         
         assign execTime[2] = now.
-        Logger:Trace(substitute('Execution time for &1:&2 = &3 (ms)', 
-                                poOperation:TargetName, poOperation:TargetFunction, 
+        Logger:Trace(substitute('Execution time for &1:&2 = &3 (ms)',
+                                poOperation:TargetName, poOperation:TargetFunction,
                                 interval(execTime[2], execTime[1], string(DateTimeAddIntervalEnum:Milliseconds)))).
         
         /* HANDLE OUTPUT args */
         assign execTime[1] = now.
         OUTPUT-ARGS-LOOP:
         for each lbArg where lbArg.ParentOH eq int64(this-object) and
-                 lbArg.ParamIndex gt 0 
+                 lbArg.ParamIndex gt 0
                  by lbArg.ParamIndex :
             
             assign oOperArg = cast(lbArg.Arg, OperationArgument).
-            // We've done INPUT (we want OUTPUT and INPUT-OUTPUT) 
+            // We've done INPUT (we want OUTPUT and INPUT-OUTPUT)
             if not oOperArg:Parameter:IoMode:IsFlagSet(IOModeEnum:Output) then
                 next OUTPUT-ARGS-LOOP.
             
@@ -283,21 +284,21 @@ class OpenEdge.Web.DataObject.ClassOperationHandler  inherits OperationHandler:
         end.
         
         assign execTime[2] = now.
-        Logger:Trace(substitute('Building output values time for &1:&2 (num-params:&3) = &4 (ms)', 
-                                poOperation:TargetName, poOperation:TargetFunction, poOperation:Parameters:Size, 
+        Logger:Trace(substitute('Building output values time for &1:&2 (num-params:&3) = &4 (ms)',
+                                poOperation:TargetName, poOperation:TargetFunction, poOperation:Parameters:Size,
                                 interval(execTime[2], execTime[1], string(DateTimeAddIntervalEnum:Milliseconds)))).
         
         return integer(StatusCodeEnum:None).
         finally:
             ClearArguments().
-            /* clean variables */   
-            define variable iCleanLoop as integer no-undo. 
+            /* clean variables */
+            define variable iCleanLoop as integer no-undo.
             /* memptrs */
             set-size(retval_scalar_memptr) = 0.
             do iCleanLoop = extent(retval_arr_memptr) to 1 by -1: set-size(retval_arr_memptr[iCleanLoop]) = 0. end.
             do iCleanLoop = extent(arg_scalar_memptr) to 1 by -1: set-size(arg_scalar_memptr[iCleanLoop]) = 0. end.
             
-            do iCleanLoop = extent(arg_arr_memptr_01) to 1 by -1: set-size(arg_arr_memptr_01[iCleanLoop]) = 0. end. 
+            do iCleanLoop = extent(arg_arr_memptr_01) to 1 by -1: set-size(arg_arr_memptr_01[iCleanLoop]) = 0. end.
             do iCleanLoop = extent(arg_arr_memptr_02) to 1 by -1: set-size(arg_arr_memptr_02[iCleanLoop]) = 0. end.
             do iCleanLoop = extent(arg_arr_memptr_03) to 1 by -1: set-size(arg_arr_memptr_03[iCleanLoop]) = 0. end.
             do iCleanLoop = extent(arg_arr_memptr_04) to 1 by -1: set-size(arg_arr_memptr_04[iCleanLoop]) = 0. end.
@@ -337,7 +338,7 @@ class OpenEdge.Web.DataObject.ClassOperationHandler  inherits OperationHandler:
        
        @param P.L.Object The business logic code
        @param character The name of the method
-       @param ParameterList The list of parameters for this operation    
+       @param ParameterList The list of parameters for this operation
        @return Method A matching method, or NULL if none can be found. */
     method private Progress.Reflect.Method GetEntityMethod(input pEntity as Progress.Lang.Object,
                                                            input pMethodName as character,
@@ -356,7 +357,7 @@ class OpenEdge.Web.DataObject.ClassOperationHandler  inherits OperationHandler:
         assign entityType           = pEntity:GetClass()
                extent(targetMethod) = 1
                methFlags            = (   Progress.Reflect.Flags:Instance
-                                       or Progress.Reflect.Flags:Public) 
+                                       or Progress.Reflect.Flags:Public)
                targetMethod[1]      = entityType:GetMethod(pMethodName, methFlags, pParams)
                .
         // if we're debugging, write more stuff
@@ -369,7 +370,7 @@ class OpenEdge.Web.DataObject.ClassOperationHandler  inherits OperationHandler:
                             pMethodName, entityType:TypeName, pParams:NumParameters)).
             
             // Is the access level wrong?
-            assign methFlags       = (   Progress.Reflect.Flags:Instance 
+            assign methFlags       = (   Progress.Reflect.Flags:Instance
                                       or Progress.Reflect.Flags:Private
                                       or Progress.Reflect.Flags:Protected)
                    targetMethod[1] = entityType:GetMethod(pMethodName, methFlags, pParams)
@@ -403,9 +404,10 @@ class OpenEdge.Web.DataObject.ClassOperationHandler  inherits OperationHandler:
                    hasMatchingSig       = no
                    hasMatchingName      = no
                    .
+            METHOD-LOOP:
             do loop = 1 to cnt:
                 if not targetMethod[loop]:Name eq pMethodName then
-                    next.
+                    next METHOD-LOOP.
                 
                 assign hasMatchingName = yes.
                 if targetMethod[loop]:NumParameters eq pParams:NumParameters then
@@ -421,7 +423,7 @@ class OpenEdge.Web.DataObject.ClassOperationHandler  inherits OperationHandler:
                             when DataType:DataSetHandle or
                             when DataType:Table or
                             when DataType:TableHandle then
-                                Logger:Debug(substitute('Method &1 parameter &4 ("&2") is a &3; make sure that schemas match between the code and mapping file, and that temp-tables are not defined LIKE <db-table>, or that tables, fields and indexes are in the correct order', 
+                                Logger:Debug(substitute('Method &1 parameter &4 ("&2") is a &3; make sure that schemas match between the code and mapping file, and that temp-tables are not defined LIKE <db-table>, or that tables, fields and indexes are in the correct order',
                                                 pMethodName, methodParams[paramLoop]:Name, string(methodParams[paramLoop]:DataType), paramLoop)).
                         end case.
                     end.

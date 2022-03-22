@@ -31,16 +31,14 @@
     Notes       :
   ----------------------------------------------------------------------*/
 
-USING Ccs.BusinessLogic.* FROM PROPATH .
-
 INTERFACE Ccs.BusinessLogic.IQueryGroup
-    INHERITS IQueryEntry:
+    INHERITS Ccs.BusinessLogic.IQueryEntry:
 
     /*------------------------------------------------------------------------------
         Purpose: Returns the array of query predicates and nested query groups
         Notes:
     ------------------------------------------------------------------------------*/
-    DEFINE PUBLIC PROPERTY Entries AS IQueryEntry EXTENT NO-UNDO
+    DEFINE PUBLIC PROPERTY Entries AS Ccs.BusinessLogic.IQueryEntry EXTENT NO-UNDO
     GET.
 
 END INTERFACE.

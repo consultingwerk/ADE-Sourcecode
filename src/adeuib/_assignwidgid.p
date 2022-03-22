@@ -87,12 +87,12 @@ DEFINE BUFFER child_U FOR _U.
     iFrameWidgetID = _widgetid_start.
     FOR EACH _U WHERE _U._window-handle = _P._window-handle AND
       LOOKUP(_U._TYPE,'FRAME,DIALOG-BOX,BROWSE':U) > 0:
-         
+             
       /* Increment using "Frame widget id increment" preference value */
       ASSIGN
         _U._WIDGET-ID = iFrameWidgetID
-        iFrameWidgetID = iFrameWidgetID + _widgetid_increment.
-
+        iFrameWidgetID = iFrameWidgetID + _widgetid_increment. 
+    
       /* Assign widget id for widgets of frames starting with 2 
          and incrementing by 2 or the number of radio buttons */
       IF _U._TYPE = 'FRAME':U OR _U._TYPE = 'DIALOG-BOX':U THEN

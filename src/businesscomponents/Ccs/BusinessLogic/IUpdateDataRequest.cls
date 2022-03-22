@@ -31,8 +31,6 @@
     Notes       :
   ----------------------------------------------------------------------*/
 
-USING Ccs.BusinessLogic.* FROM PROPATH .
-
 INTERFACE Ccs.BusinessLogic.IUpdateDataRequest:
 
     /*------------------------------------------------------------------------------
@@ -41,7 +39,7 @@ INTERFACE Ccs.BusinessLogic.IUpdateDataRequest:
                  may ignore this setting and use a different commit scope based on
                  the business logic requirements
     ------------------------------------------------------------------------------*/
-    DEFINE PUBLIC PROPERTY CommitScope AS CommitScopeEnum NO-UNDO
+    DEFINE PUBLIC PROPERTY CommitScope AS Ccs.BusinessLogic.CommitScopeEnum NO-UNDO
     GET.
 
     /*------------------------------------------------------------------------------

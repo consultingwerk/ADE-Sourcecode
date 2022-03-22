@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2013,2017 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2013, 2017, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : SaxReaderfacade.p
@@ -148,7 +148,7 @@ end procedure.
 
 procedure IgnorableWhitespace:
     define input parameter charData as character no-undo.
-    define input parameter numChars as integer.
+    define input parameter numChars as integer no-undo.
     
     poSaxReader:IgnorableWhitespace(charData, numChars).
 end procedure.

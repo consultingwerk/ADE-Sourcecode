@@ -16,6 +16,8 @@ using Ccs.BusinessLogic.QueryOperatorEnum.
 using OpenEdge.BusinessLogic.QueryOperatorHelper.
 
 class OpenEdge.BusinessLogic.QueryOperatorHelper:
+
+    {&_proparse_ prolint-nowarn(varusage)}
     var static private character mOperatorNames.
     
     /* Static constructor */

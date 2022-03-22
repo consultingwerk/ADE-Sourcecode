@@ -22,6 +22,7 @@ using OpenEdge.Net.HTTP.IAuthenticatedRequest.
 using OpenEdge.Net.HTTP.IHttpRequest.
 using OpenEdge.Net.HTTP.ISecureConnectionAuthenticatedRequest.
 using OpenEdge.Net.HTTP.ISupportProxy.
+using OpenEdge.Net.HTTP.ITraceableRequest.
 using OpenEdge.Net.HTTP.RequestBuilder.
 using OpenEdge.Net.ServerConnection.ISocketConnectionCredentialsHandler.
 using OpenEdge.Net.URI.
@@ -44,10 +45,6 @@ class OpenEdge.Net.HTTP.DefaultRequestBuilder inherits RequestBuilder:
         define variable oRequest as IHttpRequest no-undo.
         define variable oRequestType as Progress.Lang.Class no-undo.
         define variable oListener as Object no-undo.
-        define variable cName as character no-undo.
-        define variable cValue as character no-undo.
-        define variable iLoop as integer no-undo.
-        define variable iMax as integer no-undo.
                         
         assign oRequestType = RequestBuilder:Registry:Get(get-class(IHttpRequest):TypeName).
         
@@ -146,6 +143,16 @@ class OpenEdge.Net.HTTP.DefaultRequestBuilder inherits RequestBuilder:
                      ConfigOption.ConfigName begins 'clientCredentialsCallback':u:
                 cast(oRequest, ISecureConnectionAuthenticatedRequest):AddCallback(cast(ConfigOption.ObjectValue, ISocketConnectionCredentialsHandler)).
             end.
+        end.
+
+        /* allow tracing */
+        if HasOption('allowTracing':u) then do:
+            /* always decorate the request when the allowTracing option is present, whether tracing or not */
+            assign oRequest = RequestBuilder:DecorateRequest(get-class(ITraceableRequest), oRequest).
+
+            /* if tracing is not explicitly enabled, then mark the request to not allow tracing (opt-out) */
+            if GetOptionLogicalValue('allowTracing':u) ne true then
+                cast(oRequest, ITraceableRequest):DisableTracing().
         end.
 
         return oRequest.

@@ -24,11 +24,12 @@ using OpenEdge.Logging.LoggerBuilder.
 using OpenEdge.Net.ServerConnection.ClientSocket.
 using OpenEdge.Net.ServerConnection.ClientSocketConnectionParameters.
 using OpenEdge.Net.ServerConnection.SocketReadEventArgs.
+using OpenEdge.Net.ServerConnection.TlsClientAuthenticationError.
 using OpenEdge.Net.URI.
 using Progress.Lang.AppError.
 using Progress.Lang.Error.
 using Progress.Lang.Object.
-using OpenEdge.Net.ServerConnection.TlsClientAuthenticationError.
+using OpenEdge.Core.IMemoryPointer.
 
 class OpenEdge.Net.ServerConnection.ClientSocket
         implements IServerConnection, ISupportLogging:
@@ -640,6 +641,14 @@ class OpenEdge.Net.ServerConnection.ClientSocket
     
         @param Memptr The data to be written to the socket. */
     method public void WriteData(input poData as class Memptr):
+        WriteData(cast(poData, IMemoryPointer)).
+    end method.
+    
+    /** Writes data to the connected server.
+        
+        @param IMemoryPointer The data to be written to the socket. */
+    @since(rel='12.5.0':u).
+    method public void WriteData(input poData as IMemoryPointer):
         define variable iSize    as int64 no-undo.
         define variable iStart   as int64 no-undo.
         define variable mData    as memptr no-undo.
@@ -660,10 +669,11 @@ class OpenEdge.Net.ServerConnection.ClientSocket
         /* use a local memptr */
         set-size(mData) = 1. /* allocate a new 1-byte memptr */
         set-size(mData) = 0. /* free this 1-byte memptr, which also clears the size */
-        set-pointer-value(mData) = poData:GetPointerValue().
+        set-pointer-value(mData) = poData:PointerValue.
         set-size(mData) = iSize.
         
-        do while iSize gt 0 :
+        WRITE-DATA-LOOP:
+        do while iSize gt 0:
             assign iStartTime = mtime.
             
             hSocket:write(mData, iStart, iSize).
@@ -675,7 +685,7 @@ class OpenEdge.Net.ServerConnection.ClientSocket
             
             /* no need to check anything else. All was sent */
             if iStart eq iSize then
-                leave.
+                leave WRITE-DATA-LOOP.
             
             /* calculate new starting position */
             assign iStart = hSocket:bytes-written + 1
@@ -759,6 +769,10 @@ class OpenEdge.Net.ServerConnection.ClientSocket
        @return logical TRUE is the socket is connected; false otherwise */
     method protected logical IsConnected():
         define variable sock as IHandleHolder no-undo.
+        
+        // if Server is not valid, also returns FALSE
+        if not type-of(this-object:Server, IHandleHolder) then
+            return false.
         
         assign sock = cast(this-object:Server, IHandleHolder).
         

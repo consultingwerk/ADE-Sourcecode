@@ -623,7 +623,8 @@ class OpenEdge.BusinessLogic.Filter.AblFilterParser inherits FilterParser:
             return ?.
         
         // if there's an error parsing the string, assume it's rubbish and return null.
-        catch e as Progress.Lang.Error:
+        {&_proparse_ prolint-nowarn(varusage)}
+        catch uncaught as Progress.Lang.Error:
             return ?.
         end catch.
     end method.
@@ -808,13 +809,13 @@ class OpenEdge.BusinessLogic.Filter.AblFilterParser inherits FilterParser:
                        cnt        = extent(stringData)
                        .
                 if cnt eq 1 then
-                    assign qryEntry = ParseWhereString(string(stringData[1])).
+                    assign qryEntry = ParseWhereString(stringData[1]).
                 else
                 if not cnt eq ? then
                 do:
                     assign qryGrp = new QueryGroup(cnt).
                     do loop = 1 to cnt:
-                        assign qryEntry = ParseWhereString(string(stringData[loop])).
+                        assign qryEntry = ParseWhereString(stringData[loop]).
                         //yuk, but the interfaces are defined READ-ONLY
                         if type-of(qryEntry, QueryPredicate) then
                             assign cast(qryEntry, QueryPredicate):Join = JoinEnum:And.
@@ -868,8 +869,9 @@ class OpenEdge.BusinessLogic.Filter.AblFilterParser inherits FilterParser:
                        .
                 // if we can't parse the input string, then just set as a string value
                 if not valid-object(qryDef:QuerySelection) then
+                    {&_proparse_ prolint-nowarn(overflow)}
                     assign tableRequest:QueryDefinition = ?
-                           tableRequest:QueryString     = stringData[1]
+                           tableRequest:QueryString     = string(stringData[1])
                            .
             end.
             
@@ -901,8 +903,9 @@ class OpenEdge.BusinessLogic.Filter.AblFilterParser inherits FilterParser:
                            .
                     // if we can't parse the input string, then just set as a string value
                     if not valid-object(qryDef:QuerySelection) then
+                        {&_proparse_ prolint-nowarn(overflow)}
                         assign tableRequest:QueryDefinition = ?
-                               tableRequest:QueryString     = stringData[loop]
+                               tableRequest:QueryString     = string(stringData[loop])
                                .
                 end.
             end.

@@ -1,18 +1,19 @@
 /************************************************
-Copyright (c) 2015-2016 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2016, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : ClientBuilder
     Purpose     : Allows the construction of a working HttpClient via a fluent
-                  interface. 
+                  interface.
     Syntax      : ClientBuilder:Build(<type>).
-    Description : 
+    Description :
     Author(s)   : pjudge
     Created     : Tue Jan 13 10:52:05 EST 2015
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
+using OpenEdge.Core.File.
 using OpenEdge.Core.ISupportInitialize.
 using OpenEdge.Logging.ILogWriter.
 using OpenEdge.Net.HTTP.BuilderRegistry.
@@ -30,10 +31,12 @@ using OpenEdge.Net.HTTP.ISupportProxy.
 using OpenEdge.Net.HTTP.Lib.ClientLibraryBuilder.
 using OpenEdge.Net.HTTP.ProxyHttpClient.
 using OpenEdge.Net.HTTP.StatefulHttpClient.
+using OpenEdge.Net.HTTP.Trace.TraceConfig.
 using OpenEdge.Net.URI.
+using Progress.Json.ObjectModel.JsonObject.
 
 class OpenEdge.Net.HTTP.ClientBuilder abstract inherits ConfigBuilder:
-    
+
     /** Registry for mapping build types to their implementations */
     define static public property Registry as BuilderRegistry no-undo
         get():
@@ -41,7 +44,7 @@ class OpenEdge.Net.HTTP.ClientBuilder abstract inherits ConfigBuilder:
             if not valid-object(ClientBuilder:Registry) then
             do:
                 assign oRegistry = new BuilderRegistry().
-                ClientBuilder:InitializeRegistry(oRegistry).                
+                ClientBuilder:InitializeRegistry(oRegistry).
                 assign ClientBuilder:Registry = oRegistry.
             end.
             return ClientBuilder:Registry.
@@ -55,7 +58,7 @@ class OpenEdge.Net.HTTP.ClientBuilder abstract inherits ConfigBuilder:
     /** Returns a configured client. */
     define abstract property Client as IHttpClient no-undo get.
     
-    /** Adds initial values into the registry 
+    /** Adds initial values into the registry
     
         @param BuilderRegistry The registry to populate */
     method static private void InitializeRegistry(input poRegistry as BuilderRegistry):
@@ -70,7 +73,6 @@ class OpenEdge.Net.HTTP.ClientBuilder abstract inherits ConfigBuilder:
                        get-class(ProxyHttpClient)).
         poRegistry:Put(get-class(ISupportCookies):TypeName,
                        get-class(StatefulHttpClient)).
-                       
     end method.
     
     /** Builder director method.
@@ -84,12 +86,77 @@ class OpenEdge.Net.HTTP.ClientBuilder abstract inherits ConfigBuilder:
         Assert:IsType(oBuilderType, get-class(ClientBuilder)).
         
         /* Issue PSC00326382 means that we must use dynamic-new instead of New() */
-        oCB = dynamic-new string(oBuilderType:TypeName) ().        
+        oCB = dynamic-new string(oBuilderType:TypeName) ().
         
         if type-of(oCB, ISupportInitialize) then
             cast(oCB, ISupportInitialize):Initialize().
-        
+
         return oCB.
+    end method.
+
+    /** Sets the value of the AllowTracing option.
+    
+        @param Logical Will tracing be enabled for this client? (Unknown = False)
+        @return ClientBuilder This builder instance */
+    @since(rel='12.5.0').
+    method public ClientBuilder AllowTracing(input plTracing as logical):
+        /* Did not give an explicit "true" value, so assume "false". */
+        if plTracing eq ? then
+            assign plTracing = false.
+        
+        SetOption("allowTracing":u, plTracing).
+        
+        return this-object.
+    end method.
+    
+    /** Sets the tracing configuration location
+        
+        @param File A file containing config data
+        @return ClientBuilder This builder instance */
+    @since(rel='12.5.0').
+    method public ClientBuilder TracingConfig(input pFile as File):
+        Assert:NotNull(pFile, 'Config file name').
+        
+        SetOption('traceConfig':u, pFile).
+        
+        return this-object.
+    end method.
+    
+    /** Sets the tracing configuration
+    
+        @param JsonObject Config data matching the schema in $DLC/src/netlib/OpenEdge/Net/HTTP/Trace/hctracing.config.schema
+        @return ClientBuilder This builder instance */
+    @since(rel='12.5.0').
+    method public ClientBuilder TracingConfig(input pConfig as JsonObject):
+        Assert:NotNull(pConfig, 'Config data').
+        
+        SetOption('traceConfig':u, pConfig).
+        
+        return this-object.
+    end method.
+    
+    /** Sets the tracing configuration
+    
+        @param TraceConfig Config data.
+        @return ClientBuilder This builder instance */
+    @since(rel='12.5.0').
+    method public ClientBuilder TracingConfig(input pConfig as TraceConfig):
+        Assert:NotNull(pConfig, 'Config data').
+        
+        SetOption('traceConfig':u, pConfig).
+        
+        return this-object.
+    end method.
+    
+    /** Sets the tracing configuration location
+    
+        @param character A file path (name) for a file containing config data
+        @return ClientBuilder This builder instance */
+    @since(rel='12.5.0').
+    method public ClientBuilder TracingConfig(input pFile as character):
+        Assert:NotNullOrEmpty(pFile, 'Config file name').
+        
+        return TracingConfig(new File(pFile)).
     end method.
     
     /** Sets the value of the NumRetries option.
@@ -127,7 +194,7 @@ class OpenEdge.Net.HTTP.ClientBuilder abstract inherits ConfigBuilder:
     
     /** Sets a cookie jar for managing cookies.
         
-        @param ICookieJar The cookie jar which manages cookies for this client 
+        @param ICookieJar The cookie jar which manages cookies for this client
         @return ClientBuilder */
     method public ClientBuilder KeepCookies(input poCookieJar as ICookieJar):
         Assert:NotNull(poCookieJar, 'Cookie jar').
@@ -179,7 +246,7 @@ class OpenEdge.Net.HTTP.ClientBuilder abstract inherits ConfigBuilder:
         SetOption(PROP_CLIENT_NAME, pcName).
         SetOption(PROP_CLIENT_VERSION, pcVersion).
         
-        return this-object.                                          
+        return this-object.
     end method.
     
     /** Override the default client library to be used with this http client.
@@ -192,7 +259,7 @@ class OpenEdge.Net.HTTP.ClientBuilder abstract inherits ConfigBuilder:
         SetOption(get-class(IHttpClientLibrary):TypeName, poLibrary).
         
         return this-object.
-    end method.    
+    end method.
 
     /** Override the default log writer to be used with this http client
     
@@ -204,13 +271,13 @@ class OpenEdge.Net.HTTP.ClientBuilder abstract inherits ConfigBuilder:
         SetOption(get-class(ILogWriter):TypeName, poLogger).
         
         return this-object.
-    end method.    
-    
+    end method.
+
     /**  Helper method to build a http client library */
     method protected IHttpClientLibrary BuildLibrary():
         define variable oLibBuilder as ClientLibraryBuilder no-undo.
         
-        If HasOption(get-class(IHttpClientLibrary):TypeName) then
+        if HasOption(get-class(IHttpClientLibrary):TypeName) then
             return cast(GetOptionObjectValue(get-class(IHttpClientLibrary):TypeName), IHttpClientLibrary).
         else
         do:
@@ -234,7 +301,6 @@ class OpenEdge.Net.HTTP.ClientBuilder abstract inherits ConfigBuilder:
         @return IHttpClient The new, decorating client */
     method static public IHttpClient DecorateClient(input poDecorationType as Progress.Lang.Class,
                                                     input poDecoratedClient as IHttpClient):
-        define variable oDecorator as IHttpClient no-undo.
         define variable oDecoratorType as Progress.Lang.Class no-undo.
         define variable oClient as IHttpClient no-undo.
         
@@ -243,7 +309,7 @@ class OpenEdge.Net.HTTP.ClientBuilder abstract inherits ConfigBuilder:
        if not valid-object(oDecoratorType) then
             return poDecoratedClient.
         
-        /* got to be able to decorate ... */            
+        /* got to be able to decorate ... */
         Assert:IsType(oDecoratorType, get-class(HttpClientDecorator)).
         
         oClient = dynamic-new string(oDecoratorType:TypeName) (input poDecoratedClient).
@@ -252,5 +318,6 @@ class OpenEdge.Net.HTTP.ClientBuilder abstract inherits ConfigBuilder:
             cast(oClient, ISupportInitialize):Initialize().
 
         return oClient.
-    end method.    
+    end method.
+
 end class.

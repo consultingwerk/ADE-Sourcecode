@@ -1,14 +1,14 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2018, 2020 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2018, 2020-2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : MappedOperation
-    Purpose     :   
-    Syntax      : 
-    Description : 
+    Purpose     :
+    Syntax      :
+    Description :
     Author(s)   : pjudge
     Created     : Wed May 18 13:40:31 EDT 2016
-    Notes       : 
+    Notes       :
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
@@ -58,7 +58,7 @@ class OpenEdge.Web.DataObject.MappedOperation:
     /* (data value) The kind of operation: CLS, PROC, FILE, VOID */
     define public property TargetType as character no-undo get. private set.
     
-    /* (data value) The target name (class, procedure, filename) */ 
+    /* (data value) The target name (class, procedure, filename) */
     define public property TargetName as character no-undo get. private set.
     
     /* (data value) The expected ABL type of the target */
@@ -87,7 +87,7 @@ class OpenEdge.Web.DataObject.MappedOperation:
         get.
         private set.
     
-    /* (optional) Access control list for this operation. Typically one or more ROLES that will be evaluated 
+    /* (optional) Access control list for this operation. Typically one or more ROLES that will be evaluated
        against the current user. */
     define public property AccessControl as character extent no-undo
         get.
@@ -159,7 +159,7 @@ class OpenEdge.Web.DataObject.MappedOperation:
             undo, throw new AppError(substitute('Unsupported target type "&1" for operation "&3 &2"',
                                         pTargetType,
                                         pcServiceURI,
-                                        string(poMethod) ), 
+                                        string(poMethod) ),
                                     0).
         
         // we don't validate the TargetFunction in any way because that is specific to the operation
@@ -168,7 +168,7 @@ class OpenEdge.Web.DataObject.MappedOperation:
         assign this-object:mServiceURI    = '/':u + trim(pcServiceURI, '/':u)
                this-object:Method         = poMethod
                this-object:ContentType    = pcContentType
-               this-object:TargetType     = pTargetType 
+               this-object:TargetType     = pTargetType
                this-object:TargetName     = pcTargetName
                this-object:TargetFunction = pcTargetFunction
                this-object:StatusCode     = piStatusCode
@@ -194,7 +194,7 @@ class OpenEdge.Web.DataObject.MappedOperation:
         end case.
         else
             assign this-object:EntityType = Progress.Lang.Class:GetClass(pEntityType).
-    end method.
+    end constructor.
     
     method override public character ToString():
         define variable params as character no-undo.
@@ -206,7 +206,7 @@ class OpenEdge.Web.DataObject.MappedOperation:
                .
         do while iter:HasNext():
             assign params = params
-                          + delim 
+                          + delim
                           + '[':u + iter:Next():ToString() + ']':u
                    delim  = ',':u.
         end.
@@ -244,5 +244,15 @@ class OpenEdge.Web.DataObject.MappedOperation:
         
         return hSchema.
     end method.     // GetSchema()
+    
+    /* Returns TRUE if there is a named schema for this operation (only).
+       
+       @param character The schema name
+       @return logical TRUE if the schema exists for this operation, FALSE otherwise */
+    method public logical HasSchema(input pSchemaName as character):
+        Assert:NotNull(pSchemaName, 'Schema name').
+        
+        return this-object:Schemas:ContainsKey(pSchemaName).
+    end method.
     
 end class.

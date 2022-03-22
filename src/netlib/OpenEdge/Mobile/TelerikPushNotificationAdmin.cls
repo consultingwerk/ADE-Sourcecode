@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2015, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : TelerikPushNotificationAdmin
@@ -87,7 +87,8 @@ class OpenEdge.Mobile.TelerikPushNotificationAdmin inherits TelerikPushNotificat
         
         Assert:NotNull(poFilter, 'Filter').
         
-        assign moFilterHeader:Value = string(poFilter:GetJsonText()) 
+        {&_proparse_ prolint-nowarn(overflow)}
+        assign moFilterHeader:Value = string(poFilter:GetJsonText())
                oRequest = RequestBuilder:Get(substitute('&1/&2/Push/Notifications':u,
                                                 /* make sure we're not adding 2 slashes here */
                                                 right-trim(ServerUri:ToString(), '/':u),
@@ -168,6 +169,7 @@ class OpenEdge.Mobile.TelerikPushNotificationAdmin inherits TelerikPushNotificat
         
         Assert:NotNull(poFilter, 'Filter').
         
+        {&_proparse_ prolint-nowarn(overflow)}
         assign moFilterHeader:Value = string(poFilter:GetJsonText()) 
                oRequest = RequestBuilder:Get(substitute('&1/&2/Push/Devices':u,
                                                 /* make sure we're not adding 2 slashes here */

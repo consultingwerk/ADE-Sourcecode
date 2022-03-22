@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016, 2018-2019 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016, 2018-2019, 2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : ObjectArrayValueWriter
@@ -56,7 +56,6 @@ class OpenEdge.Web.DataObject.Writer.ObjectArrayValueWriter inherits ArgumentVal
     end method.
     
     method override public void Write(input pData as Progress.Lang.Object):
-        define variable oArray as JsonArray no-undo.
         define variable cnt as integer no-undo.
         define variable loop as integer no-undo.
         define variable kvp as KeyValuePair no-undo.

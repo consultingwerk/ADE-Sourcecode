@@ -174,7 +174,8 @@ class OpenEdge.Core.Util.UTF8Encoder:
         // use a distinct DO block so that we only treat bad values as 0
         do on error undo, throw:
             assign unicode = MathUtil:HexToInt(pHexValue).
-            catch e as Progress.Lang.Error :
+            {&_proparse_ prolint-nowarn(varusage)}
+            catch uncaught as Progress.Lang.Error:
                 return 0.
             end catch.
         end.
@@ -279,7 +280,8 @@ class OpenEdge.Core.Util.UTF8Encoder:
         // use a distinct DO block so that we can treat bad values as 0
         do on error undo, throw:
             assign utf8 = asc(substring(pUtf8, 1, 1), 'utf-8':u).
-            catch e as Progress.Lang.Error:
+            {&_proparse_ prolint-nowarn(varusage)}
+            catch uncaught as Progress.Lang.Error:
                 return 0.
             end catch.
         end.
@@ -312,6 +314,7 @@ class OpenEdge.Core.Util.UTF8Encoder:
         assign idx = 1.
         // only loop through the last 4 bytes; the first 4 others may be 0 or 255 (depending on whether the
         // utf8 value is negative or not).
+        LOOP-BLK:
         do loop = 8 to 5 by -1:
             assign byte = get-byte(memData, loop).
             if byte eq 0
@@ -319,7 +322,7 @@ class OpenEdge.Core.Util.UTF8Encoder:
             or byte eq 0xFE
             or byte eq 0xFF
             then
-                leave.
+                leave LOOP-BLK.
             
             // These bit masks can be seen in UnicodeToUtf8(int64)
             // 1 byte

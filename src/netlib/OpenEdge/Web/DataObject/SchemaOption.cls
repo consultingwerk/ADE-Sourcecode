@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2017-2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2017-2018, 2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : SchemaOption
@@ -49,7 +49,7 @@ class OpenEdge.Web.DataObject.SchemaOption serializable:
                this-object:Hidden        = false        // ABL default
                this-object:SerializeName = ?            // ABL default
                .
-    end.
+    end constructor.
     
     /** Adds or replaces a child schema option
         

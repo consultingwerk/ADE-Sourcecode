@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016, 2018-2019 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016, 2018-2019, 2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : StringValueWriter
@@ -76,6 +76,7 @@ class OpenEdge.Web.DataObject.Writer.StringValueWriter inherits ArgumentValueWri
         assign this-object:Value = new OpenEdge.Core.String(string(pcData)).
     end method.
     
+    {&_proparse_ prolint-nowarn(recidkeyword)}
     method override public void Write(input pcData as recid):
         assign this-object:Value = new OpenEdge.Core.String(string(pcData)).
     end method.

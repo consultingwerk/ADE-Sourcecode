@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2014-2016, 2018 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014-2016, 2018, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : HttpMessage
@@ -221,7 +221,7 @@ class OpenEdge.Net.HTTP.HttpMessage
 
         @param  character The name of the header to retrieve
         @return HttpHeader The header object. Null if not exists. */
-    method public HttpHeader GetHeader(input pcName as character).
+    method public HttpHeader GetHeader(input pcName as character):
         return this-object:Headers:Get(pcName).
     end method.
     
@@ -340,7 +340,7 @@ class OpenEdge.Net.HTTP.HttpMessage
     end method.
     
     /** Removes all headers from this message */ 
-    method public void ClearHeaders().
+    method public void ClearHeaders():
         this-object:Headers:Clear().    
     end method.
     
@@ -348,7 +348,7 @@ class OpenEdge.Net.HTTP.HttpMessage
        
        @param P.L.Class The type we want to adapt this message to
        @return P.L.Object The adapter. Will typically be of the type specified by the input argument */
-    method public Progress.Lang.Object GetAdapter(input poAdaptTo as class Progress.Lang.Class).
+    method public Progress.Lang.Object GetAdapter(input poAdaptTo as class Progress.Lang.Class):
         Assert:NotNull(poAdaptTo, 'Adapter').
         
         if this-object:GetClass():IsA(poAdaptTo) then

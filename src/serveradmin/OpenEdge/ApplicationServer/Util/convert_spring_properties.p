@@ -1,5 +1,5 @@
 /******************************************************************************
-  Copyright (c) 2016-2017 by Progress Software Corporation. All rights reserved.
+  Copyright (c) 2016-2017, 2021 by Progress Software Corporation. All rights reserved.
 *******************************************************************************/
 /*------------------------------------------------------------------------
     File        : OpenEdge/ApplicationServer/Util/convert_spring_properties.p 
@@ -78,15 +78,13 @@ end finally.
 /* ***************************  Procedures  *************************** */
 procedure LoadFromConfig:
     define input  parameter pcConfigRoot as character no-undo.
-    define input  parameter pcOutDir as character no-undo.
+    define input  parameter pcOutDir     as character no-undo.
     
     define variable interceptFile as character no-undo.
     define variable propertiesFile as character no-undo.
     define variable slashPos as integer no-undo.
-    define variable fileInStream as FileInputStream no-undo.
-    define variable paramFile as character no-undo.
-    define variable paramLoop as integer no-undo.
-    define variable paramMax as integer no-undo.
+    define variable iLoop as integer no-undo.
+    define variable iMax as integer no-undo.
     define variable inputFileName as character no-undo.
     
     assign file-info:file-name = pcConfigRoot.
@@ -103,12 +101,12 @@ procedure LoadFromConfig:
     else
     do:
         assign pcOutDir = replace(pcOutDir, StringConstant:BACKSLASH, '/':u)
-               paramMax = num-entries(pcOutDir, '/':u)
+               iMax = num-entries(pcOutDir, '/':u)
                delim    = '':u
                paramEntry = '':u.
-        do paramLoop = 1 to paramMax:
+        do iLoop = 1 to iMax:
             assign paramEntry = paramEntry + delim
-                              + entry(paramLoop, pcOutDir, '/':u)
+                              + entry(iLoop, pcOutDir, '/':u)
                    delim      = '/':u.
             os-create-dir value(paramEntry).
         end.
@@ -165,9 +163,8 @@ procedure LoadFromConfig:
            .
     run ParseXMLConfig(new FileInputStream(inputFileName)).
     
-    catch err as Progress.Lang.Error :
-        logger:Error(new LogMessage(logger:Name, 'Error converting Spring properties from &1', inputFileName),
-                     err).
+    catch loadErr as Progress.Lang.Error :
+        logger:Error(new LogMessage(logger:Name, 'Error converting Spring properties from &1', inputFileName), loadErr).
     end catch.
     finally:
         output stream strUrls close. 
@@ -248,11 +245,9 @@ end procedure.
 
 /** START-ELEMENT event handler for the SAX-READER. Method implemented as per ABL documentation.  */
 procedure  SaxReaderStartElementHandler:
-    define input param phSaxReader    as handle.
-    define input param pcNamespaceURI as character.
-    define input param pcLocalName    as character.
-    define input param pcQName        as character.
-    define input param phAttributes   as handle.
+    define input parameter pcLocalName  as character no-undo.
+    define input parameter pcQName      as character no-undo.
+    define input parameter phAttributes as handle    no-undo.
     
     define variable attrLoop as integer no-undo.
     define variable attrMax as integer no-undo.
@@ -428,9 +423,10 @@ procedure  SaxReaderStartElementHandler:
                    attrId     = phAttributes:get-index-by-qname('id':u)
                    parentName = phAttributes:get-value-by-index(attrId)
                    .
+            ATTRBLK:
             do attrLoop = 1 to attrMax:
                 if attrLoop eq attrId then
-                    next.
+                    next ATTRBLK.
                     
                 put stream strProps unformatted
                     substitute('&1.&2.&3=&4':u,
@@ -446,10 +442,8 @@ end procedure.
 
 /** END-ELEMENT event handler for the SAX-READER. Method implemented as per ABL documentation.  */
 procedure SaxReaderEndElementHandler:
-    define input parameter phSaxReader as handle.
-    define input parameter pcNamespaceURI as character.
-    define input parameter pcLocalName as character.
-    define input parameter pcQName as character.
+    define input parameter pcLocalName as character no-undo.
+    define input parameter pcQName     as character no-undo.
     
     logger:Trace(substitute('End element "&1" (&2)', pcLocalName, pcQName)).
     
@@ -472,7 +466,8 @@ procedure SaxReaderEndElementHandler:
             assign parentName = '':u.
         
         when 'param-name':u then
-            assign currentElementCtx = elementValue.
+            {&_proparse_ prolint-nowarn(overflow)}
+            assign currentElementCtx = string(elementValue).
         
         when 'param-value':u then
         case currentElementCtx:
@@ -488,6 +483,7 @@ procedure SaxReaderEndElementHandler:
                        assign elementValue = replace(elementValue, '//':u, '/':u).
                     end.
                     
+                    {&_proparse_ prolint-nowarn(overflow)}
                     assign elementValue        = replace(elementValue, '/WEB-INF/WEB-INF/':u, '/WEB-INF/':u)
                            file-info:file-name = string(elementValue)
                            .
@@ -498,7 +494,7 @@ procedure SaxReaderEndElementHandler:
                            currentElementCtx = '':u.
                 end.    /* context-param/param-value */
             end.
-        end.
+        end case.
     end case.
     
     assign currentElement = '':u
@@ -509,9 +505,7 @@ end procedure.
 /** CHARACTERS event handler for the SAX-READER. Method implemented as per 
     ABL documentation.  */
 procedure SaxReaderCharactersHandler:
-    define input parameter phSaxReader as handle no-undo.
     define input parameter pcCharData as longchar no-undo.
-    define input parameter piNumChars as integer no-undo.
     
     case currentElement:
         when 'param-value':u or
@@ -521,7 +515,7 @@ procedure SaxReaderCharactersHandler:
 end procedure.
 
 procedure SaxReaderWarninghandler:
-    define input parameter phReader as handle no-undo.
+    define input parameter phReader     as handle no-undo.
     define input parameter pcErrMessage as character no-undo.
     
     logger:Debug(substitute('Warning from reader: &1', phReader:private-data)).
@@ -529,7 +523,7 @@ procedure SaxReaderWarninghandler:
 end procedure.
 
 procedure SaxReaderErrorHandler:
-    define input parameter phReader as handle no-undo.
+    define input parameter phReader     as handle no-undo.
     define input parameter pcErrMessage as character no-undo.
     
     logger:Error(substitute('Error from reader: &1', phReader:private-data)).
@@ -541,7 +535,7 @@ procedure SaxReaderErrorHandler:
 end procedure.
 
 procedure SaxReaderFatalErrorHandler:
-    define input parameter phReader as handle no-undo.
+    define input parameter phReader     as handle no-undo.
     define input parameter pcErrMessage as character no-undo.
     
     logger:Fatal(substitute('Fatal error from reader: &1', phReader:private-data)).

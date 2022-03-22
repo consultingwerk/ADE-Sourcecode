@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2014-2016, 2018 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014-2016, 2018, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : RedirectStatusFilter
@@ -92,6 +92,7 @@ class OpenEdge.Net.HTTP.Filter.Status.RedirectStatusFilter implements IHttpMessa
     method public void Write(input-output pcData as longchar):
         Assert:NotNullOrEmpty(pcData, 'Location').
         
+        {&_proparse_ prolint-nowarn(overflow)}
         assign mcData = string(pcData).
     end method.
     

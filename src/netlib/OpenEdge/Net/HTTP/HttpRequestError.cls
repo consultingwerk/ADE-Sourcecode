@@ -17,7 +17,7 @@ using OpenEdge.Core.System.ApplicationError.
 using OpenEdge.Core.System.ErrorSeverityEnum.
 using Progress.Lang.Error.
 
-class OpenEdge.Net.HTTP.HttpRequestError  inherits ApplicationError: 
+class OpenEdge.Net.HTTP.HttpRequestError inherits ApplicationError serializable: 
     constructor static HttpRequestError():
         ApplicationError:AddError(
             get-class(HttpRequestError),

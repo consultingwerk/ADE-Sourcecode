@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2018, 2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : WeakReference
@@ -15,7 +15,7 @@ class OpenEdge.Core.WeakReference:
     define private variable mReferenceType as class Progress.Lang.Class no-undo.
 
     // The weak reference 'handle' to the object
-    define private variable mObjectId as integer no-undo.
+    define private variable mObjectId as int64 no-undo.
     
     /* The 'strong' reference */
     define public property Reference as Progress.Lang.Object no-undo

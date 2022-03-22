@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 by Progress Software Corporation.
+ * Copyright (c) 2016, 2021 by Progress Software Corporation.
  * 14 Oak Park Bedford, MA 01730.  All rights reserved.
  *
  * No part of this program or document may be reproduced
@@ -26,7 +26,7 @@ class OpenEdge.Web.Dynamic.ContentHandler
     constructor public ContentHandler():
         AddValidPath( "/pub":u ).
         AddValidPath( "/priv":u ).
-    end.
+    end constructor.
 
     /* 
      * Handle GET request.  Returns files from directory.
@@ -80,7 +80,7 @@ class OpenEdge.Web.Dynamic.ContentHandler
             create AllowedPath.
             AllowedPath.Prefix = cPath.
         end.
-    end.
+    end method.
     
     /*
      * Check a list of path prefixes to see if this request is
@@ -136,6 +136,7 @@ class OpenEdge.Web.Dynamic.ContentHandler
 
         define variable cDirectory as character no-undo.
 
+        {&_proparse_ prolint-nowarn(overflow)}
         cDirectory = poRequest:GetContextValue( "BASE_PATH":u ).
 
         return cDirectory + "/WEB-INF":u.
@@ -165,7 +166,7 @@ class OpenEdge.Web.Dynamic.ContentHandler
         end.
 
         return cExt.
-    end.
+    end method.
 
     /* 
      * Write file to the response stream
@@ -175,14 +176,15 @@ class OpenEdge.Web.Dynamic.ContentHandler
         writer as WebResponseWriter, 
         cFullPathName as character):
 
-        define variable mFile       as memptr  no-undo.
-        define variable iFileLength as integer no-undo.        
+        define variable mFile       as memptr no-undo.
+        define variable iFileLength as int64  no-undo.        
         
         copy-lob file cFullPathName to mFile.
-        iFileLength = get-size (mFile).
-        response:ContentLength = iFileLength.                
+        iFileLength = get-size(mFile).
+        {&_proparse_ prolint-nowarn(overflow)}
+        response:ContentLength = integer(iFileLength).
         writer:write(mFile, 1, iFileLength).                
-    end.
+    end method.
 
     /* 
      * Handle methods that are marked as not allowed

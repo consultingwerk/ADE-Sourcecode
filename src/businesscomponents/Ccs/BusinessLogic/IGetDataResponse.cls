@@ -31,8 +31,6 @@
     Notes       :
   ----------------------------------------------------------------------*/
 
-USING Ccs.BusinessLogic.* FROM PROPATH .
-
 INTERFACE Ccs.BusinessLogic.IGetDataResponse:
 
     /*------------------------------------------------------------------------------
@@ -47,7 +45,7 @@ INTERFACE Ccs.BusinessLogic.IGetDataResponse:
         Purpose: Returns the Table requests
         Notes:
     ------------------------------------------------------------------------------*/
-    DEFINE PUBLIC PROPERTY TableResponses AS IGetDataTableResponse EXTENT NO-UNDO
+    DEFINE PUBLIC PROPERTY TableResponses AS Ccs.BusinessLogic.IGetDataTableResponse EXTENT NO-UNDO
     GET.
 
 END INTERFACE.

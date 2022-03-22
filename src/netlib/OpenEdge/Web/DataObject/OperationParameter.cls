@@ -1,12 +1,12 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2018, 2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : OperationParameter
     Purpose     : This is the definition of a single parameter for an operation - not the value
                   (that's the Operation Argument) but the ioMode, the types etc
-    Syntax      : 
-    Description : 
+    Syntax      :
+    Description :
     Author(s)   : pjudge
     Created     : Thu May 19 09:36:26 EDT 2016
     Notes       : * IOModeEnum should only be INPUT, OUTPUT, INPUT-OUTPUT, RETURN
@@ -75,7 +75,7 @@ class OpenEdge.Web.DataObject.OperationParameter:
        
        @param IOModeEnum (mandatory) The IO mode of this parameter
        @param character (mandatory) The ABL data type
-       @param character (mandatory) The ABL name of the parameter 
+       @param character (mandatory) The ABL name of the parameter
        @param integer (mandatory) The index of this parameter in the operation */
     constructor public OperationParameter(input poIOMode as IOModeEnum,
                                           input pcABLType as character,
@@ -98,7 +98,7 @@ class OpenEdge.Web.DataObject.OperationParameter:
         
         Assert:NotNullOrEmpty(pABLType, 'ABL type').
         
-        // The datatype of the ABL parameter. Must be 'class<space><full.type.name>' for types; 
+        // The datatype of the ABL parameter. Must be 'class<space><full.type.name>' for types;
         // Add '<space>extent' to indicate an array
         assign this-object:ABLType = pABLType
                ablTypeToken        = OpenEdge.Core.String:Split(pABLType, StringConstant:SPACE)
@@ -107,7 +107,7 @@ class OpenEdge.Web.DataObject.OperationParameter:
         
         assign this-object:IsPrimitive = not (ablTypeToken[1] eq 'class':u)
                this-object:DataType    = ablTypeToken[1]
-               this-object:IsArray     = (ablTypeToken[extent(ablTypeToken)] eq 'extent':u) 
+               this-object:IsArray     = (ablTypeToken[extent(ablTypeToken)] eq 'extent':u)
                .
         /* defaults */
         if this-object:IsArray then
@@ -144,7 +144,7 @@ class OpenEdge.Web.DataObject.OperationParameter:
             when 'class':u then
                 assign this-object:ArgumentType = Progress.Lang.Class:GetClass(ablTypeToken[2]).
             otherwise
-                undo, throw new AppError(substitute('Invalid ABL type &1 for operation &2', pABLType), 0).
+                undo, throw new AppError(substitute('Invalid ABL type &1 for operation', pABLType), 0).
         end case.
         else
         case this-object:DataType:
@@ -186,13 +186,13 @@ class OpenEdge.Web.DataObject.OperationParameter:
                     assign this-object:DataType = substitute('&1-handle':u, ablTypeToken[1]).
                 
                 // INPUT and IN-OUT parameters must be BY-REF. RETURN is left alone
-                // in OUTPUT mode we don't know what the ABL code is doing - or rather can't control 
+                // in OUTPUT mode we don't know what the ABL code is doing - or rather can't control
                 // it particularly well - so we force a deep copy out :(
                 case true:
-                    // don't touch 'pure' Output 
+                    // don't touch 'pure' Output
                     when IOMode eq IOModeEnum:Output or
                     when (IOModeEnum:Return and IOMode) eq IOModeEnum:Return then
-                        .       // NO-OP for RETURN
+                        /* no-op for return */ .
                     
                     // force OUTPUT to be by value
                     when IOMode eq (IOModeEnum:ByReference or IOModeEnum:Output) then
