@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006-2021 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -81,6 +81,7 @@ To translate dictionary into foreign language:
        /* LANGUAGE DEPENDENCIES START */ /*---------------------------------*/
        /* LANGUAGE DEPENDENCIES END */ /*-----------------------------------*/
 
+Modified Date:  06/08/21 tmasood     Restrict use of data admin for 32-bit
 ============================================================================*/
 
 
@@ -156,6 +157,16 @@ FORM SKIP(1)
 {prodict/user/usermenu.i NEW}
 
 /*==========================Mainline code==================================*/
+
+/*--------------------- Check the OE bitness ----------------------------*/
+
+&IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
+  IF ade_licensed[{&ADMIN_IDX}] = {&INSTALLED} AND PROCESS-ARCHITECTURE = 32 THEN DO:
+      MESSAGE "Data Administration is not supported in the 32-bit Windows GUI client"
+        VIEW-AS ALERT-BOX ERROR.
+      RETURN.
+  END.
+&ENDIF
 
 USE "" NO-ERROR.  /* resets to startup default file */
 sw_sav = SESSION:SUPPRESS-WARNINGS.

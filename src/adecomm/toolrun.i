@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2005-2021 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -111,6 +111,7 @@ Change Log:
                and disable_widgets.
 05-25-93 mikep disable non-installed menu items
 05-21-93 mikep created and tested with Dictionary
+06-08-21 tmasood Make dictionary & data admin disable for 32-bit
 
 ----------------------------------------------------------------------------*/
 
@@ -152,7 +153,7 @@ IF tool_bomb THEN RETURN.
 
 &IF DEFINED(EXCLUDE_DICT) = 0 AND DEFINED(EXCLUDE_UIB) = 0 &THEN
   IF ade_licensed[{&DICT_IDX}] <> {&INSTALLED} OR 
-     CAN-DO(tool_pgm_list, {&DICT_ENTRYPT}) 
+     CAN-DO(tool_pgm_list, {&DICT_ENTRYPT}) OR (PROCESS-ARCHITECTURE = 32 AND "{&WINDOW-SYSTEM}" <> "TTY")
   THEN MENU-ITEM mnu_dict:SENSITIVE IN MENU mnu_Tools = No.
   ELSE ON CHOOSE OF MENU-ITEM mnu_dict IN MENU mnu_Tools
                     {&PERSISTENT} RUN _RunTool( INPUT "_dict.p" ).
@@ -160,6 +161,9 @@ IF tool_bomb THEN RETURN.
 &ELSEIF DEFINED(EXCLUDE_DICT) = 0 AND DEFINED(EXCLUDE_UIB) <> 0 &THEN
   CREATE MENU-ITEM mnu_dict ASSIGN LABEL = "&Data Dictionary"         PARENT = h_sm
          TRIGGERS: ON CHOOSE PERSISTENT RUN _RunTool(INPUT "_dict.p"). END TRIGGERS.
+  mnu_dict:SENSITIVE = (ade_licensed[{&DICT_IDX}] = {&INSTALLED}   AND
+                        NOT CAN-DO(tool_pgm_list, {&DICT_ENTRYPT}) AND 
+                        PROCESS-ARCHITECTURE = 64).
 
 &ENDIF
 
@@ -182,7 +186,7 @@ IF tool_bomb THEN RETURN.
 
 &IF "{&WINDOW-SYSTEM}" <> "TTY" AND DEFINED(EXCLUDE_ADMIN) = 0 AND DEFINED(EXCLUDE_UIB) = 0 &THEN
   IF ade_licensed[{&ADMIN_IDX}] <> {&INSTALLED} OR 
-     CAN-DO(tool_pgm_list, {&ADMIN_ENTRYPT}) 
+     CAN-DO(tool_pgm_list, {&ADMIN_ENTRYPT}) OR PROCESS-ARCHITECTURE = 32 
   THEN MENU-ITEM mnu_admin:SENSITIVE IN MENU mnu_Tools = No.
   ELSE ON CHOOSE OF MENU-ITEM mnu_admin IN MENU mnu_Tools
                    {&PERSISTENT} RUN _RunTool( INPUT "_admin.p" ).
@@ -191,7 +195,8 @@ IF tool_bomb THEN RETURN.
   CREATE MENU-ITEM mnu_admin ASSIGN LABEL = "Data &Administration"     PARENT = h_sm
          TRIGGERS: ON CHOOSE PERSISTENT RUN _RunTool(INPUT "_admin.p"). END TRIGGERS.
   mnu_admin:SENSITIVE = (ade_licensed[{&ADMIN_IDX}] = {&INSTALLED} AND
-                            NOT CAN-DO(tool_pgm_list, {&ADMIN_ENTRYPT})).
+                         NOT CAN-DO(tool_pgm_list, {&ADMIN_ENTRYPT}) AND 
+                         PROCESS-ARCHITECTURE = 64).
 
 &ENDIF
 /*--------------------- PRO*TOOLS MENU PROCESSING --------------------------*/

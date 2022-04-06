@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2006-2017 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/************************************************************************
+* Copyright (C) 2006-2017,2021 by Progress Software Corporation.        *
+* All rights reserved. Prior versions of this work may contain portions *
+* contributed by participants of Possenet.                              *
+*                                                                       *
+*************************************************************************/
 
 /*----------------------------------------------------------------------------
 
@@ -21,6 +21,7 @@ Modified Date:  11/27/96    kkelley  Removed labels under icons in dictionary fo
                 D. McMann 02/21/03 Replaced GATEWAYS with DATASERVERS
                 10/10/04 K. McIntosh Added code to reset SESSION:SUPPRESS-WARNINGS when
                                      user cancels.  Bug # 20041108-002
+                06/08/21 tmasood     Restrict use of dictionary for 32-bit
 ----------------------------------------------------------------------------*/
 
 &SCOPED-DEFINE DICTG dictg
@@ -354,6 +355,16 @@ do ON STOP UNDO, LEAVE:
 
    /* Set global active ade tool procedure handle to Dictionary. */
    assign h_ade_tool = this-procedure.
+
+   /*--------------------- Check the OE bitness ----------------------------*/
+
+   &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
+   IF ade_licensed[{&DICT_IDX}] = {&INSTALLED} AND PROCESS-ARCHITECTURE = 32 THEN DO:
+       MESSAGE "Data Dictionary is not supported in the 32-bit Windows GUI client"
+         VIEW-AS ALERT-BOX ERROR.
+       RETURN.  
+   END.
+   &ENDIF
 
    pause 0 before-hide.
    assign
