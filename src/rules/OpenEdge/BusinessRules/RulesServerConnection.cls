@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2013-2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : RulesServerConnection
@@ -121,6 +121,8 @@ class OpenEdge.BusinessRules.RulesServerConnection use-widget-pool implements IS
 	   @return longchar The results of the service call. */
 	method public longchar InvokeDecisionService(input pcRequestDocument as longchar):
         define variable lcResponseDocument as longchar no-undo.
+        define variable xmlDoc  as handle no-undo.
+        define variable xmlNode as handle no-undo.
         
         if not this-object:Connected then
             this-object:Connect().
@@ -141,11 +143,26 @@ class OpenEdge.BusinessRules.RulesServerConnection use-widget-pool implements IS
             define variable oAppError as AppError no-undo.
             
             oAppError = new AppError(oSoapError:GetMessage(1)).
-            oAppError:AddMessage(oSoapError:SoapFault:soap-fault-code, oSoapError:GetMessageNum(1)).
-            oAppError:AddMessage(oSoapError:SoapFault:soap-fault-actor, oSoapError:GetMessageNum(1)).
-            
+            IF oSoapError:GetMessageNum(1) EQ 11506 THEN DO:
+                create x-document xmlDoc.
+                create x-noderef xmlNode.
+    
+                xmlDoc:load('longchar', pcRequestDocument, false).
+                xmlDoc:get-document-element(xmlNode).
+
+                oAppError:AddMessage(substitute('Decision Service &1 is not available on the Business Rules server',
+                                                 quoter(xmlNode:get-attribute ('decisionServiceName'))), 0).
+            END.
+            ELSE DO:
+                oAppError:AddMessage(oSoapError:SoapFault:soap-fault-code, oSoapError:GetMessageNum(1)).
+                oAppError:AddMessage(oSoapError:SoapFault:soap-fault-actor, oSoapError:GetMessageNum(1)).
+            END. 
             undo, throw oAppError.
         end catch.
+        finally:
+            delete object xmlDoc no-error.
+            delete object xmlNode no-error.
+        end finally.
     end method.
     
     /** Returns true if any version of a specified Decision Service is deployed. 
@@ -153,17 +170,7 @@ class OpenEdge.BusinessRules.RulesServerConnection use-widget-pool implements IS
         @param character The decision service name.
         @return logical Whether the decision service is deployed of not. */
     method public logical IsDecisionServiceAvailable(input pcServiceName as character):
-        define variable lIsAvailable as logical no-undo.
-        
-        Assert:NotNull(moAdminServiceConnection, 'Admin Service Connection').
-        if not this-object:Connected then
-            this-object:Connect().
-
-        run isDecisionServiceDeployed in mhAdminServicePort (
-                input pcServiceName,
-                output lIsAvailable).
-
-        return lIsAvailable.
+        return true.
     end method.
      
     /** Returns true if a particular version of a specified Decision Service is deployed. 
@@ -173,33 +180,7 @@ class OpenEdge.BusinessRules.RulesServerConnection use-widget-pool implements IS
         @return logical Whether the decision service is deployed of not. */
     method public logical IsDecisionServiceAvailable(input pcServiceName as character, 
                                                      input pdVersion as decimal):
-        define variable lIsAvailable as logical no-undo.
-        define variable cMajorVersion as character no-undo.
-        define variable cMinorVersion as character no-undo.
-        define variable cVersion as character no-undo.
-        
-        Assert:NotNull(moAdminServiceConnection, 'Admin Service Connection').
-        if not this-object:Connected then
-            this-object:Connect().
-            
-        if pdVersion eq ? then
-            return IsDecisionServiceAvailable(pcServiceName).
-        
-        Assert:IsZeroOrPositive(pdVersion, 'Decision Service Version').
-        
-        /* format the string so that we always have 2 parts.
-           hopefully the format mask is large enough (yes, yes, I know). */
-        assign cVersion      = string(pdVersion, '>>>>>>>>9.9<<<<<<<<')
-               cMajorVersion = trim(entry(1, cVersion, session:numeric-decimal-point))
-               cMinorVersion = entry(2, cVersion, session:numeric-decimal-point).
-        
-        run isDecisionServiceDeployedMajorMinorVersion in mhAdminServicePort (
-                    input  pcServiceName,
-                    input  cMajorVersion,
-                    input  cMinorVersion, 
-                    output lIsAvailable).
-
-        return lIsAvailable.                                                 
+        return true.                                                 
     end method.
     
     /** Returns true if any version of a specified Decision Service is deployed
@@ -212,24 +193,7 @@ class OpenEdge.BusinessRules.RulesServerConnection use-widget-pool implements IS
     method public logical IsDecisionServiceAvailable(input pcServiceName as character, 
                                                      input ptEffectiveOn as datetime-tz):
         
-        define variable lIsAvailable as logical no-undo.
-        define variable oAppError as AppError no-undo.
-
-        Assert:NotNull(moAdminServiceConnection, 'Admin Service Connection').
-        if not this-object:Connected then
-            this-object:Connect().
-
-        if ptEffectiveOn eq ? then
-            return IsDecisionServiceAvailable(pcServiceName).
-
-        Assert:NotNull(ptEffectiveOn, 'Decision Service Effective Date').
-        
-        run isDecisionServiceDeployedEffectiveTimestamp in mhAdminServicePort (
-                    input  pcServiceName,
-                    input  ptEffectiveOn, 
-                    output lIsAvailable).
-
-        return lIsAvailable.
+        return true.
     end method.    
     
     method override public character ToString():

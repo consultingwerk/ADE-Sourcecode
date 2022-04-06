@@ -1,5 +1,5 @@
 /************************************************
-Copyright ( c) 2013, 2018 by Progress Software Corporation. All rights reserved.
+Copyright ( c) 2013,2018-2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : RulesServerConnectionParameters
@@ -94,13 +94,12 @@ class OpenEdge.BusinessRules.RulesServerConnectionParameters implements IConnect
     /* Constructor.
        
        @param IConnectionParameters Connection parameters for the Corticon ADMIN service
-       @param IConnectionParameters Connection parameters for the Corticon decusion service */
+       @param IConnectionParameters Connection parameters for the Corticon decision service */
     constructor public RulesServerConnectionParameters(input pAdminServiceParams as IConnectionParameters,
                                                        input pDecisionServiceParams as IConnectionParameters ):
-        Assert:IsType(pAdminServiceParams,    get-class(WebServiceConnectionParameters)).
         Assert:IsType(pDecisionServiceParams, get-class(WebServiceConnectionParameters)).
         
-        assign this-object:AdminServiceConnectionParameters    = pAdminServiceParams
+        assign this-object:AdminServiceConnectionParameters    = ? /* OCTA-15430 */
                this-object:DecisionServiceConnectionParameters = pDecisionServiceParams
                this-object:FormatMask                          = FormatMaskEnum:Custom
                .
