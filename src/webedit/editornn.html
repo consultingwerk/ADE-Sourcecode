@@ -1,40 +1,40 @@
-<!--------------------------------------------------------------------
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
---------------------------------------------------------------------->
-<HTML>
-<HEAD>
-<META NAME="wsoptions" CONTENT="compile">
-<SCRIPT LANGUAGE="Speedscript">
-{&out} '<~SCRIPT LANGUAGE="JavaScript" SRC="' RootURL '/script/common.js"><!--~n'.
-</SCRIPT>
-  document.write("Included common.js file not found.");
-//--></SCRIPT>
-
-<SCRIPT LANGUAGE="Speedscript">
-{&out} '<~SCRIPT LANGUAGE="JavaScript" SRC="' RootURL '/script/editor.js"><!--~n'.
-</SCRIPT>
-  document.write("Included editor.js file not found.");
-//--></SCRIPT>
-</HEAD>
-
-<BODY BACKGROUND="`RootURL`/images/bgr/wsblank.gif"
-  onClick="cleanup()" onLoad="init()" onResize="setSize()" 
-  onUnload="return fileChanges(event)">
-
-<LAYER NAME="layer1" LEFT=1 TOP=1 VISIBILITY="hide">
-  <FORM NAME="form1">
-    <TEXTAREA NAME="txt" ROWS="10" COLS="10" WRAP="off"></TEXTAREA>
-    <INPUT NAME="fileName" TYPE="hidden" VALUE="Untitled">
-    <INPUT NAME="dirPath" TYPE="hidden">
-  </FORM>
-</LAYER>
-
-<SCRIPT LANGUAGE="JavaScript1.2"><!--
-  document.layer1.document.form1.elements[0].focus();
-//--></SCRIPT>
-
-</BODY>
-</HTML>
+<!--------------------------------------------------------------------
+* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* reserved. Prior versions of this work may contain portions         *
+* contributed by participants of Possenet.                           *
+*                                                                    *
+--------------------------------------------------------------------->
+<HTML>
+<HEAD>
+<META NAME="wsoptions" CONTENT="compile">
+<SCRIPT LANGUAGE="Speedscript">
+{&out} '<~SCRIPT LANGUAGE="JavaScript" SRC="' RootURL '/script/common.js"><!--~n'.
+</SCRIPT>
+  document.write("Included common.js file not found.");
+//--></SCRIPT>
+
+<SCRIPT LANGUAGE="Speedscript">
+{&out} '<~SCRIPT LANGUAGE="JavaScript" SRC="' RootURL '/script/editor.js"><!--~n'.
+</SCRIPT>
+  document.write("Included editor.js file not found.");
+//--></SCRIPT>
+</HEAD>
+
+<BODY BACKGROUND="`RootURL`/images/bgr/wsblank.gif"
+  onClick="cleanup()" onLoad="init()" onResize="setSize()" 
+  onUnload="return fileChanges(event)">
+
+<LAYER NAME="layer1" LEFT=1 TOP=1 VISIBILITY="hide">
+  <FORM NAME="form1">
+    <TEXTAREA NAME="txt" ROWS="10" COLS="10" WRAP="off"></TEXTAREA>
+    <INPUT NAME="fileName" TYPE="hidden" VALUE="Untitled">
+    <INPUT NAME="dirPath" TYPE="hidden">
+  </FORM>
+</LAYER>
+
+<SCRIPT LANGUAGE="JavaScript1.2"><!--
+  document.layer1.document.form1.elements[0].focus();
+//--></SCRIPT>
+
+</BODY>
+</HTML>

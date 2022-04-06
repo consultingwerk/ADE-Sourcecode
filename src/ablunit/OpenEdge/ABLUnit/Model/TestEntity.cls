@@ -1,14 +1,14 @@
 /************************************************
-Copyright (c) 2013, 2019-2020 by Progress Software Corporation. All rights reserved.
-*************************************************/ 
+Copyright (c) 2013, 2019-2021 by Progress Software Corporation. All rights reserved.
+*************************************************/
  /*------------------------------------------------------------------------
     File        : TestEntity
-    Purpose     : 
-    Syntax      : 
-    Description : 
+    Purpose     :
+    Syntax      :
+    Description :
     Author(s)   : svutla
     Created     : Wed Sep 18 11:54:23 IST 2013
-    Notes       : 
+    Notes       :
   ----------------------------------------------------------------------*/
 BLOCK-LEVEL ON ERROR UNDO, THROW.
 
@@ -18,7 +18,7 @@ using OpenEdge.ABLUnit.Results.TestTestResult.
 using OpenEdge.ABLUnit.Results.TestTypeResult.
 using OpenEdge.Core.Collections.Array.
 
-CLASS OpenEdge.ABLUnit.Model.TestEntity: 
+CLASS OpenEdge.ABLUnit.Model.TestEntity:
       DEFINE PUBLIC PROPERTY name AS CHARACTER NO-UNDO GET. SET.
       DEFINE PUBLIC PROPERTY id AS INTEGER NO-UNDO GET. SET.
       DEFINE PUBLIC PROPERTY timeTaken  AS  DECIMAL  NO-UNDO GET. SET.
@@ -32,8 +32,7 @@ CLASS OpenEdge.ABLUnit.Model.TestEntity:
         get.
         protected set.
       
-      DEFINE PRIVATE VARIABLE testEntities AS Array NO-UNDO.
-      DEFINE PRIVATE VARIABLE testEntitySize AS INTEGER NO-UNDO INIT 0.
+    DEFINE PRIVATE VARIABLE testEntities AS Array NO-UNDO.
       
     /* Constructor
        @param integer The test ID */
@@ -49,25 +48,24 @@ CLASS OpenEdge.ABLUnit.Model.TestEntity:
     END CONSTRUCTOR.
     
     METHOD PUBLIC Array getTestEntities():
-        RETURN testEntities.
+        return testEntities.
     END METHOD.
     
     METHOD PUBLIC INTEGER getChildrenSize():
-        RETURN testEntitySize.
+        return testEntities:Size.
     END METHOD.
     
     METHOD PUBLIC VOID addTestEntity( INPUT testEntity AS TestEntity ):
-        testEntitySize = testEntitySize + 1.
-        testEntities:SetValue(testEntity, testEntitySize).
+        testEntities:Add(testEntity).
         RETURN.
     END METHOD.
     
     /* Adds a test result for this entity.
     
        NOTE: This method increments the Summary's counts so only call it AFTER the
-       result is updated/complete 
+       result is updated/complete
        
-       Entities like a method or a class/procedure may have one or more before- and after- 
+       Entities like a method or a class/procedure may have one or more before- and after-
        lifecycle methods in addition to the 'main' or test method.
        
        @param TestTestResult The current result */
@@ -81,7 +79,7 @@ CLASS OpenEdge.ABLUnit.Model.TestEntity:
        
        @return TestTestResult[] The results for this entity. May be indeterminate */
     method public TestTestResult extent GetTestResults():
-        return mResultList:ToTestTestResultArray().
+        return cast(mResultList:ToArray(), TestTestResult).
     end method.
     
 END CLASS.

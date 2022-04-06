@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2020 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2020-2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : TestCase
@@ -18,12 +18,27 @@ using OpenEdge.ABLUnit.Reflection.AnnotationUtil.
 using OpenEdge.ABLUnit.Reflection.ITestInfoList.
 using OpenEdge.ABLUnit.Reflection.TestAnnotationInfo.
 using OpenEdge.ABLUnit.Reflection.TestInfo.
-using OpenEdge.ABLUnit.Results.TestTestResult.
-using Progress.Lang.AppError.
 using OpenEdge.ABLUnit.Results.TestResultEnum.
+using OpenEdge.ABLUnit.Results.TestTestResult.
+using OpenEdge.Logging.ILogWriter.
+using OpenEdge.Logging.ISupportLogging.
+using OpenEdge.Logging.LoggerBuilder.
+using Progress.Lang.AppError.
 
-class OpenEdge.ABLUnit.Model.TestCase abstract inherits TestEntity
-                    implements IRunnableEntity:
+class OpenEdge.ABLUnit.Model.TestCase
+abstract
+inherits TestEntity
+implements IRunnableEntity,
+           ISupportLogging:
+    /* Logger for this test. Typically set by ABLRunner */
+    define public property Logger as ILogWriter no-undo
+        get():
+            if not valid-object(this-object:Logger) then
+                assign this-object:Logger = LoggerBuilder:GetLogger('ABLUnit':u).
+            
+            return this-object:Logger.
+        end get.
+        set.
     
     /* The current object being tested */
     define public property Entity as Progress.Lang.Object no-undo

@@ -1,780 +1,780 @@
-<!--------------------------------------------------------------------
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
---------------------------------------------------------------------->
-<HTML>
-<HEAD>
-<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=windows-1252">
-<META NAME="Generator" CONTENT="Microsoft Word 97">
-<TITLE>WebSpeed ASP Messenger Documentation</TITLE>
-</HEAD>
-<BODY>
-
-<B><FONT FACE="HELVETICA" SIZE=5><P>The WebSpeed Active Server Page Messenger (WSASP)</P><DIR>
-<DIR>
-
-</FONT><FONT FACE="HELVETICA" SIZE=2><P>Control Files</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>WSASP.DLL</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Object Type</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>WSAgent</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Purpose</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>The WebSpeed Active Server Page Messenger (WSAgent) allows a developer to integrate WebSpeed applications with Microsoft Active Server Pages. This allows you to take advantage of Microsoft’s server side scripting and ActiveX server interface with Progress 4GL applications.</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Comments</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>The WSAgent server will get and set all CGI web properties and HTTP headers transparently from the user. However, you can override the QueryString and FormData entries before running a WebSpeed script.</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Properties</P></DIR>
-</DIR>
-</B></FONT>
-<P ALIGN="CENTER"><TABLE CELLSPACING=0 BORDER=0 CELLPADDING=7 WIDTH=498>
-<TR><TD WIDTH="34%" VALIGN="TOP">
-<OL>
-
-<FONT FACE="TIMES" SIZE=2>FormData</OL>
-</FONT></TD>
-<TD WIDTH="34%" VALIGN="TOP">
-<OL>
-
-<FONT FACE="TIMES" SIZE=2>HTTPHeader</OL>
-</FONT></TD>
-<TD WIDTH="31%" VALIGN="TOP">
-<FONT FACE="TIMES" SIZE=2><P>Locked</FONT></TD>
-</TR>
-<TR><TD WIDTH="34%" VALIGN="TOP">
-<OL>
-
-<FONT FACE="TIMES" SIZE=2>Output</OL>
-</FONT></TD>
-<TD WIDTH="34%" VALIGN="TOP">
-<OL>
-
-<FONT FACE="TIMES" SIZE=2>QueryString</OL>
-</FONT></TD>
-<TD WIDTH="31%" VALIGN="TOP">
-<OL>
-
-<FONT FACE="TIMES" SIZE=2>ServiceName</OL>
-</FONT></TD>
-</TR>
-<TR><TD WIDTH="34%" VALIGN="TOP">
-<OL>
-
-<FONT FACE="TIMES" SIZE=2>SessionsLogging</OL>
-</FONT></TD>
-<TD WIDTH="34%" VALIGN="TOP">
-<OL>
-
-<FONT FACE="TIMES" SIZE=2>SessionsLogName</OL>
-</FONT></TD>
-<TD WIDTH="31%" VALIGN="TOP">
-<OL>
-
-<FONT FACE="TIMES" SIZE=2>Version</OL>
-</FONT></TD>
-</TR>
-</TABLE>
-</P>
-<DIR>
-<DIR>
-
-<B><FONT FACE="HELVETICA" SIZE=2><P>Methods</P></DIR>
-</DIR>
-</B></FONT>
-<P ALIGN="CENTER"><TABLE CELLSPACING=0 BORDER=0 CELLPADDING=7 WIDTH=498>
-<TR><TD WIDTH="33%" VALIGN="TOP">
-<OL>
-
-<FONT FACE="TIMES" SIZE=2>CustomizeErrorMessages</OL>
-</FONT></TD>
-<TD WIDTH="36%" VALIGN="TOP">
-<OL>
-
-<FONT FACE="TIMES" SIZE=2>DisconnectService</OL>
-</FONT></TD>
-<TD WIDTH="31%" VALIGN="TOP">
-<OL>
-
-<FONT FACE="TIMES" SIZE=2>GetErrorMessage</OL>
-</FONT></TD>
-</TR>
-<TR><TD WIDTH="33%" VALIGN="TOP">
-<OL>
-
-<FONT FACE="TIMES" SIZE=2>ProcessErrorMessages</OL>
-</FONT></TD>
-<TD WIDTH="36%" VALIGN="TOP">
-<OL>
-
-<FONT FACE="TIMES" SIZE=2>RunScript</OL>
-</FONT></TD>
-<TD WIDTH="31%" VALIGN="TOP">
-<OL>
-
-<FONT FACE="TIMES" SIZE=2>VerifyConfig</OL>
-</FONT></TD>
-</TR>
-</TABLE>
-</P>
-
-<B><FONT FACE="HELVETICA"><P>FormData</P><DIR>
-<DIR>
-
-</FONT><FONT FACE="HELVETICA" SIZE=2><P>Applies To</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>WSAgent</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Purpose</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>Overrides any form data passed in by the web server. You must HTTP encode this data before setting FormData.</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Syntax</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="Courier" SIZE=1><P>WSAgent1.FormData = <I>string</I> </P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Data Type</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>String</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Usage</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>Read only.</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Comments</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>By default, the WebSpeed script will see the form data as passed in by the web server. If you want to change this data or add your own, you would set this property before calling the RunScript method.</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>See Also</P></DIR>
-</DIR>
-
-
-<UL TYPE="SQUARE"><DIR>
-<DIR>
-
-
-<UL TYPE="SQUARE">
-</B></FONT><FONT FACE="TIMES" SIZE=2><LI>ASP Request Object</LI>
-<LI>ASP Server Object</LI></UL>
-</DIR>
-</DIR>
-</UL>
-
-</FONT><B><FONT FACE="HELVETICA"><P>&nbsp;</P>
-<P>HTTPHeader</P><DIR>
-<DIR>
-
-</FONT><FONT FACE="HELVETICA" SIZE=2><P>Applies To</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>WSAgent</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Purpose</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>Contains the HTTP header returned from executing a WebSpeed script. The header contains an HTTP response code as well as cookies and the mime type of the output.</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Syntax</P><DIR>
-<DIR>
-
-</B></FONT><I><FONT FACE="Courier" SIZE=1><P>string</I> = WSAgent1.HTTPHeader </P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Data Type</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>String</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Usage</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>Read only.</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Comments</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>By default, HTTP headers with the exception of the WebSpeed Transaction cookie are not propogated to the Active Server Page framework. You can use this property to get any HTTP headers you want to return with your page.</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>See Also</P></DIR>
-</DIR>
-
-
-<UL TYPE="SQUARE"><DIR>
-<DIR>
-
-
-<UL TYPE="SQUARE">
-</B></FONT><FONT FACE="TIMES" SIZE=2><LI>ASP Response Object</LI></UL>
-</DIR>
-</DIR>
-</UL>
-
-</FONT><B><FONT FACE="HELVETICA"><P>&nbsp;</P>
-<P>Locked</P><DIR>
-<DIR>
-
-</FONT><FONT FACE="HELVETICA" SIZE=2><P>Applies To</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>WSAgent</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Purpose</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>A Boolean value that indicates whether the messenger is currently in a state aware transaction with a locked agent.</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Syntax</P><DIR>
-<DIR>
-
-</B></FONT><I><FONT FACE="Courier" SIZE=1><P>Bool</I> = WSAgent1.Locked </P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Data Type</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>Boolean</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Usage</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>Read only.</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Comments</P>
-<P>&nbsp;</P>
-<P>See Also</P>
-</FONT><FONT FACE="HELVETICA"><P>&nbsp;</P></DIR>
-</DIR>
-
-<P>Output</P><DIR>
-<DIR>
-
-</FONT><FONT FACE="HELVETICA" SIZE=2><P>Applies To</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>WSAgent</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Purpose</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>This prperty contains the HTML output of the WebSpeed script, minus any HTTP headers.</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Syntax</P><DIR>
-<DIR>
-
-</B></FONT><I><FONT FACE="Courier" SIZE=1><P>String</I> = WSAgent1.Output </P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Data Type</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>String</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Usage</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>Read only.</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Comments</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>Normally, you would just return this data to the browser, but you are free to modify it or just throw it away.</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>See Also</P></DIR>
-</DIR>
-
-
-<UL TYPE="SQUARE"><DIR>
-<DIR>
-
-
-<UL TYPE="SQUARE">
-</B></FONT><FONT FACE="TIMES" SIZE=2><LI>ASP Response Object</LI></UL>
-</DIR>
-</DIR>
-</UL>
-
-</FONT><B><FONT FACE="HELVETICA"><P>&nbsp;</P>
-<P>QueryString</P><DIR>
-<DIR>
-
-</FONT><FONT FACE="HELVETICA" SIZE=2><P>Applies To</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>WSAgent</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Purpose</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>Overrides the query string passed in by the web server. You must URL encode this string before setting QueryString.</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Syntax</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="Courier" SIZE=1><P>WSAgent1.QueryString = <I>string</I> </P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Data Type</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>String</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Usage</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>Read only.</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Comments</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>By default, the WebSpeed script will see the query string as passed in by the web server. If you want to change this string or add your own, you would set this property before calling the RunScript method.</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>See Also</P></DIR>
-</DIR>
-
-
-<UL TYPE="SQUARE"><DIR>
-<DIR>
-
-
-<UL TYPE="SQUARE">
-</B></FONT><FONT FACE="TIMES" SIZE=2><LI>ASP Request Object</LI>
-<LI>ASP Server Object</LI></UL>
-</DIR>
-</DIR>
-</UL>
-
-</FONT><B><FONT FACE="HELVETICA"><P>&nbsp;</P>
-<P>ServiceName</P><DIR>
-<DIR>
-
-</FONT><FONT FACE="HELVETICA" SIZE=2><P>Applies To</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>WSAgent</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Purpose</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>Sets the Service Name to use for running the WebSpeed script. If ServiceName is a empty string (&quot;&quot;), the default service name is used.</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Syntax</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="Courier" SIZE=1><P>WSAgent1.ServiceName = <I>string</I> </P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Data Type</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>String</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Usage</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>Read/write.</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Comments</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>You use the ServiceName property to select what named Service to use. It functions the same as the Wservice parameter in a normal WebSpeed URL.</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>See Also</P>
-</FONT><FONT FACE="HELVETICA"><P>&nbsp;</P></DIR>
-</DIR>
-
-<P>SessionsLogging</P><DIR>
-<DIR>
-
-</FONT><FONT FACE="HELVETICA" SIZE=2><P>Applies To</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>WSAgent</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Purpose</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>A Boolean value that gets or sets whether WebSpeed sessions logging is currently enabled</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Syntax</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="Courier" SIZE=1><P>WSAgent1.SessionsLogging = <I>Bool</P></DIR>
-</DIR>
-
-</I></FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Data Type</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>Boolean</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Usage</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>Read/write.</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Comments</P>
-<P>&nbsp;</P>
-<P>See Also</P>
-</FONT><FONT FACE="HELVETICA"><P>&nbsp;</P></DIR>
-</DIR>
-
-<P>SessionsLogName</P><DIR>
-<DIR>
-
-</FONT><FONT FACE="HELVETICA" SIZE=2><P>Applies To</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>WSAgent</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Purpose</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>Contains the name of the WebSpeed sessions log file..</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Syntax</P><DIR>
-<DIR>
-
-</B></FONT><I><FONT FACE="Courier" SIZE=1><P>string</I> = WSAgent1.SessionsLogName </P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Data Type</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>String</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Usage</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>Read only.</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Comments</P>
-<P>&nbsp;</P>
-<P>See Also</P>
-</FONT><FONT FACE="HELVETICA"><P>&nbsp;</P></DIR>
-</DIR>
-
-<P>Version</P><DIR>
-<DIR>
-
-</FONT><FONT FACE="HELVETICA" SIZE=2><P>Applies To</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>WSAgent</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Purpose</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>Returns a string that contains the version of WSASP.DLL that is being used.</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Syntax</P><DIR>
-<DIR>
-
-</B></FONT><I><FONT FACE="Courier" SIZE=1><P>string</I> = WSAgent1.Version </P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Data Type</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>String</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Usage</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>Read only.</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Comments</P>
-<P>&nbsp;</P>
-<P>See Also</P>
-</FONT><FONT FACE="HELVETICA"><P>&nbsp;</P></DIR>
-</DIR>
-
-<P>CustomizeErrorMessages</P><DIR>
-<DIR>
-
-</FONT><FONT FACE="HELVETICA" SIZE=2><P>Applies To</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>WSAgent</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Purpose</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>Returns an HTML page that allows you to customize WebSpeed error messages.</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Syntax</P><DIR>
-<DIR>
-
-</B></FONT><I><FONT FACE="Courier" SIZE=1><P>string</I> = WSAgent1.CustomizeErrorMessages() </P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Where</P>
-<P>&nbsp;</P>
-<P>Comments</P>
-<P>&nbsp;</P>
-<P>See Also</P></DIR>
-</DIR>
-
-
-<UL TYPE="SQUARE"><DIR>
-<DIR>
-
-
-<UL TYPE="SQUARE">
-</B></FONT><FONT FACE="TIMES" SIZE=2><LI>ProcessErrorMessages</LI></UL>
-</DIR>
-</DIR>
-</UL>
-
-</FONT><B><FONT FACE="HELVETICA"><P>&nbsp;</P>
-<P>DisconnectService</P><DIR>
-<DIR>
-
-</FONT><FONT FACE="HELVETICA" SIZE=2><P>Applies To</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>WSAgent</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Purpose</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>Disconnects an ASP messenger from the named service.</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Syntax</P><DIR>
-<DIR>
-
-</B></FONT><I><FONT FACE="Courier" SIZE=1><P>string</I> = WSAgent1.DisconnectService(<I>String</I> ServiceName) </P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Where</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>ServiceName is the name of the WebSpeed broker you want to disconnect from.</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Comments</P>
-<P>&nbsp;</P>
-<P>See Also</P>
-</FONT><FONT FACE="HELVETICA"><P>&nbsp;</P></DIR>
-</DIR>
-
-<P>GetErrorMessage</P><DIR>
-<DIR>
-
-</FONT><FONT FACE="HELVETICA" SIZE=2><P>Applies To</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>WSAgent</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Purpose</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>Returns a default or customized WebSpeed error message given an error code.</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Syntax</P><DIR>
-<DIR>
-
-</B></FONT><I><FONT FACE="Courier" SIZE=1><P>String</I> = WSAgent1.GetErrorMessage(<I>Integer</I> ErrorCode) </P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Where</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>ErrorCode is the error number of the message you would like to retrieve.</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Comments</P>
-<P>&nbsp;</P>
-<P>See Also</P>
-<P>&nbsp;</P>
-</FONT><FONT FACE="HELVETICA"><P>&nbsp;</P></DIR>
-</DIR>
-
-<P>ProcessErrorMessages</P><DIR>
-<DIR>
-
-</FONT><FONT FACE="HELVETICA" SIZE=2><P>Applies To</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>WSAgent</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Purpose</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>This routine processes any custom error message changes done by the CustomizeErrorMessages form.</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Syntax</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="Courier" SIZE=1><P>WSAgent1.ProcessErrorMessages() </P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Where</P>
-<P>&nbsp;</P>
-<P>Comments</P>
-<P>&nbsp;</P>
-<P>See Also</P></DIR>
-</DIR>
-
-
-<UL TYPE="SQUARE"><DIR>
-<DIR>
-
-
-<UL TYPE="SQUARE">
-</B></FONT><FONT FACE="TIMES" SIZE=2><LI>CustomizeErrorMessages</LI></UL>
-</DIR>
-</DIR>
-</UL>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>&nbsp;</P>
-</FONT><FONT FACE="HELVETICA"><P>&nbsp;</P>
-<P>RunScript</P><DIR>
-<DIR>
-
-</FONT><FONT FACE="HELVETICA" SIZE=2><P>Applies To</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>WSAgent</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Purpose</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>Executes the specified WebSpeed script.</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Syntax</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="Courier" SIZE=1><P>WSAgent1.RunScript(<I>String</I> ScriptName) </P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Where</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>ScriptName is the path and name of the .p, .w, or .r file to run.</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Comments</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>Before calling RunScript, you may want to set the ServiceName, FormData, and QueryString properties. After running the script, the HTTPHeader, Output, and Locked properties will be set. If there is an error running the script, and Error will be raised and Output will contain either the default or customized error message returned.</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>See Also</P>
-<P>&nbsp;</P>
-</FONT><FONT FACE="HELVETICA"><P>&nbsp;</P></DIR>
-</DIR>
-
-<P>VerifyConfig</P><DIR>
-<DIR>
-
-</FONT><FONT FACE="HELVETICA" SIZE=2><P>Applies To</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>WSAgent</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Purpose</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>Runs the specified WebSpeed verifying routine and returns the result.</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Syntax</P><DIR>
-<DIR>
-
-</B></FONT><I><FONT FACE="Courier" SIZE=1><P>String</I> = WSAgent1.VerifyConfig(<I>Integer</I> Level) </P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Where</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>Level is the type of verification to run.</P>
-<P>Level 1: Roundtrip test from the browser to the messenger.</P>
-<P>Level 2: Roundtrip test from the browser to a broker using the WSASP messenger.</P>
-<P>Level 3: Roundtrip test from the browser to a WebSpeed agent using the WSASP messenger.</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Comments</P><DIR>
-<DIR>
-
-</B></FONT><FONT FACE="TIMES" SIZE=2><P>Before calling VerifyConfig, you will want to set the ServiceName property to the broker you want to use. If the ServiceName property is an empty string (&quot;&quot;), the default broker will be used.</P></DIR>
-</DIR>
-
-</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>See Also</P>
-<P>&nbsp;</P>
-<P>&nbsp;</P>
-<P>&nbsp;</P></DIR>
-</DIR>
-</B></FONT></BODY>
-</HTML>
+<!--------------------------------------------------------------------
+* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* reserved. Prior versions of this work may contain portions         *
+* contributed by participants of Possenet.                           *
+*                                                                    *
+--------------------------------------------------------------------->
+<HTML>
+<HEAD>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=windows-1252">
+<META NAME="Generator" CONTENT="Microsoft Word 97">
+<TITLE>WebSpeed ASP Messenger Documentation</TITLE>
+</HEAD>
+<BODY>
+
+<B><FONT FACE="HELVETICA" SIZE=5><P>The WebSpeed Active Server Page Messenger (WSASP)</P><DIR>
+<DIR>
+
+</FONT><FONT FACE="HELVETICA" SIZE=2><P>Control Files</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>WSASP.DLL</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Object Type</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>WSAgent</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Purpose</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>The WebSpeed Active Server Page Messenger (WSAgent) allows a developer to integrate WebSpeed applications with Microsoft Active Server Pages. This allows you to take advantage of Microsoft’s server side scripting and ActiveX server interface with Progress 4GL applications.</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Comments</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>The WSAgent server will get and set all CGI web properties and HTTP headers transparently from the user. However, you can override the QueryString and FormData entries before running a WebSpeed script.</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Properties</P></DIR>
+</DIR>
+</B></FONT>
+<P ALIGN="CENTER"><TABLE CELLSPACING=0 BORDER=0 CELLPADDING=7 WIDTH=498>
+<TR><TD WIDTH="34%" VALIGN="TOP">
+<OL>
+
+<FONT FACE="TIMES" SIZE=2>FormData</OL>
+</FONT></TD>
+<TD WIDTH="34%" VALIGN="TOP">
+<OL>
+
+<FONT FACE="TIMES" SIZE=2>HTTPHeader</OL>
+</FONT></TD>
+<TD WIDTH="31%" VALIGN="TOP">
+<FONT FACE="TIMES" SIZE=2><P>Locked</FONT></TD>
+</TR>
+<TR><TD WIDTH="34%" VALIGN="TOP">
+<OL>
+
+<FONT FACE="TIMES" SIZE=2>Output</OL>
+</FONT></TD>
+<TD WIDTH="34%" VALIGN="TOP">
+<OL>
+
+<FONT FACE="TIMES" SIZE=2>QueryString</OL>
+</FONT></TD>
+<TD WIDTH="31%" VALIGN="TOP">
+<OL>
+
+<FONT FACE="TIMES" SIZE=2>ServiceName</OL>
+</FONT></TD>
+</TR>
+<TR><TD WIDTH="34%" VALIGN="TOP">
+<OL>
+
+<FONT FACE="TIMES" SIZE=2>SessionsLogging</OL>
+</FONT></TD>
+<TD WIDTH="34%" VALIGN="TOP">
+<OL>
+
+<FONT FACE="TIMES" SIZE=2>SessionsLogName</OL>
+</FONT></TD>
+<TD WIDTH="31%" VALIGN="TOP">
+<OL>
+
+<FONT FACE="TIMES" SIZE=2>Version</OL>
+</FONT></TD>
+</TR>
+</TABLE>
+</P>
+<DIR>
+<DIR>
+
+<B><FONT FACE="HELVETICA" SIZE=2><P>Methods</P></DIR>
+</DIR>
+</B></FONT>
+<P ALIGN="CENTER"><TABLE CELLSPACING=0 BORDER=0 CELLPADDING=7 WIDTH=498>
+<TR><TD WIDTH="33%" VALIGN="TOP">
+<OL>
+
+<FONT FACE="TIMES" SIZE=2>CustomizeErrorMessages</OL>
+</FONT></TD>
+<TD WIDTH="36%" VALIGN="TOP">
+<OL>
+
+<FONT FACE="TIMES" SIZE=2>DisconnectService</OL>
+</FONT></TD>
+<TD WIDTH="31%" VALIGN="TOP">
+<OL>
+
+<FONT FACE="TIMES" SIZE=2>GetErrorMessage</OL>
+</FONT></TD>
+</TR>
+<TR><TD WIDTH="33%" VALIGN="TOP">
+<OL>
+
+<FONT FACE="TIMES" SIZE=2>ProcessErrorMessages</OL>
+</FONT></TD>
+<TD WIDTH="36%" VALIGN="TOP">
+<OL>
+
+<FONT FACE="TIMES" SIZE=2>RunScript</OL>
+</FONT></TD>
+<TD WIDTH="31%" VALIGN="TOP">
+<OL>
+
+<FONT FACE="TIMES" SIZE=2>VerifyConfig</OL>
+</FONT></TD>
+</TR>
+</TABLE>
+</P>
+
+<B><FONT FACE="HELVETICA"><P>FormData</P><DIR>
+<DIR>
+
+</FONT><FONT FACE="HELVETICA" SIZE=2><P>Applies To</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>WSAgent</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Purpose</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>Overrides any form data passed in by the web server. You must HTTP encode this data before setting FormData.</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Syntax</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="Courier" SIZE=1><P>WSAgent1.FormData = <I>string</I> </P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Data Type</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>String</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Usage</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>Read only.</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Comments</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>By default, the WebSpeed script will see the form data as passed in by the web server. If you want to change this data or add your own, you would set this property before calling the RunScript method.</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>See Also</P></DIR>
+</DIR>
+
+
+<UL TYPE="SQUARE"><DIR>
+<DIR>
+
+
+<UL TYPE="SQUARE">
+</B></FONT><FONT FACE="TIMES" SIZE=2><LI>ASP Request Object</LI>
+<LI>ASP Server Object</LI></UL>
+</DIR>
+</DIR>
+</UL>
+
+</FONT><B><FONT FACE="HELVETICA"><P>&nbsp;</P>
+<P>HTTPHeader</P><DIR>
+<DIR>
+
+</FONT><FONT FACE="HELVETICA" SIZE=2><P>Applies To</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>WSAgent</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Purpose</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>Contains the HTTP header returned from executing a WebSpeed script. The header contains an HTTP response code as well as cookies and the mime type of the output.</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Syntax</P><DIR>
+<DIR>
+
+</B></FONT><I><FONT FACE="Courier" SIZE=1><P>string</I> = WSAgent1.HTTPHeader </P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Data Type</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>String</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Usage</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>Read only.</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Comments</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>By default, HTTP headers with the exception of the WebSpeed Transaction cookie are not propogated to the Active Server Page framework. You can use this property to get any HTTP headers you want to return with your page.</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>See Also</P></DIR>
+</DIR>
+
+
+<UL TYPE="SQUARE"><DIR>
+<DIR>
+
+
+<UL TYPE="SQUARE">
+</B></FONT><FONT FACE="TIMES" SIZE=2><LI>ASP Response Object</LI></UL>
+</DIR>
+</DIR>
+</UL>
+
+</FONT><B><FONT FACE="HELVETICA"><P>&nbsp;</P>
+<P>Locked</P><DIR>
+<DIR>
+
+</FONT><FONT FACE="HELVETICA" SIZE=2><P>Applies To</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>WSAgent</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Purpose</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>A Boolean value that indicates whether the messenger is currently in a state aware transaction with a locked agent.</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Syntax</P><DIR>
+<DIR>
+
+</B></FONT><I><FONT FACE="Courier" SIZE=1><P>Bool</I> = WSAgent1.Locked </P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Data Type</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>Boolean</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Usage</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>Read only.</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Comments</P>
+<P>&nbsp;</P>
+<P>See Also</P>
+</FONT><FONT FACE="HELVETICA"><P>&nbsp;</P></DIR>
+</DIR>
+
+<P>Output</P><DIR>
+<DIR>
+
+</FONT><FONT FACE="HELVETICA" SIZE=2><P>Applies To</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>WSAgent</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Purpose</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>This prperty contains the HTML output of the WebSpeed script, minus any HTTP headers.</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Syntax</P><DIR>
+<DIR>
+
+</B></FONT><I><FONT FACE="Courier" SIZE=1><P>String</I> = WSAgent1.Output </P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Data Type</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>String</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Usage</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>Read only.</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Comments</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>Normally, you would just return this data to the browser, but you are free to modify it or just throw it away.</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>See Also</P></DIR>
+</DIR>
+
+
+<UL TYPE="SQUARE"><DIR>
+<DIR>
+
+
+<UL TYPE="SQUARE">
+</B></FONT><FONT FACE="TIMES" SIZE=2><LI>ASP Response Object</LI></UL>
+</DIR>
+</DIR>
+</UL>
+
+</FONT><B><FONT FACE="HELVETICA"><P>&nbsp;</P>
+<P>QueryString</P><DIR>
+<DIR>
+
+</FONT><FONT FACE="HELVETICA" SIZE=2><P>Applies To</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>WSAgent</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Purpose</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>Overrides the query string passed in by the web server. You must URL encode this string before setting QueryString.</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Syntax</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="Courier" SIZE=1><P>WSAgent1.QueryString = <I>string</I> </P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Data Type</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>String</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Usage</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>Read only.</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Comments</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>By default, the WebSpeed script will see the query string as passed in by the web server. If you want to change this string or add your own, you would set this property before calling the RunScript method.</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>See Also</P></DIR>
+</DIR>
+
+
+<UL TYPE="SQUARE"><DIR>
+<DIR>
+
+
+<UL TYPE="SQUARE">
+</B></FONT><FONT FACE="TIMES" SIZE=2><LI>ASP Request Object</LI>
+<LI>ASP Server Object</LI></UL>
+</DIR>
+</DIR>
+</UL>
+
+</FONT><B><FONT FACE="HELVETICA"><P>&nbsp;</P>
+<P>ServiceName</P><DIR>
+<DIR>
+
+</FONT><FONT FACE="HELVETICA" SIZE=2><P>Applies To</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>WSAgent</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Purpose</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>Sets the Service Name to use for running the WebSpeed script. If ServiceName is a empty string (&quot;&quot;), the default service name is used.</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Syntax</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="Courier" SIZE=1><P>WSAgent1.ServiceName = <I>string</I> </P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Data Type</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>String</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Usage</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>Read/write.</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Comments</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>You use the ServiceName property to select what named Service to use. It functions the same as the Wservice parameter in a normal WebSpeed URL.</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>See Also</P>
+</FONT><FONT FACE="HELVETICA"><P>&nbsp;</P></DIR>
+</DIR>
+
+<P>SessionsLogging</P><DIR>
+<DIR>
+
+</FONT><FONT FACE="HELVETICA" SIZE=2><P>Applies To</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>WSAgent</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Purpose</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>A Boolean value that gets or sets whether WebSpeed sessions logging is currently enabled</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Syntax</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="Courier" SIZE=1><P>WSAgent1.SessionsLogging = <I>Bool</P></DIR>
+</DIR>
+
+</I></FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Data Type</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>Boolean</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Usage</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>Read/write.</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Comments</P>
+<P>&nbsp;</P>
+<P>See Also</P>
+</FONT><FONT FACE="HELVETICA"><P>&nbsp;</P></DIR>
+</DIR>
+
+<P>SessionsLogName</P><DIR>
+<DIR>
+
+</FONT><FONT FACE="HELVETICA" SIZE=2><P>Applies To</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>WSAgent</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Purpose</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>Contains the name of the WebSpeed sessions log file..</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Syntax</P><DIR>
+<DIR>
+
+</B></FONT><I><FONT FACE="Courier" SIZE=1><P>string</I> = WSAgent1.SessionsLogName </P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Data Type</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>String</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Usage</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>Read only.</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Comments</P>
+<P>&nbsp;</P>
+<P>See Also</P>
+</FONT><FONT FACE="HELVETICA"><P>&nbsp;</P></DIR>
+</DIR>
+
+<P>Version</P><DIR>
+<DIR>
+
+</FONT><FONT FACE="HELVETICA" SIZE=2><P>Applies To</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>WSAgent</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Purpose</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>Returns a string that contains the version of WSASP.DLL that is being used.</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Syntax</P><DIR>
+<DIR>
+
+</B></FONT><I><FONT FACE="Courier" SIZE=1><P>string</I> = WSAgent1.Version </P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Data Type</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>String</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Usage</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>Read only.</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Comments</P>
+<P>&nbsp;</P>
+<P>See Also</P>
+</FONT><FONT FACE="HELVETICA"><P>&nbsp;</P></DIR>
+</DIR>
+
+<P>CustomizeErrorMessages</P><DIR>
+<DIR>
+
+</FONT><FONT FACE="HELVETICA" SIZE=2><P>Applies To</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>WSAgent</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Purpose</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>Returns an HTML page that allows you to customize WebSpeed error messages.</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Syntax</P><DIR>
+<DIR>
+
+</B></FONT><I><FONT FACE="Courier" SIZE=1><P>string</I> = WSAgent1.CustomizeErrorMessages() </P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Where</P>
+<P>&nbsp;</P>
+<P>Comments</P>
+<P>&nbsp;</P>
+<P>See Also</P></DIR>
+</DIR>
+
+
+<UL TYPE="SQUARE"><DIR>
+<DIR>
+
+
+<UL TYPE="SQUARE">
+</B></FONT><FONT FACE="TIMES" SIZE=2><LI>ProcessErrorMessages</LI></UL>
+</DIR>
+</DIR>
+</UL>
+
+</FONT><B><FONT FACE="HELVETICA"><P>&nbsp;</P>
+<P>DisconnectService</P><DIR>
+<DIR>
+
+</FONT><FONT FACE="HELVETICA" SIZE=2><P>Applies To</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>WSAgent</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Purpose</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>Disconnects an ASP messenger from the named service.</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Syntax</P><DIR>
+<DIR>
+
+</B></FONT><I><FONT FACE="Courier" SIZE=1><P>string</I> = WSAgent1.DisconnectService(<I>String</I> ServiceName) </P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Where</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>ServiceName is the name of the WebSpeed broker you want to disconnect from.</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Comments</P>
+<P>&nbsp;</P>
+<P>See Also</P>
+</FONT><FONT FACE="HELVETICA"><P>&nbsp;</P></DIR>
+</DIR>
+
+<P>GetErrorMessage</P><DIR>
+<DIR>
+
+</FONT><FONT FACE="HELVETICA" SIZE=2><P>Applies To</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>WSAgent</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Purpose</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>Returns a default or customized WebSpeed error message given an error code.</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Syntax</P><DIR>
+<DIR>
+
+</B></FONT><I><FONT FACE="Courier" SIZE=1><P>String</I> = WSAgent1.GetErrorMessage(<I>Integer</I> ErrorCode) </P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Where</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>ErrorCode is the error number of the message you would like to retrieve.</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Comments</P>
+<P>&nbsp;</P>
+<P>See Also</P>
+<P>&nbsp;</P>
+</FONT><FONT FACE="HELVETICA"><P>&nbsp;</P></DIR>
+</DIR>
+
+<P>ProcessErrorMessages</P><DIR>
+<DIR>
+
+</FONT><FONT FACE="HELVETICA" SIZE=2><P>Applies To</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>WSAgent</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Purpose</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>This routine processes any custom error message changes done by the CustomizeErrorMessages form.</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Syntax</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="Courier" SIZE=1><P>WSAgent1.ProcessErrorMessages() </P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Where</P>
+<P>&nbsp;</P>
+<P>Comments</P>
+<P>&nbsp;</P>
+<P>See Also</P></DIR>
+</DIR>
+
+
+<UL TYPE="SQUARE"><DIR>
+<DIR>
+
+
+<UL TYPE="SQUARE">
+</B></FONT><FONT FACE="TIMES" SIZE=2><LI>CustomizeErrorMessages</LI></UL>
+</DIR>
+</DIR>
+</UL>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>&nbsp;</P>
+</FONT><FONT FACE="HELVETICA"><P>&nbsp;</P>
+<P>RunScript</P><DIR>
+<DIR>
+
+</FONT><FONT FACE="HELVETICA" SIZE=2><P>Applies To</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>WSAgent</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Purpose</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>Executes the specified WebSpeed script.</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Syntax</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="Courier" SIZE=1><P>WSAgent1.RunScript(<I>String</I> ScriptName) </P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Where</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>ScriptName is the path and name of the .p, .w, or .r file to run.</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Comments</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>Before calling RunScript, you may want to set the ServiceName, FormData, and QueryString properties. After running the script, the HTTPHeader, Output, and Locked properties will be set. If there is an error running the script, and Error will be raised and Output will contain either the default or customized error message returned.</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>See Also</P>
+<P>&nbsp;</P>
+</FONT><FONT FACE="HELVETICA"><P>&nbsp;</P></DIR>
+</DIR>
+
+<P>VerifyConfig</P><DIR>
+<DIR>
+
+</FONT><FONT FACE="HELVETICA" SIZE=2><P>Applies To</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>WSAgent</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Purpose</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>Runs the specified WebSpeed verifying routine and returns the result.</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Syntax</P><DIR>
+<DIR>
+
+</B></FONT><I><FONT FACE="Courier" SIZE=1><P>String</I> = WSAgent1.VerifyConfig(<I>Integer</I> Level) </P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Where</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>Level is the type of verification to run.</P>
+<P>Level 1: Roundtrip test from the browser to the messenger.</P>
+<P>Level 2: Roundtrip test from the browser to a broker using the WSASP messenger.</P>
+<P>Level 3: Roundtrip test from the browser to a WebSpeed agent using the WSASP messenger.</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>Comments</P><DIR>
+<DIR>
+
+</B></FONT><FONT FACE="TIMES" SIZE=2><P>Before calling VerifyConfig, you will want to set the ServiceName property to the broker you want to use. If the ServiceName property is an empty string (&quot;&quot;), the default broker will be used.</P></DIR>
+</DIR>
+
+</FONT><B><FONT FACE="HELVETICA" SIZE=2><P>See Also</P>
+<P>&nbsp;</P>
+<P>&nbsp;</P>
+<P>&nbsp;</P></DIR>
+</DIR>
+</B></FONT></BODY>
+</HTML>
