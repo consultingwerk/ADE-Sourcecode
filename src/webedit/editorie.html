@@ -1,39 +1,39 @@
-<!--------------------------------------------------------------------
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
---------------------------------------------------------------------->
-<HTML>
-<HEAD>
-<META NAME="wsoptions" CONTENT="compile">
-<SCRIPT LANGUAGE="Speedscript">
-{&out} '<~SCRIPT LANGUAGE="JavaScript" SRC="' RootURL '/script/common.js"><!--~n'.
-</SCRIPT>
-  document.write("Included common.js file not found.");
-//--></SCRIPT>
-
-<SCRIPT LANGUAGE="Speedscript">
-{&out} '<~SCRIPT LANGUAGE="JavaScript" SRC="' RootURL '/script/editor.js"><!--~n'.
-</SCRIPT>
-  document.write("Included editor.js file not found.");
-//--></SCRIPT>
-</HEAD>
-
-<BODY BACKGROUND="`RootURL`/images/bgr/wsbgr.gif" 
-  onLoad="init()" onResize="setSize()">
-<!-- onBeforeUnload="return fileChanges(event, 'body')" -->
-
-<!-- Editor TEXTAREA object -->
-<FORM ID="form1">
-  <TEXTAREA ID="txt" STYLE="position:absolute" WRAP="off"></TEXTAREA> 
-  <INPUT ID="fileName" TYPE="hidden" VALUE="Untitled">
-  <INPUT ID="dirPath" TYPE="hidden">
-</FORM>
-
-<SCRIPT LANGUAGE="JavaScript1.2"><!--
-  document.all.txt.focus();
-//--></SCRIPT>
- 
-</BODY>
-</HTML>
+<!--------------------------------------------------------------------
+* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* reserved. Prior versions of this work may contain portions         *
+* contributed by participants of Possenet.                           *
+*                                                                    *
+--------------------------------------------------------------------->
+<HTML>
+<HEAD>
+<META NAME="wsoptions" CONTENT="compile">
+<SCRIPT LANGUAGE="Speedscript">
+{&out} '<~SCRIPT LANGUAGE="JavaScript" SRC="' RootURL '/script/common.js"><!--~n'.
+</SCRIPT>
+  document.write("Included common.js file not found.");
+//--></SCRIPT>
+
+<SCRIPT LANGUAGE="Speedscript">
+{&out} '<~SCRIPT LANGUAGE="JavaScript" SRC="' RootURL '/script/editor.js"><!--~n'.
+</SCRIPT>
+  document.write("Included editor.js file not found.");
+//--></SCRIPT>
+</HEAD>
+
+<BODY BACKGROUND="`RootURL`/images/bgr/wsbgr.gif" 
+  onLoad="init()" onResize="setSize()">
+<!-- onBeforeUnload="return fileChanges(event, 'body')" -->
+
+<!-- Editor TEXTAREA object -->
+<FORM ID="form1">
+  <TEXTAREA ID="txt" STYLE="position:absolute" WRAP="off"></TEXTAREA> 
+  <INPUT ID="fileName" TYPE="hidden" VALUE="Untitled">
+  <INPUT ID="dirPath" TYPE="hidden">
+</FORM>
+
+<SCRIPT LANGUAGE="JavaScript1.2"><!--
+  document.all.txt.focus();
+//--></SCRIPT>
+ 
+</BODY>
+</HTML>
