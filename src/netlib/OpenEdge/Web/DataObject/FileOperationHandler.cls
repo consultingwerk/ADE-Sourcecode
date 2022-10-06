@@ -1,20 +1,23 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016, 2018, 2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016, 2018, 2021-2022 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : FileOperationHandler
     Purpose     : Delegate for mapped file operations for the DOH
-    Syntax      : 
-    Description : 
+    Syntax      :
+    Description :
     Author(s)   : pjudge
     Created     : Fri May 20 12:15:00 EDT 2016
-    Notes       : 
+    Notes       :
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.ByteBucket.
-using OpenEdge.Core.Memptr.
+using OpenEdge.Core.File.
+using OpenEdge.Core.FileInfo.
+using OpenEdge.Core.Folder.
+using OpenEdge.Core.OsErrorEnum.
 using OpenEdge.Core.StringConstant.
 using OpenEdge.Core.Util.TokenResolver.
 using OpenEdge.Logging.ILogWriter.
@@ -31,35 +34,34 @@ using OpenEdge.Web.DataObject.MappedOperation.
 using OpenEdge.Web.IWebRequest.
 using OpenEdge.Web.SendExceptionError.
 using OpenEdge.Web.DataObject.FileOperationHandler.
+using OpenEdge.Core.Memptr.
 
 class OpenEdge.Web.DataObject.FileOperationHandler implements ISupportLogging, IOperationHandler:
     /* A reference to the Logger in use by an implementer */
     define public property Logger as ILogWriter no-undo get. set.
-
-    {&_proparse_ prolint-nowarn(varusage)}
-    define private variable mcInstanceRoot as character no-undo.
     
+    /* Default constructor */
     constructor public FileOperationHandler():
-        assign mcInstanceRoot = replace(os-getenv ('CATALINA_BASE':u), StringConstant:BACKSLASH, '/':u).
-               Logger         = LoggerBuilder:GetLogger(get-class(FileOperationHandler))
-               .
+        assign this-object:Logger = LoggerBuilder:GetLogger(get-class(FileOperationHandler)).
     end constructor.
     
     /* Executes the operation.
        
        @param IWebRequest The request that resulting in the exception
-       @param P.L.Object The message body of the incoming request. Typically 
-                         will be transformed from bytes into something useful; may also have an envelope removed. 
+       @param P.L.Object The message body of the incoming request. Typically
+                         will be transformed from bytes into something useful; may also have an envelope removed.
        @param IHttpResponse The current response object, if any
        @param DataObjectService The service being operated on
        @param MappedOperation The mapped operation
-       @param P.L.Object The business entity (business logic service)  
+       @param P.L.Object The business entity (business logic service)
        @return integer A non-null status code use to deal with errors */
-    method public integer Execute(input poRequest as IWebRequest, 
-                                  input poMessageBody as Progress.Lang.Object, 
+    method public integer Execute(input poRequest as IWebRequest,
+                                  input poMessageBody as Progress.Lang.Object,
                                   input poResponse as IHttpResponse,
+                                  {&_proparse_ prolint-nowarn(varusage)}
                                   input pService as DataObjectService,
-                                  input poOperation as MappedOperation, 
+                                  input poOperation as MappedOperation,
+                                  {&_proparse_ prolint-nowarn(varusage)}
                                   input poBusinessEntity as Progress.Lang.Object):
         /* default behaviour is to handle this ourselves */
         define variable iStatusCode as integer no-undo initial 0.
@@ -69,12 +71,9 @@ class OpenEdge.Web.DataObject.FileOperationHandler implements ISupportLogging, I
         Assert:NotNull(poOperation, 'Mapped operation').
         
         case poOperation:Method:
-            when MethodEnum:GET then
-                assign iStatusCode = this-object:Read(poOperation, poRequest, poResponse).
-            
+            when MethodEnum:GET or
             when MethodEnum:HEAD then
-                assign iStatusCode       = this-object:Read(poOperation, poRequest, poResponse)
-                       poResponse:Entity = ?.
+                assign iStatusCode = this-object:Read(poOperation, poRequest, poResponse).
             
             when MethodEnum:DELETE then
                 assign iStatusCode = this-object:Remove(poOperation, poRequest, poResponse).
@@ -116,7 +115,8 @@ class OpenEdge.Web.DataObject.FileOperationHandler implements ISupportLogging, I
         return cResolvedFile.
     end method.
     
-    /* Reads a file off disk and puts it into the response Entity
+    /* Reads a file off disk and puts it into the response Entity.
+       If the operation is a HEAD request, then do not add the body.
        
        @param MappedOperation The current operation
        @param IWebRequest The source request
@@ -124,37 +124,35 @@ class OpenEdge.Web.DataObject.FileOperationHandler implements ISupportLogging, I
        @return integer The status code to return */
     method protected integer Read(input poOperation as MappedOperation,
                                   input poRequest   as IWebRequest,
-                                  input poResponse  as IHttpResponse):  
-        define variable mFileContent  as memptr               no-undo.
-        define variable iStatusCode   as integer              no-undo.
+                                  input poResponse  as IHttpResponse):
+        var memptr mFileContent.
+        var File reqFile.
+        var Folder webAppPath.
         
         Assert:NotNull(poRequest,   'Web request ').
         Assert:NotNull(poResponse,  'Web Response').
         Assert:NotNull(poOperation, 'Mapped operation').
         
-        assign iStatusCode         = 0
-               file-info:file-name = ResolveTokens(poOperation, poRequest)
+        assign reqFile    = ResolveTarget(poOperation, poRequest)
+               webAppPath = new Folder(poRequest:ResolvedWebAppPath)
                .
-        if     file-info:full-pathname eq ?
-           and r-index(substitute(file-info:file-name, StringConstant:BACKSLASH, '/':u), '/':u) eq 0 
-        then
+        ValidatePath(reqFile, webAppPath).
+        CanRead(reqFile).
+        
+        Logger:Debug(substitute('Reading file "&1"', reqFile:AbsoluteFileName())).
+        
+        assign poResponse:ContentLength = reqFile:Size.
+        
+        // for HEAD requests, don't bother reading the file
+        if not poOperation:Method eq MethodEnum:HEAD then
         do:
-            assign file-info:file-name = poRequest:ResolvedWebAppPath + poOperation:TargetName. //file-info:file-name.
-            Logger:Warn(substitute('Directory not specified in operation target (&1). Default to the webapp~'s root dir: &2', 
-                            poOperation:TargetName, poRequest:ResolvedWebAppPath)).
+            /* Read the file off disk */
+            copy-lob from file reqFile:AbsoluteFileName() to mFileContent.
+            
+            assign poResponse:Entity = new Memptr(mFileContent).
         end.
         
-        ValidateFile(file-info:handle, poRequest:ResolvedWebAppPath).
-        CanRead(file-info:handle).
-        
-        Logger:Debug(substitute('Reading file "&1"', file-info:full-pathname)).
-        
-        /* Read the file off disk */
-        copy-lob from file file-info:full-pathname to mFileContent.
-        
-        assign poResponse:Entity = new memptr(mFileContent).
-        
-        return iStatusCode.
+        return 0.
         finally:
             if get-size(mFileContent) gt 0 then
                 set-size(mFileContent) = 0.
@@ -167,52 +165,40 @@ class OpenEdge.Web.DataObject.FileOperationHandler implements ISupportLogging, I
        @param IWebRequest The source request
        @param IHttpResponse the response
        @return integer The status code to return */
+    {&_proparse_ prolint-nowarn(varusage)}
     method protected integer Write(input poOperation as MappedOperation,
                                    input poRequest   as IWebRequest,
                                    input poMessageBody as Progress.Lang.Object,
                                    input poResponse  as IHttpResponse):
-        define variable oFileWriter as MessageWriter no-undo.
-        define variable oFile as class Memptr no-undo.
-        define variable fullPath as character no-undo.
-        define variable filePath as character no-undo.
-        define variable chrPos as integer no-undo.
+        var MessageWriter oFileWriter.
+        var File reqFile.
+        var Folder webAppPath.
         
         Assert:NotNull(poRequest, 'Web request ').
         Assert:NotNull(poOperation, 'Mapped operation').
         Assert:NotNull(poMessageBody, 'Message body').
         
-        assign file-info:file-name = ResolveTokens(poOperation, poRequest).
-        // The file doesn't exist. Check whether the directory does
-        if file-info:full-pathname eq ? then
+        assign reqFile    = ResolveTarget(poOperation, poRequest)
+               webAppPath = new Folder(poRequest:ResolvedWebAppPath)
+               .
+        // The file doesn't exist. Check whether we can create the file in its folder
+        if not reqFile:FileExists then
         do:
-            assign filePath = substitute(file-info:file-name, StringConstant:BACKSLASH, '/':u)
-                   chrPos   = r-index(filePath, '/':u)
-                   .
-            // default to the webapps' root dir
-            if chrPos eq 0 then
+            ValidatePath(reqFile:GetFolder(), webAppPath).
+            if not reqFile:CanCreate then
             do:
-                assign file-info:file-name = poRequest:ResolvedWebAppPath.
-                Logger:Warn(substitute('Directory not specified in operation target (&1). File will be written into the webapp~'s root dir: &2', 
-                                poOperation:TargetName, poRequest:ResolvedWebAppPath)).
+                Logger:Error(substitute('Unable to create file "&1"', reqFile:AbsolutePath())).
+                undo, throw new SendExceptionError(StatusCodeEnum:Forbidden).
             end.
-            else
-                assign file-info:file-name = substring(filePath, 1, chrPos - 1).
-            
-            ValidateDirectory(file-info:handle, poRequest:ResolvedWebAppPath).
-            
-            assign fullPath              = file-info:full-pathname + '/':u + substring(filePath, chrPos + 1)
-                   poResponse:StatusCode = integer(StatusCodeEnum:Created)
-                   .
-        end.    // new file
+        end.
         else
         do:
-            ValidateFile(file-info:handle, poRequest:ResolvedWebAppPath).
-            Logger:Warn(substitute('File "&1" exists and will be overwritten', file-info:full-pathname)).
-            assign fullPath = file-info:full-pathname.
+            ValidatePath(reqFile, webAppPath).
+            Logger:Warn(substitute('File "&1" exists and will be overwritten', reqFile:AbsolutePath())).
         end.
         
-        // check whether we can write to the file/directory
-        CanWrite(file-info:handle).
+        // Check whether we can write to the file/directory
+        CanWrite(reqFile).
         
         assign oFileWriter = BodyWriterBuilder:Build(poRequest):Writer.
         if not valid-object(oFileWriter) then
@@ -223,100 +209,101 @@ class OpenEdge.Web.DataObject.FileOperationHandler implements ISupportLogging, I
         oFileWriter:Write(poMessageBody).
         oFileWriter:Close().
         
-        assign oFile = cast(oFileWriter:Entity, ByteBucket):GetBytes().
-        
-        copy-lob from oFile:Value to file fullPath.
+        copy-lob from cast(oFileWriter:Entity, ByteBucket):Value to file reqFile:Name.
         
         return 0.
     end method.
     
-    /* Ensures that the file is in an appropriate location
+    /* Ensures that the file or folder is in an appropriate location
        
-       @param handle The FILE-INFO handle representing the directory
-       @param character The tomcat webapp path */
-    method private void ValidateDirectory(input phFile as handle,
-                                          input pcWebAppPath as character):
-        define variable cFullName  as character no-undo.
+       @param FileInfo the file or folder to validate
+       @param Folder The tomcat webapp path */
+    method private void ValidatePath(input pPath as FileInfo,
+                                     input pWebAppPath as Folder ):
+        var character pathType.
         
-        /* must be a directory */
-        if    phFile:full-pathname eq ?
-           or index(phFile:file-type, 'D':u) eq 0
-        then
+        if type-of(pPath, File) then
+            assign pathType = 'file'.
+        else
+        if type-of(pPath, Folder) then
+            assign pathType = 'directory'.
+        else
+        // just in case another's added
+            assign pathType = 'path'.
+        
+        if not pPath:Exists then
         do:
-            Logger:Error(substitute('Operation target "&1" does not represent a directory', phFile:file-name)).
+            Logger:Error(substitute('Operation target "&1" does not represent a &2', pPath:Name, pathType)).
             undo, throw new SendExceptionError(StatusCodeEnum:NotFound).
         end.
         
-        assign cFullName    = replace(phFile:full-pathname, StringConstant:BACKSLASH, '/':u)
-               pcWebAppPath = right-trim(replace(pcWebAppPath, StringConstant:BACKSLASH, '/':u), '/':u)
-               .
-        if not cFullName begins pcWebAppPath then 
+        if not pPath:AbsolutePath() begins pWebAppPath:AbsolutePath() then
         do:
-            Logger:Error(substitute('Directory "&1" is not located in current webapp: &2', cFullName, pcWebAppPath)).
+            Logger:Error(substitute('&3 "&1" is not located in current webapp: &2', pPath:Name, pWebAppPath:Name, pathType)).
+            undo, throw new SendExceptionError(StatusCodeEnum:Forbidden).
+        end.
+        
+        if pPath:AbsolutePath() begins pWebAppPath:AbsolutePath() + '/WEB-INF':u then
+        do:
+            Logger:Error(substitute('&2 access for "&1" is forbidden', pPath:Name, pathType)).
+            undo, throw new SendExceptionError(StatusCodeEnum:Forbidden).
+        end.
+    end method.
+
+    /* Ensures that we have read permissions for this file or folder
+       
+       @param FileInfo The file or folder */
+    method private void CanRead(input pPath as FileInfo):
+        if not pPath:CanRead then
+        do:
+            Logger:Error(substitute('"&1" does not have read permissions', pPath:Name)).
             undo, throw new SendExceptionError(StatusCodeEnum:Forbidden).
         end.
     end method.
     
-    /* Ensures that the file is in an appropriate location
+    /* Ensures that we have write permissions for this file or folder
        
-       @param handle The FILE-INFO handle representing the file
-       @param character The tomcat webapp name */
-    method private void ValidateFile(input phFile as handle,
-                                     input pcWebAppPath as character):
-        define variable cFullName  as character no-undo.
-        
-        /* must be a file */
-        if    phFile:full-pathname eq ?
-           or index(phFile:file-type, 'F':u) eq 0
-        then
+       @param FileInfo The file or folder */
+    method private void CanWrite(input pPath as FileInfo):
+        /* just have write permission */
+        if not pPath:CanWrite then
         do:
-            Logger:Error(substitute('Operation target "&1" does not represent a file', phFile:file-name)). 
-            undo, throw new SendExceptionError(StatusCodeEnum:NotFound).
-        end.
-        
-        assign cFullName    = replace(phFile:full-pathname, StringConstant:BACKSLASH, '/':u)
-               pcWebAppPath = right-trim(replace(pcWebAppPath, StringConstant:BACKSLASH, '/':u), '/':u)
-               .
-        if not cFullName begins pcWebAppPath then
-        do:
-            logger:Error(substitute('Directory "&1" is not located in current webapp: &2', cFullName, pcWebAppPath)).
-            undo, throw new SendExceptionError(StatusCodeEnum:Forbidden).
-        end.
-        
-        if cFullName begins pcWebAppPath + '/WEB-INF':u then
-        do:
-            Logger:Error(substitute('Directory acccess for "&1" is forbidden', cFullName)).
+            Logger:Error(substitute('"&1" does not have write permissions', pPath:Name)).
             undo, throw new SendExceptionError(StatusCodeEnum:Forbidden).
         end.
     end method.
     
-    /* Ensures that we have read permissions for this file
+    /* Creates a File instance representing the operation's target
+       Relative operation targets are made relative to the webapp's folder.
        
-       @param handle The FILE-INFO handle representing the file */
-    method private void CanRead(input phFile as handle):
-        /* just have write permission */
-        if    phFile:file-type eq ?
-           or index(phFile:file-type, 'R':u) eq 0 
-        then
+       @param MappedOperation The current operation.
+       @param IWebRequest The request being serviced
+       @return File A file instance representing the operation target path/file */
+    method private File ResolveTarget(input pOperation as MappedOperation,
+                                      input pRequest as IWebRequest):
+        var File f = new File(ResolveTokens(pOperation, pRequest)).
+        
+        if f:Exists then
+            return f.
+        
+        // if the target is just a file name, no folder, then add to webapp path
+        if f:Folder eq '' then
         do:
-            Logger:Error(substitute('"&1" does not have read permissions', phFile:file-name)).
-            undo, throw new SendExceptionError(StatusCodeEnum:Forbidden).
+            assign f = new File(pRequest:ResolvedWebAppPath + f:Basename).
+            Logger:Warn(substitute('Directory not specified in operation target (&1). Default to the webapp~'s root dir: &2',
+                                    pOperation:TargetName, pRequest:ResolvedWebAppPath)).
         end.
-    end method. 
-    
-    /* Ensures that we have write permissions for this file
-       
-       @param handle The FILE-INFO handle representing the file */
-    method private void CanWrite(input phFile as handle):
-        /* just have write permission */
-        if    phFile:file-type eq ?
-           or index(phFile:file-type, 'W':u) eq 0
-        then
+        
+        if f:IsRelativePath then
         do:
-            Logger:Error(substitute('"&1" does not have write permissions', phFile:file-name)).
-            undo, throw new SendExceptionError(StatusCodeEnum:Forbidden).
+            if f:Folder begins './' then
+                assign f = new File(pRequest:ResolvedWebAppPath + substring(f:Name, 3)).
+            else
+                assign f = new File(pRequest:ResolvedWebAppPath + f:Name).
         end.
-    end method. 
+        
+        return f.
+    end method.
     
     /* Deletes a file from disk
        
@@ -327,27 +314,24 @@ class OpenEdge.Web.DataObject.FileOperationHandler implements ISupportLogging, I
     method protected integer Remove(input poOperation as MappedOperation,
                                     input poRequest  as IWebRequest,
                                     input poResponse as IHttpResponse):
+        var File reqFile.
+        var Folder webAppPath.
+        
         Assert:NotNull(poRequest, 'Web request ').
         Assert:NotNull(poResponse, 'Web Response').
         Assert:NotNull(poOperation, 'Mapped operation').
         
-        assign file-info:file-name = ResolveTokens(poOperation, poRequest).
-        if     file-info:full-pathname eq ?
-           and r-index(substitute(file-info:file-name, StringConstant:BACKSLASH, '/':u), '/':u) eq 0 
-        then
-        do:
-            assign file-info:file-name = poRequest:ResolvedWebAppPath + file-info:file-name.
-            Logger:Warn(substitute('Directory not specified in operation target (&1). Default to the webapp~'s root dir: &2', 
-                            poOperation:TargetName, poRequest:ResolvedWebAppPath)).
-        end.
+        assign reqFile    = ResolveTarget(poOperation, poRequest)
+               webAppPath = new Folder(poRequest:ResolvedWebAppPath)
+               .
+        ValidatePath(reqFile, webAppPath).
+        CanWrite(reqFile).
         
-        ValidateFile(file-info:handle, poRequest:ResolvedWebAppPath).
-        CanWrite(file-info:handle).
-        
-        os-delete value(file-info:full-pathname).
-        if os-error gt 0 then
+        if not reqFile:Delete() then
         do:
-            Logger:Error(substitute('Unable to remove file "&1". Error: &2', file-info:full-pathname, os-error)).
+            Logger:Error(substitute('Unable to remove file "&1". Error: &2',
+                                    reqFile:AbsoluteFileName(),
+                                    string(OsErrorEnum:GetEnum(os-error)))).
             undo, throw new SendExceptionError(StatusCodeEnum:InternalServerError).
         end.
         

@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2014-2021 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014-2022 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : ClientSocket
@@ -370,6 +370,7 @@ class OpenEdge.Net.ServerConnection.ClientSocket
                 Logger:Trace(substitute('WaitSync: socket timeout reset to &1':u, socketTimeout)).
                 hSocket:set-socket-option('SO-RCVTIMEO':u, string(socketTimeout)).
             end.
+            assign moReadEventArgs = ?.
         end finally.
     end method.
     
@@ -417,6 +418,9 @@ class OpenEdge.Net.ServerConnection.ClientSocket
             Logger:Trace('WaitAsync: read error':u, moReadHandlerError).
             return error moReadHandlerError.
         end.
+        finally:
+            assign moReadEventArgs = ?.
+        end finally.
     end method.
     
     /** Callback/event procedure fired on the READ-RESPONSE event of the
@@ -436,7 +440,7 @@ class OpenEdge.Net.ServerConnection.ClientSocket
                in theory this should not be needed, but after suggestions from Greg Higgins
                and experimentation it seems to be the "chicken soup" solution for sockets that
                READKEY PAUSE 0 is for other areas */
-            assign hSocket            = cast(this-object:Server, IHandleHolder):Value 
+            assign hSocket            = cast(this-object:Server, IHandleHolder):Value
                    hSocket:sensitive  = no
                    iStartTime         = mtime
                    /* don't want any residual errors. this line is why we love structured-error-handling */

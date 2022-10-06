@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2016, 2018-2019, 2021 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2016, 2018-2019, 2021-2022 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : LogMessage
@@ -15,10 +15,13 @@ block-level on error undo, throw.
 
 using Ccs.Common.Support.ILongcharArrayHolder.
 using OpenEdge.Core.Assert.
-using OpenEdge.Core.Collections.IList.
 using OpenEdge.Core.Collections.IStringKeyedMap.
 using OpenEdge.Core.Collections.StringKeyedMap.
 using OpenEdge.Core.LongcharArrayHolder.
+using OpenEdge.Core.Util.Token.
+using OpenEdge.Core.Util.TokenResolver.
+using Progress.Collections.ISet.
+using Progress.Collections.SortedSet.
 
 class OpenEdge.Logging.LogMessage serializable:
     /* (mandatory) The group for this log message */
@@ -37,8 +40,17 @@ class OpenEdge.Logging.LogMessage serializable:
     /* Substitution arguments context. Separated into its own variable for perf. reasons  */
     define variable mArgsCtx as ILongcharArrayHolder no-undo.
     
-    /* Tokens context. Separated into its own variable for perf. reasons. The List contains Token objects */
-    define variable mTokensCtx as IList no-undo.
+    /* A set of tokens in the message text. Populated from the constructor.
+       A set to avoid any duplication. */
+    define public property Tokens as ISet<Token> no-undo
+        get():
+            // Always return a SortedSet object as the Tokens value.
+            if not valid-object(this-object:Tokens) then
+                assign this-object:Tokens = new SortedSet<Token>().
+        
+            return this-object:Tokens.
+        end get.
+        private set.
     
     /* Constructor
        
@@ -50,6 +62,7 @@ class OpenEdge.Logging.LogMessage serializable:
                this-object:BaseText  = pcMessage
                this-object:Message   = pcMessage
                .
+        AddTokens(TokenResolver:Parse(this-object:Message)).
     end constructor.
     
     /* Constructor
@@ -343,14 +356,6 @@ class OpenEdge.Logging.LogMessage serializable:
                 else
                     assign mArgsCtx = ?.
             
-            when 'tokens':u then
-                if     valid-object(pContext)
-                   and type-of(pContext, IList)
-                then
-                    assign mTokensCtx = cast(pContext, IList).
-                else
-                    assign mTokensCtx = ?.
-            
             otherwise
             do:
                 if not valid-object(mContext) then
@@ -372,15 +377,41 @@ class OpenEdge.Logging.LogMessage serializable:
             when 'args':u then
                 return mArgsCtx.
             
-            when 'tokens':u then
-                return mTokensCtx.
-            
             otherwise
                 if valid-object(mContext) then
                     return mContext:Get(pKey).
                 else
                     return ?.
         end case.
+    end method.
+    
+    /* Adds one or more tokens to the message's set of tokens.
+       
+       @param Token[] An array of tokens. May be indeterminate
+       @return logical Returns TRUE if at least one token was added to the Set; FALSE otherwise */
+    method public logical AddTokens(input pTokens as Token extent):
+        var integer loop, cnt = extent(pTokens).
+        var logical tokenAdded = false.
+        
+        // if cnt = ? this loop isn't entered
+        do loop = 1 to cnt:
+            // the Add(Token) method deals with unknown values
+            if AddToken(pTokens[loop]) then
+                assign tokenAdded = true.
+        end.
+        
+        return tokenAdded.
+    end method.
+    
+    /* Adds a token to the message's set of tokens.
+       
+       @param Token A Token to add
+       @return logical Returns TRUE if the token was added to the Set; FALSE otherwise */
+    method public logical AddToken(input pToken as Token):
+        if not valid-object(pToken) then
+            return false.
+
+        return this-object:Tokens:Add(pToken).
     end method.
     
 end class.

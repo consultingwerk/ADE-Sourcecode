@@ -1,20 +1,22 @@
 /************************************************
-Copyright (c) 2014, 2017, 2020-2021 by Progress Software Corporation. All rights reserved.
-*************************************************/ 
+Copyright (c) 2014, 2017, 2020-2022 by Progress Software Corporation. All rights reserved.
+*************************************************/
 /*------------------------------------------------------------------------
     File        : MathUtil
-    Purpose     : General-purpose math functionality.
-    Syntax      : 
-    Description : 
+    Purpose     : General-purpose maths functionality.
+    Syntax      :
+    Description :
     Author(s)   : pjudge
     Created     : Thu May 15 14:44:19 EDT 2014
-    Notes       : 
+    Notes       :
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
-using OpenEdge.Core.String.
 using OpenEdge.Core.Assert.
+using OpenEdge.Core.DataTypeEnum.
+using OpenEdge.Core.String.
 using OpenEdge.Core.Util.MathUtil.
+using Progress.Lang.AppError.
 
 class OpenEdge.Core.Util.MathUtil:
     /* Keep the default in a readonly property - it is 10 */
@@ -30,41 +32,86 @@ class OpenEdge.Core.Util.MathUtil:
         @param decimal  The value to adjust
         @return integer The ceiling value   */
     method static public integer Ceiling (input pdVal as decimal):
-        if truncate(pdVal,0) eq pdVal then
+        var decimal truncVal = truncate(pdVal,0).
+        
+        if truncVal eq pdVal then
             return integer(pdVal).
         else
-            return integer(truncate(pdVal, 0) + 1).
+            return integer(truncate(pdVal,0) + 1).
     end method.
-
-    /** Converts hex to integer values 
+    
+    /** Converts hex to integer values
         
         @param character A hex value
         @return int64 The integer representation of that hex value.   */
     method public static int64 HexToInt(input pcHex as character):
-        define variable iResult as int64 no-undo.
-        define variable iLoop as integer no-undo.
-        define variable iMax as integer no-undo.
-        define variable cHex as character no-undo.
-        define variable rHex as raw no-undo.
+        return HexToInt(pcHex, DataTypeEnum:Int64).
+    end method.
+    
+    /** Converts hex to integer values
         
-        if pcHex eq ? then
+        @param character A hex value
+        @return integer The integer representation of that hex value.   */
+    method public static integer HexToInt32(input pcHex as character):
+        // we can use the INTEGER function because the HexToInt method guarantees
+        // us an integer value is returned.
+        {&_proparse_ prolint-nowarn(overflow)}
+        return integer(HexToInt(pcHex, DataTypeEnum:Integer)).
+    end method.
+    
+    /* Converts a hex string to an integer or int64.
+       
+       The string cannot be longer than 8 (integer) or 16 (int64) characters. If shorter than that, the string is
+       padded with '0'.
+       
+       @param character A hex string.
+       @param DataTypeEnum The type of integer (integer or int64).
+       @return int64 The integer return value. May contain an integer value */
+    method private static int64 HexToInt(input pHex as character,
+                                         input pDataType as DataTypeEnum):
+        var integer loop, maxLength, hexLen, numBytes.
+        var raw rHex.
+        var memptr memInt.
+        
+        if pHex eq ? then
             return 0.
         
-        assign cHex = trim(pcHex).
+        if pHex eq ? then
+            return ?.
         
-        if length( cHex ) modulo 2 eq 1 then
-            assign cHex = "0":u + cHex.
-        
-        assign rHex = hex-decode( cHex )
-               iMax = length( rHex, 'raw')
+        if pDataType eq DataTypeEnum:Integer then
+            assign numBytes = 4.
+        else
+        // any type type's not Integer (incl unknown value) becomes INT64
+            assign numBytes  = 8
+                   pDataType = DataTypeEnum:Int64
+                   .
+        assign maxLength = numBytes * 2
+               pHex      = trim(pHex)
+               hexLen    = length(pHex)
+               pHex      = fill('0':u, maxLength - hexLen) + pHex
                .
-        do iLoop = 1 to iMax:
-          assign iResult = iResult * 256
-                 iResult = iResult + get-byte(rHex, iLoop)
-                 .
-       end.
-       
-       return iResult.
+        if length(pHex) gt maxLength then
+            return error new AppError(substitute('Length of "&1" is greater than &2 characters', pHex, maxLength), 0).
+        
+        set-size(memInt) = numBytes.
+        set-byte-order(memInt) = big-endian.
+        
+        do loop = 1 to numBytes:
+            assign rHex         = hex-decode(substring(pHex, (2 * loop) - 1, 2))
+                   length(rHex) = 1
+                   .
+            put-byte(memInt, loop) = get-byte(rHex, 1).
+        end.
+        // If we ask for an integer, we're guaranteed that it'll be an integer ("long")
+        if pDataType eq DataTypeEnum:Integer then
+            return get-long(memInt, 1).
+        // ... and an int64 in all other cases
+        else
+            return get-int64(memInt, 1).
+        finally:
+            set-size(memInt) = 0.
+        end finally.
     end method.
     
     /** Converts an exponent (123e4) value into a decimal using a exponent
@@ -107,31 +154,132 @@ class OpenEdge.Core.Util.MathUtil:
         return decVal.
     end method.
     
-    /** Converts an integer to a padded hax values 
+    /** Converts an integer to a padded hex value
         
         @param integer An integer value
-        @param integer The total length of the hex value. If the integer hex value is larger than this, 
-                       use the larger and padd with leading zeros 
+        @param integer The total length of the hex value. If the length of the hex value is larger than this,
+                       use the value as-is. If the length of the hex value is les, pad with leading zeros to make
+                       the link. Negative numbers will always be at least 8 characters long, and padded with F's.
         @return character A hex value */
     method static public character IntToHex(input pValue as integer,
                                             input pPadding as integer):
-        define variable hexVal as character no-undo.
-        define variable rawInt as raw no-undo.
-        define variable rawHex as character no-undo.
-        define variable strLen as integer no-undo.
+        var character hexVal = IntToHex(pValue, DataTypeEnum:Integer).
+        var integer len = length(hexVal).
         
-        if pValue eq 0 then
-            return fill('0':u, pPadding).
-        
-        put-long(rawInt, 1) = pValue.
-        
-        assign rawHex = right-trim(hex-encode(rawInt), '0':u)
-               strLen = max(pPadding, length(rawHex))
-               hexVal = fill('0':u, strLen)
-               .
-        overlay(hexVal, strLen - length(rawHex) + 1) = rawHex.
+        if pPadding gt len then
+        do:
+            if pValue ge 0 then
+                return fill('0':u, pPadding - len) + hexVal.
+            else
+            if pValue lt 0 then
+                return fill('F':u, pPadding - len) + hexVal.
+        end.
         
         return hexVal.
+    end method.
+    
+    /** Converts a 64-bit integer to a padded hax value
+        
+        @param int64   An integer value
+        @param integer The total length of the hex value. If the length of the hex value is larger than this,
+                       use the value as-is. If the length of the hex value is les, pad with leading zeros to make
+                       the link. Negative numbers will always be at least 8 characters long, and padded with F's.
+        @return character A hex value */
+    method static public character IntToHex(input pValue as int64,
+                                            input pPadding as integer):
+        var character hexVal = IntToHex(pValue, DataTypeEnum:Int64).
+        var integer len = length(hexVal).
+        
+        if pPadding gt len then
+        do:
+            if pValue ge 0 then
+                return fill('0':u, pPadding - len) + hexVal.
+            else
+            if pValue lt 0 then
+                return fill('F':u, pPadding - len) + hexVal.
+        end.
+        
+        return hexVal.
+    end method.
+    
+    /** Converts an integer to a hex value.
+        
+        If the integer value is negative, then the hex value is padded with up to 7 F's, for a
+        length of 8 characters. Positive integer values are returned wihtout any padding. Zero is '0'.
+        The unknown value returns an empty string.
+        
+        @param integer An integer value.
+        @return character A hex value.  */
+    method static public character IntToHex(input pValue as integer):
+        return IntToHex(pValue, DataTypeEnum:Integer).
+    end method.
+    
+    /** Converts an integer to a hex value.
+        
+        If the integer value is negative, then the hex value is padded with up to 7 F's, for a
+        length of 8 characters. Positive integer values are returned wihtout any padding. Zero is '0'.
+        The unknown value returns an empty string.
+        
+        @param integer An integer value.
+        @return character A hex value.  */
+    method static public character IntToHex(input pValue as int64):
+        return IntToHex(pValue, DataTypeEnum:Int64).
+    end method.
+    
+    /* Converts an integer value to a hex value
+       
+       @param int64 The integet value. Can hold an INTEGER or INT64 value.
+       @param DataTypeEnum The type of integer (integer or int64).
+       @return character The hex-encoded value */
+    method static private character IntToHex(input pValue as int64,
+                                             input pType as DataTypeEnum):
+        var raw rawInt.
+        var character hexVal.
+        var memptr mInt.
+        var integer numBytes.
+        
+        // default is INT64 value
+        if not valid-object(pType)
+        or not pType eq DataTypeEnum:Integer
+        then
+            assign pType = DataTypeEnum:Int64.
+        
+        if pType eq DataTypeEnum:Integer then
+            assign numBytes = 4.
+        else
+            assign numBytes = 8.
+        
+        if pValue eq 0 then
+            return '0':u.
+        
+        if pValue eq ? then
+            return '':u.
+        
+        set-size(mInt) = numBytes.
+        set-byte-order(mInt) = big-endian.
+        
+        case pType:
+            when DataTypeEnum:Int64   then
+                put-int64(mInt, 1) = pValue.
+            when DataTypeEnum:Integer then
+                // we've been assured that this is an integer ...
+                {&_proparse_ prolint-nowarn(overflow)}
+                put-long(mInt, 1) = integer(pValue).
+        end case.
+        
+        length(rawInt) = numBytes.
+        rawInt = mInt.
+        
+        assign hexVal = caps(left-trim(hex-encode(rawInt), '0':u)).
+        // Pad with F's
+        if pValue lt 0 then
+            return fill('F':u, (numBytes * 2) - length(hexVal)) + hexVal.
+        else
+            return hexVal.
+        
+        finally:
+            set-size(mInt) = 0.
+        end finally.
     end method.
     
 end class.

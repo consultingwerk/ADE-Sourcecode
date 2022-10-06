@@ -1,6 +1,5 @@
 /************************************************
-Copyright (c) 2014, 2017-2018, 2020-2021
-    by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014, 2017-2018, 2020-2022 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : ClientSocketConnectionParameters
@@ -15,38 +14,39 @@ block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.EncodedString.
-using OpenEdge.Core.EncodingTypeEnum.
 using OpenEdge.Core.ServerConnection.FormatMaskEnum.
 using OpenEdge.Core.ServerConnection.IConnectionParameters.
 using OpenEdge.Core.String.
-using OpenEdge.Core.StringConstant.
 using OpenEdge.Logging.ILogWriter.
 using OpenEdge.Logging.ISupportLogging.
-using OpenEdge.Logging.LogLevelEnum.
 using OpenEdge.Logging.LoggerBuilder.
 using OpenEdge.Net.URI.
 using OpenEdge.Net.UriSchemeEnum.
 using OpenEdge.Security.ICredentials.
-
 using Progress.Lang.AppError.
 
 class OpenEdge.Net.ServerConnection.ClientSocketConnectionParameters
                 implements IConnectionParameters,
                            ISupportLogging:
 
+    /* The timeout for the socket CONNECT, in milliseconds */   
+    define public property ConnectTimeout as integer no-undo        
+        get.        
+        set(input pTimeout as integer):            
+            Assert:IsZeroOrPositive(pTimeout, ' Connect timeout').
+            this-object:ConnectTimeout = pTimeout.        
+        end set.
+
     define public property FormatMask as FormatMaskEnum no-undo
        get():
            return FormatMaskEnum:Custom.
        end get.
-
+    
     /* The URI to which to connect */
     define public property URI as URI no-undo
        get.
-       set(input poURI as URI):
-           Assert:NotNull(poURI, 'Socket connection URI').
-           assign this-object:URI = poURI.
-       end set.
-
+       set.
+   
     /* A reference to the Logger in use by an implementer */
     define public property Logger as ILogWriter no-undo
     get():
@@ -123,7 +123,7 @@ class OpenEdge.Net.ServerConnection.ClientSocketConnectionParameters
     /* Returns a string for the ABL socket CONNECT() method, based on the
        various properties of this object.
        SSL options are added regardless of whether the URI scheme is HTTPS: this is
-       to support secure tunnelling to servers via proxy. 
+       to support secure tunnelling to servers via proxy.
        
        @return character The connection string */
     method public character GetConnectionString():
@@ -181,6 +181,9 @@ class OpenEdge.Net.ServerConnection.ClientSocketConnectionParameters
             assign cConnect = trim(substitute('&1 -sslAuth ssl -sslKeyFile &2 -sslKeyPwd &3':u,
                                               cConnect, string(ClientCredentials:Identity), cKeyPwd)).
         end.
+
+        if this-object:ConnectTimeout > 0 then
+            assign cConnect = trim(substitute('&1 -clientConnectTimeout &2':u, cConnect, this-object:ConnectTimeout)).
 
         return trim(cConnect).
     end method.

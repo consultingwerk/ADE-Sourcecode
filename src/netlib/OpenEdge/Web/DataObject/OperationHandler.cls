@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2019, 2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2019, 2021-2022 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : OperationHandler
@@ -32,6 +32,7 @@ using Ccs.Common.Support.IRowidArrayHolder.
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.Collections.IList.
 using OpenEdge.Core.Collections.IMap.
+using OpenEdge.Core.Collections.IStringStringMap.
 using OpenEdge.Core.DataTypeEnum.
 using OpenEdge.Core.DateArrayHolder.
 using OpenEdge.Core.DateHolder.
@@ -40,15 +41,18 @@ using OpenEdge.Core.DateTimeArrayHolder.
 using OpenEdge.Core.DateTimeHolder.
 using OpenEdge.Core.DateTimeTzArrayHolder.
 using OpenEdge.Core.DateTimeTzHolder.
+using OpenEdge.Core.Decimal.
 using OpenEdge.Core.DecimalArrayHolder.
 using OpenEdge.Core.HandleArrayHolder.
 using OpenEdge.Core.IOModeEnum.
 using OpenEdge.Core.IObjectArrayHolder.
+using OpenEdge.Core.Integer.
 using OpenEdge.Core.IntegerArrayHolder.
 using OpenEdge.Core.KeyValuePair.
 using OpenEdge.Core.LogicalArrayHolder.
 using OpenEdge.Core.LogicalValue.
 using OpenEdge.Core.LongcharArrayHolder.
+using OpenEdge.Core.Memptr.
 using OpenEdge.Core.MemptrArrayHolder.
 using OpenEdge.Core.ObjectArrayHolder.
 using OpenEdge.Core.RowidArrayHolder.
@@ -57,7 +61,6 @@ using OpenEdge.Core.StringConstant.
 using OpenEdge.Core.WidgetHandle.
 using OpenEdge.Logging.ILogWriter.
 using OpenEdge.Logging.ISupportLogging.
-using OpenEdge.Logging.LogLevelEnum.
 using OpenEdge.Logging.LoggerBuilder.
 using OpenEdge.Net.HTTP.Filter.Payload.MessageWriter.
 using OpenEdge.Net.HTTP.Filter.Writer.EntityWriterBuilder.
@@ -88,9 +91,6 @@ using Progress.Lang.Object.
 using Progress.Reflect.AccessMode.
 using Progress.Reflect.DataType.
 using Progress.Reflect.Property.
-using OpenEdge.Core.Decimal.
-using OpenEdge.Core.Integer.
-using OpenEdge.Core.Memptr.
 
 class OpenEdge.Web.DataObject.OperationHandler implements IOperationHandler, ISupportLogging
         abstract:
@@ -98,44 +98,10 @@ class OpenEdge.Web.DataObject.OperationHandler implements IOperationHandler, ISu
     /* A reference to the Logger in use by an implementer */
     define public property Logger as ILogWriter no-undo get. set.
     
-    /* transient/temp data for a single request execution */
-    define static protected temp-table ttArgument no-undo
-        field ParentOH as int64
-        field ParamIndex as integer
-        field Argument as Progress.Lang.Object  //instance of OperationArgument
-        index idx1 as primary unique ParentOH ParamIndex.
-    
     /* Default Constructor */
     constructor public OperationHandler():
         assign this-object:Logger = LoggerBuilder:GetLogger(this-object:GetClass()).
     end constructor.
-    
-    /* Destructor */
-    destructor OperationHandler():
-        // in case there are any 'lying around'
-        ClearArguments().
-    end destructor.
-    
-    /* Clears/empties the arguments after an operation's completion (success or failure) */
-    method protected void ClearArguments():
-        define variable operArg as OperationArgument no-undo.
-        define buffer lbArg for ttArgument.
-        
-        for each lbArg where lbArg.ParentOH eq int64(this-object):
-            assign operArg = cast(lbArg.Argument, OperationArgument).
-            if     valid-object(operArg)
-               and operArg:Parameter:HasSchema
-            then
-                SetTrackingChanges(operArg, false).
-            
-            delete lbArg.
-        end.
-        
-        finally:
-            // no leaks
-            assign operArg = ?.
-        end finally.
-    end method.
     
     /* Executes the operation.
        
@@ -482,6 +448,23 @@ class OpenEdge.Web.DataObject.OperationHandler implements IOperationHandler, ISu
         end.
     end method.
     
+    /* Reads the value of a named field from the APPLICATION/X-WWW-FORM-URLENCODED body.
+       
+       @param  OperationArgument The current argument being processed
+       @param  character The field name to read
+       @param  IStringStringMap The message body
+       @return Progress.Lang.Object The field value */
+    method protected Progress.Lang.Object ReadFormFieldValue(input pArg as OperationArgument,
+                                                             input pFieldName as character,
+                                                             input pMessageBody as IStringStringMap):
+        Assert:NotNull(pArg, 'Operation argument').
+        Assert:NotNullOrEmpty(pFieldName, 'Field name').
+        Assert:NotNull(pMessageBody, 'Form data').
+        
+        // Pass in an object, so that an object is returned (instead of a LONGCHAR that we need to wrap)
+        return pMessageBody:Get(new String(pFieldName)).
+    end method.
+    
     /* Reads the value of a named field from the JSON-OBJCET body.
        
        @param  OperationArgument The current argument being processed
@@ -515,9 +498,9 @@ class OpenEdge.Web.DataObject.OperationHandler implements IOperationHandler, ISu
             
             when JsonDataType:NUMBER then
             case pArg:Parameter:DataType:
-                when 'DECIMAL':u then assign fieldData = new decimal(pMessageBody:GetDecimal(pFieldName)).
-                when 'INTEGER':u then assign fieldData = new integer(pMessageBody:GetInteger(pFieldName)).
-                otherwise             assign fieldData = new integer(pMessageBody:GetInt64(pFieldName)).
+                when 'DECIMAL':u then assign fieldData = new Decimal(pMessageBody:GetDecimal(pFieldName)).
+                when 'INTEGER':u then assign fieldData = new Integer(pMessageBody:GetInteger(pFieldName)).
+                otherwise             assign fieldData = new Integer(pMessageBody:GetInt64(pFieldName)).
             end case.
             
             when JsonDataType:OBJECT then
@@ -618,15 +601,18 @@ class OpenEdge.Web.DataObject.OperationHandler implements IOperationHandler, ISu
                  and MimeTypeHelper:IsFormEncoded(pRequest:ContentType)
             then
             do:
-                if not type-of(poMessageBody, MultipartEntity) then
+                if type-of(poMessageBody, MultipartEntity) then
+                    // CAST for ease of reading/use
+                    assign fieldValue = ReadFormFieldValue(poArg, pMsgElement:ElementName, cast(poMessageBody, MultipartEntity)).
+                else
+                if type-of(poMessageBody, IStringStringMap) then
+                    assign fieldValue = ReadFormFieldValue(poArg, pMsgElement:ElementName, cast(poMessageBody, IStringStringMap)).
+                else
                 do:
                     Logger:Warn(substitute('Only MultipartEntity types supported for Field mapping, not &1',
                                     poMessageBody:GetClass():TypeName)).
                     return.
                 end.
-                
-                // CAST for ease of reading/use
-                assign fieldValue = ReadFormFieldValue(poArg, pMsgElement:ElementName, cast(poMessageBody, MultipartEntity)).
             end.    // MULTIPART/FORM-DATA
             
             when MimeTypeHelper:IsXML(pRequest:ContentType) then
@@ -643,7 +629,7 @@ class OpenEdge.Web.DataObject.OperationHandler implements IOperationHandler, ISu
         then
         do on error undo, throw:
             assign mValue     = base64-decode(cast(fieldValue, ILongcharHolder):Value)
-                   fieldValue = new memptr(mValue)
+                   fieldValue = new Memptr(mValue)
                    .
             finally:
                 set-size(mValue) = 0.
@@ -1139,7 +1125,7 @@ class OpenEdge.Web.DataObject.OperationHandler implements IOperationHandler, ISu
                                         poArg:Parameter:ABLType,
                                         poArg:ArgumentType:TypeName,
                                         string(poArg:Operation:Method),
-                                        poArg:Operation:ServiceURI      )).
+                                        poArg:Operation:ServiceURI)).
             return.
         end.
         
@@ -1152,7 +1138,7 @@ class OpenEdge.Web.DataObject.OperationHandler implements IOperationHandler, ISu
             Logger:Warn(substitute('Cannot convert input parameter &2 of type &3 to argument &1',
                                     poArg:ArgumentType:TypeName,
                                     poArg:Parameter:ABLName,
-                                    poArg:Parameter:ABLType     )).
+                                    poArg:Parameter:ABLType)).
             return.
         end.
         
@@ -1184,7 +1170,7 @@ class OpenEdge.Web.DataObject.OperationHandler implements IOperationHandler, ISu
                and valid-object(poArg:ArgumentValue)
             then
                 valueWriter:Write(poArg:ArgumentValue).
-            
+
             case msgElem:ElementType:
                 when ElementTypeEnum:Path then
                 case true:
@@ -1197,18 +1183,38 @@ class OpenEdge.Web.DataObject.OperationHandler implements IOperationHandler, ISu
                 when ElementTypeEnum:Query then
                     if pRequest:URI:HasQueryName(msgElem:ElementName) then
                     case true:
-                        when writeProperty then
-                            valueWriter:Write(new KeyValuePair(msgElem:ABLReference, pRequest:URI:GetQueryValue(msgElem:ElementName))).
-                        otherwise
-                            valueWriter:Write(pRequest:URI:GetQueryValue(msgElem:ElementName)).
+                        // Query parameters may contain more than 1 value for a name, so we must deal with a character[] result when more than 1 value exists.
+                        when writeProperty then do:
+                            if pRequest:URI:GetQueryValueCount(msgElem:ElementName) gt 1 and poArg:Parameter:ArgumentType eq get-class(ILongcharArrayHolder) then
+                                // If the argument parameter is expected to be a character/longchar array, then return an array of values when present.
+                                valueWriter:Write(new KeyValuePair(msgElem:ABLReference, new LongcharArrayHolder(pRequest:URI:GetQueryValues(msgElem:ElementName)))).
+                            else
+                                valueWriter:Write(new KeyValuePair(msgElem:ABLReference, pRequest:URI:GetQueryValue(msgElem:ElementName))). // Use the old way (last value).
+                        end.
+                        otherwise do:
+                            if pRequest:URI:GetQueryValueCount(msgElem:ElementName) gt 1 and poArg:Parameter:ArgumentType eq get-class(ILongcharArrayHolder) then
+                                // If the argument parameter is expected to be a character/longchar array, then return an array of values when present.
+                                valueWriter:Write(new LongcharArrayHolder(pRequest:URI:GetQueryValues(msgElem:ElementName))).
+                            else
+                                valueWriter:Write(pRequest:URI:GetQueryValue(msgElem:ElementName)). // Use the old way (last value).
+                        end.
                     end case.
-                
+
+                // Kept for legacy purposes, otherwise QueryParams should be used.
                 when ElementTypeEnum:QueryMap then
                 case true:
                     when writeProperty then
                         valueWriter:Write(new KeyValuePair(msgElem:ABLReference, pRequest:URI:GetQueryMap())).
                     otherwise
                         valueWriter:Write(pRequest:URI:GetQueryMap()).
+                end case.
+
+                when ElementTypeEnum:QueryParams then
+                case true:
+                    when writeProperty then
+                        valueWriter:Write(new KeyValuePair(msgElem:ABLReference, pRequest:URI:GetQueryParams())).
+                    otherwise
+                        valueWriter:Write(pRequest:URI:GetQueryParams()).
                 end case.
                 
                 when ElementTypeEnum:Header then
@@ -1288,7 +1294,7 @@ class OpenEdge.Web.DataObject.OperationHandler implements IOperationHandler, ISu
         valueWriter:Close().
         
         assign poArg:ArgumentValue = valueWriter:Value.
-        
+
         catch parseErr as Progress.Lang.Error:
             Logger:Trace(substitute('GetInputValue(): Unable to extract value for argument &2 &1 from element &3',
                             (if valid-object(poArg) then poArg:Parameter:ABLName else '':u),
@@ -1306,6 +1312,10 @@ class OpenEdge.Web.DataObject.OperationHandler implements IOperationHandler, ISu
     end method.
     
     /* Sets the value of a dataset's contained buffers' tracking-changes value.
+    
+       THIS METHOD SHOULD BE CALLED WITH CARE - SCHEMAS (FROM ~11.7) WILL BE CREATED
+       BY THE ServiceRegistryLoader WITH BEFORE-TABLES AND SO THIS STEP IS NOT
+       NECESSARY.
        
        @param OperationArgument The argument containing the dataset
        @param logical TRUE to enable TRACKING-CHANGES */
@@ -1390,35 +1400,30 @@ class OpenEdge.Web.DataObject.OperationHandler implements IOperationHandler, ISu
        @param P.L.Object The message body of the incoming request. Typically
                          will be transformed from bytes into something useful; may also have an envelope removed.
        @param IHttpResponse The current response object, if any
-       @param MappedOperation The mapped operation  */
-    method protected void BuildArguments(input poRequest  as IWebRequest,
-                                         input poMessageBody as Progress.Lang.Object,
-                                         input poResponse as IHttpResponse,
-                                         input pService as DataObjectService,
-                                         input poOperation as MappedOperation ):
+       @param DataObjectService The current service
+       @param MappedOperation The current operation
+       @return IList<OperationArgument> The list or arguments. This list will always have at least 1 entry (for the return value, even if it's a void return value) */
+    method protected Progress.Collections.IList<OperationArgument> BuildArguments(input  poRequest  as IWebRequest,
+                                                                                  input  poMessageBody as Progress.Lang.Object,
+                                                                                  input  poResponse as IHttpResponse,
+                                                                                  input  pService as DataObjectService,
+                                                                                  input  poOperation as MappedOperation  ):
         define variable iLoop as integer no-undo.
         define variable iMax as integer no-undo.
         define variable oOperArg as OperationArgument no-undo.
-        define variable iArgIdx as integer no-undo.
         define variable operationTime as datetime-tz extent 2 no-undo.
+        define variable args as Progress.Collections.IList<OperationArgument> no-undo.
         
-        define buffer lbArg for ttArgument.
-        
-        assign operationTime[1] = now.
-        
+        assign operationTime[1] = now
+               iMax             = poOperation:Parameters:Size
+               args             = new Progress.Collections.List<OperationArgument>()
+               .
         if valid-object(poOperation:ReturnValue) then
-        do:
-            create lbArg.
-            assign lbArg.ParentOH   = int64(this-object)
-                   lbArg.ParamIndex = 0
-                   oOperArg         = new OperationArgument(pService,
-                                                            poOperation,
-                                                            poOperation:ReturnValue)
-                   lbArg.Arg        = oOperArg
-                   .
-        end.
+            assign oOperArg = new OperationArgument(pService, poOperation, poOperation:ReturnValue).
         
-        assign iMax = poOperation:Parameters:Size.
+        // Always add the return value as the first item. Even if its ?
+        args:Add(oOperArg).
+        
         PARAM-LOOP:
         do iLoop = 1 to iMax:
             assign oOperArg = new OperationArgument(pService,
@@ -1429,14 +1434,7 @@ class OpenEdge.Web.DataObject.OperationHandler implements IOperationHandler, ISu
             if    oOperArg:Parameter:IOMode:IsFlagSet(IOModeEnum:Input)
                or oOperArg:Parameter:IOMode:IsFlagSet(IOModeEnum:Output)
             then
-            do:
-                // hold and store args for later processing
-                create lbArg.
-                assign lbArg.ParentOH   = int64(this-object)
-                       lbArg.Arg        = oOperArg
-                       iArgIdx          = iArgIdx + 1
-                       lbArg.ParamIndex = iArgIdx.
-            end.
+                args:Add(oOperArg).
             else
             do:
                 Logger:Info(substitute('IoMode &1 not supported for operation target &2',
@@ -1452,10 +1450,9 @@ class OpenEdge.Web.DataObject.OperationHandler implements IOperationHandler, ISu
             if oOperArg:Parameter:IOMode:IsFlagSet(IOModeEnum:Input) then
                 GetInputValue(oOperArg, poMessageBody, poRequest).
             
-            /* Sets the value to true if required. Only do this AFTER we've loaded data
-               from the HTTP message since things like READ-JSON do a CREATE tt. under the
-               covers which messes with the ROW-STATE */
-            SetTrackingChanges(oOperArg, true).
+            // Do NOT call SetTrackingChanges(TRUE) here: since 11.7 the temp-table already has a before-table
+            // added by the ServiceRegistryLoader. That is sufficient, and we don't need to turn TRACKING-CHANGES on
+            // since that's up to the application code
             
             logger:Trace(substitute('Operation argument: &3 &2 &1 has value: "&5" of type &4',
                             oOperArg:Parameter:ABLName,
@@ -1465,6 +1462,7 @@ class OpenEdge.Web.DataObject.OperationHandler implements IOperationHandler, ISu
                             oOperArg:ArgumentValue )).
         end.    // PARAM-LOOP
         
+        return args.
         finally:
             Logger:Trace(substitute('BuildArguments() for operation &1 - time(ms)=&2',
                             (if valid-object(poOperation) then string(poOperation) else '':u),

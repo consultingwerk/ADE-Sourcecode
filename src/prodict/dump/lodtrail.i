@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000,2007 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/************************************************************************
+* Copyright (C) 2000,2007-2022 by Progress Software Corporation.        *
+* All rights reserved. Prior versions of this work may contain portions *
+* contributed by participants of Possenet.                              *
+*                                                                       *
+*************************************************************************/
 
 /* lodtrail.i
 
@@ -35,6 +35,7 @@ Needs:
   THEM AS WELL.
   
 history:
+    tmasood     05/27/22    Return false alarm when trailer PSC not found
     fernando    06/19/07    Support for large files
     mcmann      98/07/09    Added both cpstream and codepate for check
     gfs         94/07/25    make a better effort to find "PSC" 
@@ -234,6 +235,12 @@ PROCEDURE find_psc:
          READKEY PAUSE 0.
          IF LASTKEY <> ASC("C") THEN NEXT.
          ELSE DO: /* found "PSC"! */
+		 /* The entire line must be equal to "PSC" which is a reserved 
+            keyword, but if it's part of a string we simply return to 
+            where we left off and continue searching for the trailer. 
+	     */
+		   READKEY PAUSE 0.
+           IF LASTKEY <> 13 THEN NEXT.
            RUN read_bits (INPUT p - 1).
            LEAVE.
          END. /* IF "C" */

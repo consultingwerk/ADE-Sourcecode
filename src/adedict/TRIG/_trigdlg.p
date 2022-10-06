@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000,2017,2020 by Progress Software Corporation. All      *
+* Copyright (C) 2000,2017,2020,2022 by Progress Software Corporation. All *
 * rights reserved. Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -40,6 +40,7 @@ McMann   98/07/10   Added DBVERSION and _Owner check for _file.
 McMann   98/10/08   Added available check for b_file.
 McMann   99/10/15   Changed DBVERSION check to use DICTDB
 Rohit    9/15/2017  Modified trig_proc to X(255)- PSC00360752
+Talha    05/17/2022 Added the check for unique trigger procedure file name
 ----------------------------------------------------------------------------*/
 &GLOBAL-DEFINE WIN95-BTN YES
 {adedict/dictvar.i shared}
@@ -55,6 +56,8 @@ Define shared buffer b_File  for _File.
 Define shared buffer b_Field for _Field.
 Define        buffer b_ttrig for _File-Trig.
 Define        buffer b_ftrig for _Field-Trig.
+DEFINE        BUFFER buf_File FOR _File.
+DEFINE        BUFFER buf_Field FOR _Field.
 
 /* Trigger attributes for form */
 Define var trig_event      as char    format "x(18)"                 
@@ -374,24 +377,24 @@ PROCEDURE Save_Trigger:
       */
       crc = input frame trigedit trig_crc.
       if p_Obj = {&OBJ_TBL} then
-      do:
-	 create b_ttrig.
-	 assign
-	    b_ttrig._File-Recid = RECID(b_File)
-	    b_ttrig._Event = trig_event
-	    b_ttrig._Proc-Name = tproc
-	    b_ttrig._Override = input frame trigedit trig_override
-	    b_ttrig._Trig-CRC = (if NOT crc then ? else new_crc_val).
+      do:    
+         create b_ttrig.
+	     assign
+	        b_ttrig._File-Recid = RECID(b_File)
+	        b_ttrig._Event = trig_event
+	        b_ttrig._Proc-Name = tproc
+	        b_ttrig._Override = input frame trigedit trig_override
+	        b_ttrig._Trig-CRC = (if NOT crc then ? else new_crc_val).
       end.
       else do:
-	 create b_ftrig.
-	 assign
-	    b_ftrig._File-Recid = s_TblRecId
-	    b_ftrig._Field-Recid = RECID(b_Field)
-	    b_ftrig._Event = trig_event
-	    b_ftrig._Proc-Name = tproc
-	    b_ftrig._Override = input frame trigedit trig_override.
-	    b_ftrig._Trig-CRC = (if NOT crc then ? else new_crc_val).
+         create b_ftrig.
+	     assign
+	        b_ftrig._File-Recid = s_TblRecId
+	        b_ftrig._Field-Recid = RECID(b_Field)
+	        b_ftrig._Event = trig_event
+	        b_ftrig._Proc-Name = tproc
+	        b_ftrig._Override = input frame trigedit trig_override.
+	        b_ftrig._Trig-CRC = (if NOT crc then ? else new_crc_val).
       end.
 
       /* Save the code in the OS file. If we can't find the file, 
@@ -566,8 +569,7 @@ PROCEDURE Check_Committed:
       return "error".
    end.
    return "".            
-end.
-
+end.        
 
 /*===============================Triggers=============================*/
 
@@ -692,9 +694,9 @@ END.
 /*---- LEAVE of PROC NAME -----*/
 on leave of trig_proc in frame trigedit
 do:
-   Define var fname   as char    NO-UNDO.
-   Define var answer  as logical NO-UNDO.
-   Define var procval as char    NO-UNDO case-sens.
+   DEFINE VARIABLE fname      AS CHARACTER NO-UNDO.
+   DEFINE VARIABLE answer     AS LOGICAL   NO-UNDO.
+   DEFINE VARIABLE procval    AS CHARACTER NO-UNDO CASE-SENSITIVE.
 
    /* proc_read keeps track of the name of last file that was read into
       the editor widget.  If it hasn't changed, don't do anything.
@@ -727,6 +729,37 @@ do:
 	 return NO-APPLY.
       end.
    end.
+   IF p_Obj = {&OBJ_TBL} AND NOT new_trig THEN
+        FIND FIRST _file-trig WHERE _file-trig._file-recid <> RECID(b_File)
+                                AND _file-trig._Proc-Name = procval NO-ERROR.
+   ELSE
+        FIND FIRST _file-trig WHERE _file-trig._Proc-Name = procval NO-ERROR.
+        
+   IF p_Obj <> {&OBJ_TBL} AND NOT new_trig THEN
+        FIND FIRST _field-trig WHERE _field-trig._field-recid <> RECID(b_Field)
+                                 AND _field-trig._Proc-Name = procval NO-ERROR.
+   ELSE
+        FIND FIRST _field-trig WHERE _field-trig._Proc-Name = procval NO-ERROR.
+   IF AVAILABLE _file-trig OR AVAILABLE _field-trig THEN DO:
+       FIND buf_File WHERE RECID(buf_File) = _file-trig._file-recid NO-LOCK NO-ERROR.
+       IF AVAILABLE _field-trig THEN
+         FIND buf_Field WHERE RECID(buf_Field) = _field-trig._field-recid NO-LOCK NO-ERROR.
+       MESSAGE "This file name already used as trigger procedure for " + trig_event + " of " + (IF AVAILABLE buf_File THEN buf_File._File-Name ELSE "") +
+               (IF AVAILABLE buf_Field THEN "." + buf_Field._Field-Name ELSE "") SKIP
+               "Select:" SKIP
+               "   Yes to use the contents of the existing file" SKIP
+               "   No to enter a different file name."
+               VIEW-AS ALERT-BOX QUESTION BUTTONS YES-NO UPDATE answer.
+       IF answer THEN
+       DO:
+         s_Res = trig_txt:READ-FILE(procval) IN FRAME trigedit.
+         trig_txt = trig_txt:SCREEN-VALUE IN FRAME trigedit.
+       END.
+       ELSE DO:
+         APPLY "entry" TO trig_proc IN FRAME trigedit.
+         RETURN NO-APPLY.
+       END.
+   END.
    assign
      new_trigfile = true
      proc_read    = procval.
@@ -831,24 +864,53 @@ end.
 /*---- SELECTION of FILE BUTTON -----*/
 on choose of btn_file in frame trigedit
 do:
-   Define var pname      as char    NO-UNDO.
-   Define var picked_one as logical NO-UNDO.
+   DEFINE VARIABLE pname      AS CHARACTER NO-UNDO.
+   DEFINE VARIABLE picked_one AS LOGICAL   NO-UNDO.
+   DEFINE VARIABLE answer     AS LOGICAL   NO-UNDO.
 
    pname = trig_proc:screen-value in frame trigedit.
    system-dialog GET-FILE pname 
-		 filters            "*.p" "*.p"
-		 default-extension  ".p"
-		 title              "Find Trigger Procedure" 
-		 update             picked_one.
+         filters            "*.p" "*.p"
+         default-extension  ".p"
+         title              "Find Trigger Procedure" 
+         update             picked_one.
    if picked_one then   
    do:
       trig_proc:screen-value in frame trigedit = pname.
-      s_Res = trig_txt:read-file(pname) in frame trigedit.
-      trig_txt = trig_txt:screen-value in frame trigedit.
       proc_read = pname.
+      IF p_Obj = {&OBJ_TBL} AND NOT new_trig THEN
+        FIND FIRST _file-trig WHERE _file-trig._file-recid <> RECID(b_File)
+                                AND _file-trig._Proc-Name = pname NO-ERROR.
+      ELSE
+        FIND FIRST _file-trig WHERE _file-trig._Proc-Name = pname NO-ERROR.
+        
+      IF p_Obj <> {&OBJ_TBL} AND NOT new_trig THEN
+        FIND FIRST _field-trig WHERE _field-trig._field-recid <> RECID(b_Field)
+                                 AND _field-trig._Proc-Name = pname NO-ERROR.
+      ELSE
+        FIND FIRST _field-trig WHERE _field-trig._Proc-Name = pname NO-ERROR.
+      IF AVAILABLE _file-trig OR AVAILABLE _field-trig THEN DO:
+          FIND buf_File WHERE RECID(buf_File) = _file-trig._file-recid NO-LOCK NO-ERROR.
+          IF AVAILABLE _field-trig THEN
+            FIND buf_Field WHERE RECID(buf_Field) = _field-trig._field-recid NO-LOCK NO-ERROR.
+          MESSAGE "This file name already used as trigger procedure for " + trig_event + " of " + (if AVAILABLE buf_File then buf_File._File-Name else "") +
+              (if AVAILABLE buf_Field then "." + buf_Field._Field-Name else "") SKIP
+              "Select:" SKIP
+              "   Yes to use the contents of the existing file" SKIP
+              "   No to enter a different file name."
+              VIEW-AS ALERT-BOX QUESTION BUTTONS YES-NO UPDATE answer.
+          IF answer THEN
+          DO:
+            s_Res = trig_txt:READ-FILE(pname) IN FRAME trigedit.
+            trig_txt = trig_txt:SCREEN-VALUE IN FRAME trigedit.
+          END.
+          ELSE DO:
+            APPLY "entry" TO trig_proc IN FRAME trigedit.
+            RETURN NO-APPLY.
+          END.
+      END.    
    end.
 end.
-
 
 /*---- LEAVE of EVENT FILL-IN -----*/
 /* Syntax is only checked if they click on Now button or if they

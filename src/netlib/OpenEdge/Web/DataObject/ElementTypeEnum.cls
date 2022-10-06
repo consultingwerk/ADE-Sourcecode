@@ -18,6 +18,8 @@ enum OpenEdge.Web.DataObject.ElementTypeEnum :
                 Qry         = Query
                 QueryMap
                 QryMap      = QueryMap
+                QueryParams
+                QryParams   = QueryParams
                 Header
                 Hdr         = Header
                 HeaderSet

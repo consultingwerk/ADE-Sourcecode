@@ -58,7 +58,7 @@ class OpenEdge.Web.DataObject.OperationParameter:
     /* (mandatory) Indication of whether this is a complex/data type */
     define public property HasSchema as logical no-undo get. private set.
     
-    /* (mandatory) TRUE if the argument an array (trailing EXTENT) */
+    /* (mandatory) TRUE if the argument is an array (trailing EXTENT) */
     define public property IsArray as logical no-undo get. private set.
     
     /* (mandatory) TRUE if the argument a primtive value (non-CLASS) */

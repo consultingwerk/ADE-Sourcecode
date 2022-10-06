@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2019, 2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2019, 2021-2022 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : ClassOperationHandler
@@ -27,12 +27,14 @@ using OpenEdge.Web.DataObject.Writer.ArgumentValueWriter.
 using OpenEdge.Web.DataObject.Writer.ArgumentValueWriterBuilder.
 using OpenEdge.Web.IWebRequest.
 using OpenEdge.Web.SendExceptionError.
+using Progress.Collections.IList.
 using Progress.Lang.AppError.
 using Progress.Lang.ParameterList.
 using Progress.Reflect.DataType.
 
 class OpenEdge.Web.DataObject.ClassOperationHandler  inherits OperationHandler:
     
+    /* Default constructor */
     constructor public ClassOperationHandler():
         super().
     end constructor.
@@ -64,9 +66,11 @@ class OpenEdge.Web.DataObject.ClassOperationHandler  inherits OperationHandler:
         define variable oMethod as Progress.Reflect.Method no-undo.
         define variable oOperArg as OperationArgument no-undo.
         define variable oValueWriter as ArgumentValueWriter no-undo.
-
-        define buffer lbArg for ttArgument.
-                
+        define variable args as IList<OperationArgument> no-undo.
+        define variable idx as integer no-undo.
+        define variable cnt as integer no-undo.
+        define variable loop as integer no-undo.
+        
         /* 32 array vars per data-type */
         {OpenEdge/Web/DataObject/doh_execute_defvar.i &data-type=character}
         {OpenEdge/Web/DataObject/doh_execute_defvar.i &data-type=longchar}
@@ -92,57 +96,63 @@ class OpenEdge.Web.DataObject.ClassOperationHandler  inherits OperationHandler:
         Assert:NotNull(poOperation, 'Mapped operation').
         Assert:NotNull(poEntity, 'Entity').
         
-        BuildArguments(poRequest, poMessageBody, poResponse, pService, poOperation).
+        assign args = BuildArguments(poRequest, poMessageBody, poResponse, pService, poOperation).
+        Assert:NotUnknown(args, 'Operation args').
         
         /* create ParameterList from operation params (IN, IN-OUT, OUT ) */
         assign execTime[1] = now
                oParamList  = new ParameterList(poOperation:Parameters:Size)
+               cnt         = args:Count
                .
-        for each lbArg where
-                 lbArg.ParentOH eq int64(this-object) and
-                 lbArg.ParamIndex ge 1:
+        // the first item always represents the return value, whether one exists or not
+        // loop through the rest of the input/output/input-output parameters
+        do loop = 2 to cnt:
             assign paramTime[1] = now
-                   oOperArg = cast(lbArg.Arg, OperationArgument).
+                   // loop is off-by-one, so adjust idx value
+                   idx          = loop - 1
+                   oOperArg     = args:Get(loop)
+                   .
             if oOperArg:Parameter:IsArray then
             case oOperArg:Parameter:DataType:
-                {OpenEdge/Web/DataObject/doh_execute_setparam_array.i &ARG-TYPE=int64       &ARG-VALUE-TYPE=Ccs.Common.Support.IInt64ArrayHolder        }
-                {OpenEdge/Web/DataObject/doh_execute_setparam_array.i &ARG-TYPE=integer     &ARG-VALUE-TYPE=Ccs.Common.Support.IInt64ArrayHolder        }
-                {OpenEdge/Web/DataObject/doh_execute_setparam_array.i &ARG-TYPE=character   &ARG-VALUE-TYPE=Ccs.Common.Support.ILongcharArrayHolder     }
-                {OpenEdge/Web/DataObject/doh_execute_setparam_array.i &ARG-TYPE=longchar    &ARG-VALUE-TYPE=Ccs.Common.Support.ILongcharArrayHolder     }
-                {OpenEdge/Web/DataObject/doh_execute_setparam_array.i &ARG-TYPE=decimal     &ARG-VALUE-TYPE=Ccs.Common.Support.IDecimalArrayHolder      }
-                {OpenEdge/Web/DataObject/doh_execute_setparam_array.i &ARG-TYPE=logical     &ARG-VALUE-TYPE=Ccs.Common.Support.ILogicalArrayHolder      }
-                {OpenEdge/Web/DataObject/doh_execute_setparam_array.i &ARG-TYPE=rowid       &ARG-VALUE-TYPE=Ccs.Common.Support.IRowidArrayHolder        }
-                {OpenEdge/Web/DataObject/doh_execute_setparam_array.i &ARG-TYPE=recid       &ARG-VALUE-TYPE=Ccs.Common.Support.IInt64ArrayHolder        }
-                {OpenEdge/Web/DataObject/doh_execute_setparam_array.i &ARG-TYPE=date        &ARG-VALUE-TYPE=Ccs.Common.Support.IDateArrayHolder         }
-                {OpenEdge/Web/DataObject/doh_execute_setparam_array.i &ARG-TYPE=datetime    &ARG-VALUE-TYPE=Ccs.Common.Support.IDateTimeArrayHolder     }
-                {OpenEdge/Web/DataObject/doh_execute_setparam_array.i &ARG-TYPE=datetime-tz &ARG-VALUE-TYPE=Ccs.Common.Support.IDateTimeTzArrayHolder   }
-                {OpenEdge/Web/DataObject/doh_execute_setparam_array.i &ARG-TYPE=memptr      &ARG-VALUE-TYPE=Ccs.Common.Support.IMemptrArrayHolder       }
-                {OpenEdge/Web/DataObject/doh_execute_setparam_array.i &ARG-TYPE=handle      &ARG-VALUE-TYPE=Ccs.Common.Support.IHandleArrayHolder       }
-                {OpenEdge/Web/DataObject/doh_execute_setparam_array.i &ARG-TYPE=plo         &ARG-VALUE-TYPE=OpenEdge.Core.IObjectArrayHolder             &SWITCH-VALUE=class }
+                {OpenEdge/Web/DataObject/doh_execute_setparam_array.i &PARAM-IDX=idx &OPER-ARG=oOperArg &ARG-TYPE=int64       &ARG-VALUE-TYPE=Ccs.Common.Support.IInt64ArrayHolder        }
+                {OpenEdge/Web/DataObject/doh_execute_setparam_array.i &PARAM-IDX=idx &OPER-ARG=oOperArg &ARG-TYPE=integer     &ARG-VALUE-TYPE=Ccs.Common.Support.IInt64ArrayHolder        }
+                {OpenEdge/Web/DataObject/doh_execute_setparam_array.i &PARAM-IDX=idx &OPER-ARG=oOperArg &ARG-TYPE=character   &ARG-VALUE-TYPE=Ccs.Common.Support.ILongcharArrayHolder     }
+                {OpenEdge/Web/DataObject/doh_execute_setparam_array.i &PARAM-IDX=idx &OPER-ARG=oOperArg &ARG-TYPE=longchar    &ARG-VALUE-TYPE=Ccs.Common.Support.ILongcharArrayHolder     }
+                {OpenEdge/Web/DataObject/doh_execute_setparam_array.i &PARAM-IDX=idx &OPER-ARG=oOperArg &ARG-TYPE=decimal     &ARG-VALUE-TYPE=Ccs.Common.Support.IDecimalArrayHolder      }
+                {OpenEdge/Web/DataObject/doh_execute_setparam_array.i &PARAM-IDX=idx &OPER-ARG=oOperArg &ARG-TYPE=logical     &ARG-VALUE-TYPE=Ccs.Common.Support.ILogicalArrayHolder      }
+                {OpenEdge/Web/DataObject/doh_execute_setparam_array.i &PARAM-IDX=idx &OPER-ARG=oOperArg &ARG-TYPE=rowid       &ARG-VALUE-TYPE=Ccs.Common.Support.IRowidArrayHolder        }
+                {OpenEdge/Web/DataObject/doh_execute_setparam_array.i &PARAM-IDX=idx &OPER-ARG=oOperArg &ARG-TYPE=recid       &ARG-VALUE-TYPE=Ccs.Common.Support.IInt64ArrayHolder        }
+                {OpenEdge/Web/DataObject/doh_execute_setparam_array.i &PARAM-IDX=idx &OPER-ARG=oOperArg &ARG-TYPE=date        &ARG-VALUE-TYPE=Ccs.Common.Support.IDateArrayHolder         }
+                {OpenEdge/Web/DataObject/doh_execute_setparam_array.i &PARAM-IDX=idx &OPER-ARG=oOperArg &ARG-TYPE=datetime    &ARG-VALUE-TYPE=Ccs.Common.Support.IDateTimeArrayHolder     }
+                {OpenEdge/Web/DataObject/doh_execute_setparam_array.i &PARAM-IDX=idx &OPER-ARG=oOperArg &ARG-TYPE=datetime-tz &ARG-VALUE-TYPE=Ccs.Common.Support.IDateTimeTzArrayHolder   }
+                {OpenEdge/Web/DataObject/doh_execute_setparam_array.i &PARAM-IDX=idx &OPER-ARG=oOperArg &ARG-TYPE=memptr      &ARG-VALUE-TYPE=Ccs.Common.Support.IMemptrArrayHolder       }
+                {OpenEdge/Web/DataObject/doh_execute_setparam_array.i &PARAM-IDX=idx &OPER-ARG=oOperArg &ARG-TYPE=handle      &ARG-VALUE-TYPE=Ccs.Common.Support.IHandleArrayHolder       }
+                {OpenEdge/Web/DataObject/doh_execute_setparam_array.i &PARAM-IDX=idx &OPER-ARG=oOperArg &ARG-TYPE=plo         &ARG-VALUE-TYPE=OpenEdge.Core.IObjectArrayHolder             &SWITCH-VALUE=class }
             end case.   /* arrays */
             else
             case oOperArg:Parameter:DataType:
-                {OpenEdge/Web/DataObject/doh_execute_setparam_scalar.i &ARG-TYPE=int64       &ARG-VALUE-TYPE=Ccs.Common.Support.IInt64Holder        }
-                {OpenEdge/Web/DataObject/doh_execute_setparam_scalar.i &ARG-TYPE=integer     &ARG-VALUE-TYPE=Ccs.Common.Support.IInt64Holder    &COERCE-TYPE=integer }
-                {OpenEdge/Web/DataObject/doh_execute_setparam_scalar.i &ARG-TYPE=character   &ARG-VALUE-TYPE=Ccs.Common.Support.ILongcharHolder &COERCE-TYPE=string  }
-                {OpenEdge/Web/DataObject/doh_execute_setparam_scalar.i &ARG-TYPE=longchar    &ARG-VALUE-TYPE=Ccs.Common.Support.ILongcharHolder     }
-                {OpenEdge/Web/DataObject/doh_execute_setparam_scalar.i &ARG-TYPE=decimal     &ARG-VALUE-TYPE=Ccs.Common.Support.IDecimalHolder      }
-                {OpenEdge/Web/DataObject/doh_execute_setparam_scalar.i &ARG-TYPE=logical     &ARG-VALUE-TYPE=Ccs.Common.Support.ILogicalHolder      }
-                {OpenEdge/Web/DataObject/doh_execute_setparam_scalar.i &ARG-TYPE=rowid       &ARG-VALUE-TYPE=Ccs.Common.Support.IRowidHolder        }
-                {OpenEdge/Web/DataObject/doh_execute_setparam_scalar.i &ARG-TYPE=recid       &ARG-VALUE-TYPE=Ccs.Common.Support.IInt64Holder    &COERCE-TYPE=integer }
-                {OpenEdge/Web/DataObject/doh_execute_setparam_scalar.i &ARG-TYPE=date        &ARG-VALUE-TYPE=Ccs.Common.Support.IDateHolder         }
-                {OpenEdge/Web/DataObject/doh_execute_setparam_scalar.i &ARG-TYPE=datetime    &ARG-VALUE-TYPE=Ccs.Common.Support.IDateTimeHolder     }
-                {OpenEdge/Web/DataObject/doh_execute_setparam_scalar.i &ARG-TYPE=datetime-tz &ARG-VALUE-TYPE=Ccs.Common.Support.IDateTimeTzHolder   }
-                {OpenEdge/Web/DataObject/doh_execute_setparam_scalar.i &ARG-TYPE=memptr      &ARG-VALUE-TYPE=Ccs.Common.Support.IMemptrHolder       }
-                {OpenEdge/Web/DataObject/doh_execute_setparam_scalar.i &ARG-TYPE=handle      &ARG-VALUE-TYPE=Ccs.Common.Support.IHandleHolder       }
-                {OpenEdge/Web/DataObject/doh_execute_setparam_scalar.i &ARG-TYPE=pds         &ARG-VALUE-TYPE=Ccs.Common.Support.IHandleHolder   &SWITCH-VALUE=dataset-handle }
-                {OpenEdge/Web/DataObject/doh_execute_setparam_scalar.i &ARG-TYPE=tt          &ARG-VALUE-TYPE=Ccs.Common.Support.IHandleHolder   &SWITCH-VALUE=table-handle   }
-                {OpenEdge/Web/DataObject/doh_execute_setparam_scalar.i &ARG-TYPE=plo         &ARG-VALUE-TYPE=Progress.Lang.Object               &SWITCH-VALUE=class          }
+                {OpenEdge/Web/DataObject/doh_execute_setparam_scalar.i &PARAM-IDX=idx &OPER-ARG=oOperArg &ARG-TYPE=int64       &ARG-VALUE-TYPE=Ccs.Common.Support.IInt64Holder        }
+                {OpenEdge/Web/DataObject/doh_execute_setparam_scalar.i &PARAM-IDX=idx &OPER-ARG=oOperArg &ARG-TYPE=integer     &ARG-VALUE-TYPE=Ccs.Common.Support.IInt64Holder    &COERCE-TYPE=integer }
+                {OpenEdge/Web/DataObject/doh_execute_setparam_scalar.i &PARAM-IDX=idx &OPER-ARG=oOperArg &ARG-TYPE=character   &ARG-VALUE-TYPE=Ccs.Common.Support.ILongcharHolder &COERCE-TYPE=string  }
+                {OpenEdge/Web/DataObject/doh_execute_setparam_scalar.i &PARAM-IDX=idx &OPER-ARG=oOperArg &ARG-TYPE=longchar    &ARG-VALUE-TYPE=Ccs.Common.Support.ILongcharHolder     }
+                {OpenEdge/Web/DataObject/doh_execute_setparam_scalar.i &PARAM-IDX=idx &OPER-ARG=oOperArg &ARG-TYPE=decimal     &ARG-VALUE-TYPE=Ccs.Common.Support.IDecimalHolder      }
+                {OpenEdge/Web/DataObject/doh_execute_setparam_scalar.i &PARAM-IDX=idx &OPER-ARG=oOperArg &ARG-TYPE=logical     &ARG-VALUE-TYPE=Ccs.Common.Support.ILogicalHolder      }
+                {OpenEdge/Web/DataObject/doh_execute_setparam_scalar.i &PARAM-IDX=idx &OPER-ARG=oOperArg &ARG-TYPE=rowid       &ARG-VALUE-TYPE=Ccs.Common.Support.IRowidHolder        }
+                {OpenEdge/Web/DataObject/doh_execute_setparam_scalar.i &PARAM-IDX=idx &OPER-ARG=oOperArg &ARG-TYPE=recid       &ARG-VALUE-TYPE=Ccs.Common.Support.IInt64Holder    &COERCE-TYPE=integer }
+                {OpenEdge/Web/DataObject/doh_execute_setparam_scalar.i &PARAM-IDX=idx &OPER-ARG=oOperArg &ARG-TYPE=date        &ARG-VALUE-TYPE=Ccs.Common.Support.IDateHolder         }
+                {OpenEdge/Web/DataObject/doh_execute_setparam_scalar.i &PARAM-IDX=idx &OPER-ARG=oOperArg &ARG-TYPE=datetime    &ARG-VALUE-TYPE=Ccs.Common.Support.IDateTimeHolder     }
+                {OpenEdge/Web/DataObject/doh_execute_setparam_scalar.i &PARAM-IDX=idx &OPER-ARG=oOperArg &ARG-TYPE=datetime-tz &ARG-VALUE-TYPE=Ccs.Common.Support.IDateTimeTzHolder   }
+                {OpenEdge/Web/DataObject/doh_execute_setparam_scalar.i &PARAM-IDX=idx &OPER-ARG=oOperArg &ARG-TYPE=memptr      &ARG-VALUE-TYPE=Ccs.Common.Support.IMemptrHolder       }
+                {OpenEdge/Web/DataObject/doh_execute_setparam_scalar.i &PARAM-IDX=idx &OPER-ARG=oOperArg &ARG-TYPE=handle      &ARG-VALUE-TYPE=Ccs.Common.Support.IHandleHolder       }
+                {OpenEdge/Web/DataObject/doh_execute_setparam_scalar.i &PARAM-IDX=idx &OPER-ARG=oOperArg &ARG-TYPE=pds         &ARG-VALUE-TYPE=Ccs.Common.Support.IHandleHolder   &SWITCH-VALUE=dataset-handle }
+                {OpenEdge/Web/DataObject/doh_execute_setparam_scalar.i &PARAM-IDX=idx &OPER-ARG=oOperArg &ARG-TYPE=tt          &ARG-VALUE-TYPE=Ccs.Common.Support.IHandleHolder   &SWITCH-VALUE=table-handle   }
+                {OpenEdge/Web/DataObject/doh_execute_setparam_scalar.i &PARAM-IDX=idx &OPER-ARG=oOperArg &ARG-TYPE=plo         &ARG-VALUE-TYPE=Progress.Lang.Object               &SWITCH-VALUE=class          }
             end case.    /* scalar */
             
             assign paramTime[2] = now.
+            
             Logger:Trace(substitute('&4: SetParameter(&1 [&6], &2&7, &3) &5 (&8ms)',
-                                lbArg.ParamIndex,
+                                idx,
                                 oOperArg:Parameter:DataType,
                                 string(oOperArg:Parameter:IoMode),
                                 poOperation:TargetFunction,
@@ -150,7 +160,7 @@ class OpenEdge.Web.DataObject.ClassOperationHandler  inherits OperationHandler:
                                 oOperArg:Parameter:ABLName,
                                 string(oOperArg:Parameter:IsArray, '[]/  ':u),
                                 interval(paramTime[2], paramTime[1], string(DateTimeAddIntervalEnum:Milliseconds)) )).
-        end.    // PARAM-LOOP
+        end.
         
         assign execTime[2] = now.
         Logger:Debug(substitute('Arguments for &1:&2 initialized in &3ms',
@@ -167,56 +177,53 @@ class OpenEdge.Web.DataObject.ClassOperationHandler  inherits OperationHandler:
         Logger:Trace(substitute('Using method &1 for operation &2', oMethod:ToString(), poOperation:ToString())).
         
         /* INVOKE & HANDLE RETURN-VALUE */
-        find lbArg where lbArg.ParentOH eq int64(this-object) and
-             lbArg.ParamIndex eq 0
-             no-error.
         /* either we haven't set up a return parameter or there is none. Either way ignore it. */
-        if available lbArg and oMethod:ReturnType ne DataType:Void then
+        assign oOperArg = args:Get(1).
+        if valid-object(oOperArg)
+        and oMethod:ReturnType ne DataType:Void
+        then
         do:
-            assign oOperArg = cast(lbArg.Argument, OperationArgument)
-                   oValueWriter = ArgumentValueWriterBuilder:Build(oOperArg)
+            assign oValueWriter = ArgumentValueWriterBuilder:Build(oOperArg)
                                     :Logger(this-object:Logger)
                                     :Writer.
             if valid-object(oValueWriter) then
                 oValueWriter:Open().
         end.
         else
-            assign oOperArg     = ?
-                   oValueWriter = ?.
+            assign oValueWriter = ?.
         
         assign execTime[1] = now.
-        if valid-object(oOperArg) then
+        // the writer will only be valid if there's a valid return arg
+        if valid-object(oValueWriter) then
         do:
             case oMethod:ReturnType:
-                {OpenEdge/Web/DataObject/doh_execute_invoke.i &VAR-DATA-TYPE=Integer    }
-                {OpenEdge/Web/DataObject/doh_execute_invoke.i &VAR-DATA-TYPE=Longchar   }
-                {OpenEdge/Web/DataObject/doh_execute_invoke.i &VAR-DATA-TYPE=Int64      }
-                {OpenEdge/Web/DataObject/doh_execute_invoke.i &VAR-DATA-TYPE=Decimal    }
-                {OpenEdge/Web/DataObject/doh_execute_invoke.i &VAR-DATA-TYPE=Character  }
-                {OpenEdge/Web/DataObject/doh_execute_invoke.i &VAR-DATA-TYPE=Logical    }
-                {OpenEdge/Web/DataObject/doh_execute_invoke.i &VAR-DATA-TYPE=Rowid      }
+                {OpenEdge/Web/DataObject/doh_execute_invoke.i &OPER-ARG=oOperArg &VAR-DATA-TYPE=Integer    }
+                {OpenEdge/Web/DataObject/doh_execute_invoke.i &OPER-ARG=oOperArg &VAR-DATA-TYPE=Longchar   }
+                {OpenEdge/Web/DataObject/doh_execute_invoke.i &OPER-ARG=oOperArg &VAR-DATA-TYPE=Int64      }
+                {OpenEdge/Web/DataObject/doh_execute_invoke.i &OPER-ARG=oOperArg &VAR-DATA-TYPE=Decimal    }
+                {OpenEdge/Web/DataObject/doh_execute_invoke.i &OPER-ARG=oOperArg &VAR-DATA-TYPE=Character  }
+                {OpenEdge/Web/DataObject/doh_execute_invoke.i &OPER-ARG=oOperArg &VAR-DATA-TYPE=Logical    }
+                {OpenEdge/Web/DataObject/doh_execute_invoke.i &OPER-ARG=oOperArg &VAR-DATA-TYPE=Rowid      }
                 {&_proparse_ prolint-nowarn(recidkeyword)}
-                {OpenEdge/Web/DataObject/doh_execute_invoke.i &VAR-DATA-TYPE=Recid      }
-                {OpenEdge/Web/DataObject/doh_execute_invoke.i &VAR-DATA-TYPE=Raw        }
-                {OpenEdge/Web/DataObject/doh_execute_invoke.i &VAR-DATA-TYPE=Memptr     }
-                {OpenEdge/Web/DataObject/doh_execute_invoke.i &VAR-DATA-TYPE=Handle     }
-                {OpenEdge/Web/DataObject/doh_execute_invoke.i &VAR-DATA-TYPE=Date       }
-                {OpenEdge/Web/DataObject/doh_execute_invoke.i &VAR-DATA-TYPE=Datetime   }
-                
-                {OpenEdge/Web/DataObject/doh_execute_invoke.i &VAR-DATA-TYPE=Datetime-TZ &RETURN-TYPE=DatetimeTZ }
-                {OpenEdge/Web/DataObject/doh_execute_invoke.i &VAR-DATA-TYPE=handle      &RETURN-TYPE=DataSet}
-                {OpenEdge/Web/DataObject/doh_execute_invoke.i &VAR-DATA-TYPE=handle      &RETURN-TYPE=DataSetHandle}
-                {OpenEdge/Web/DataObject/doh_execute_invoke.i &VAR-DATA-TYPE=handle      &RETURN-TYPE=Table}
-                {OpenEdge/Web/DataObject/doh_execute_invoke.i &VAR-DATA-TYPE=handle      &RETURN-TYPE=TableHandle}
-                {OpenEdge/Web/DataObject/doh_execute_invoke.i &VAR-DATA-TYPE=plo         &RETURN-TYPE=Object}
+                {OpenEdge/Web/DataObject/doh_execute_invoke.i &OPER-ARG=oOperArg &VAR-DATA-TYPE=Recid      }
+                {OpenEdge/Web/DataObject/doh_execute_invoke.i &OPER-ARG=oOperArg &VAR-DATA-TYPE=Raw        }
+                {OpenEdge/Web/DataObject/doh_execute_invoke.i &OPER-ARG=oOperArg &VAR-DATA-TYPE=Memptr     }
+                {OpenEdge/Web/DataObject/doh_execute_invoke.i &OPER-ARG=oOperArg &VAR-DATA-TYPE=Handle     }
+                {OpenEdge/Web/DataObject/doh_execute_invoke.i &OPER-ARG=oOperArg &VAR-DATA-TYPE=Date       }
+                {OpenEdge/Web/DataObject/doh_execute_invoke.i &OPER-ARG=oOperArg &VAR-DATA-TYPE=Datetime   }
+                 
+                {OpenEdge/Web/DataObject/doh_execute_invoke.i &OPER-ARG=oOperArg &VAR-DATA-TYPE=Datetime-TZ &RETURN-TYPE=DatetimeTZ }
+                {OpenEdge/Web/DataObject/doh_execute_invoke.i &OPER-ARG=oOperArg &VAR-DATA-TYPE=handle      &RETURN-TYPE=DataSet}
+                {OpenEdge/Web/DataObject/doh_execute_invoke.i &OPER-ARG=oOperArg &VAR-DATA-TYPE=handle      &RETURN-TYPE=DataSetHandle}
+                {OpenEdge/Web/DataObject/doh_execute_invoke.i &OPER-ARG=oOperArg &VAR-DATA-TYPE=handle      &RETURN-TYPE=Table}
+                {OpenEdge/Web/DataObject/doh_execute_invoke.i &OPER-ARG=oOperArg &VAR-DATA-TYPE=handle      &RETURN-TYPE=TableHandle}
+                {OpenEdge/Web/DataObject/doh_execute_invoke.i &OPER-ARG=oOperArg &VAR-DATA-TYPE=plo         &RETURN-TYPE=Object}
                 otherwise
                     undo, throw new AppError(substitute('Unsupported data type &1', string(oMethod:ReturnType)), 0).
             end case.   /* return types */
-            if valid-object(oValueWriter) then
-            do:
-                oValueWriter:Close().
-                assign oOperArg:ArgumentValue = oValueWriter:Value.
-            end.
+            
+            oValueWriter:Close().
+            assign oOperArg:ArgumentValue = oValueWriter:Value.
             
             SetOutputValue(oOperArg, poResponse).
         end.
@@ -233,11 +240,8 @@ class OpenEdge.Web.DataObject.ClassOperationHandler  inherits OperationHandler:
         /* HANDLE OUTPUT args */
         assign execTime[1] = now.
         OUTPUT-ARGS-LOOP:
-        for each lbArg where lbArg.ParentOH eq int64(this-object) and
-                 lbArg.ParamIndex gt 0
-                 by lbArg.ParamIndex :
-            
-            assign oOperArg = cast(lbArg.Arg, OperationArgument).
+        do loop = 2 to cnt:
+            assign oOperArg = args:Get(loop).
             // We've done INPUT (we want OUTPUT and INPUT-OUTPUT)
             if not oOperArg:Parameter:IoMode:IsFlagSet(IOModeEnum:Output) then
                 next OUTPUT-ARGS-LOOP.
@@ -255,23 +259,23 @@ class OpenEdge.Web.DataObject.ClassOperationHandler  inherits OperationHandler:
             
             /* The datatype of the ABL parameter. */
             case oOperArg:Parameter:DataType:
-                {OpenEdge/Web/DataObject/doh_execute_setargvalues.i &DATA-TYPE=integer     }
-                {OpenEdge/Web/DataObject/doh_execute_setargvalues.i &DATA-TYPE=int64       }
-                {OpenEdge/Web/DataObject/doh_execute_setargvalues.i &DATA-TYPE=character   }
-                {OpenEdge/Web/DataObject/doh_execute_setargvalues.i &DATA-TYPE=longchar    }
-                {OpenEdge/Web/DataObject/doh_execute_setargvalues.i &DATA-TYPE=decimal     }
-                {OpenEdge/Web/DataObject/doh_execute_setargvalues.i &DATA-TYPE=logical     }
-                {OpenEdge/Web/DataObject/doh_execute_setargvalues.i &DATA-TYPE=date        }
-                {OpenEdge/Web/DataObject/doh_execute_setargvalues.i &DATA-TYPE=datetime    }
-                {OpenEdge/Web/DataObject/doh_execute_setargvalues.i &DATA-TYPE=datetime-tz }
-                {OpenEdge/Web/DataObject/doh_execute_setargvalues.i &DATA-TYPE=handle      }
-                {OpenEdge/Web/DataObject/doh_execute_setargvalues.i &DATA-TYPE=recid       }
-                {OpenEdge/Web/DataObject/doh_execute_setargvalues.i &DATA-TYPE=rowid       }
-                {OpenEdge/Web/DataObject/doh_execute_setargvalues.i &DATA-TYPE=raw         }
-                {OpenEdge/Web/DataObject/doh_execute_setargvalues.i &DATA-TYPE=memptr      }
-                {OpenEdge/Web/DataObject/doh_execute_setargvalues.i &DATA-TYPE=pds         &SWITCH-VALUE=dataset-handle }
-                {OpenEdge/Web/DataObject/doh_execute_setargvalues.i &DATA-TYPE=tt          &SWITCH-VALUE=table-handle   }
-                {OpenEdge/Web/DataObject/doh_execute_setargvalues.i &DATA-TYPE=plo         &SWITCH-VALUE=class          }
+                {OpenEdge/Web/DataObject/doh_execute_setargvalues.i &OPER-ARG=oOperArg &DATA-TYPE=integer     }
+                {OpenEdge/Web/DataObject/doh_execute_setargvalues.i &OPER-ARG=oOperArg &DATA-TYPE=int64       }
+                {OpenEdge/Web/DataObject/doh_execute_setargvalues.i &OPER-ARG=oOperArg &DATA-TYPE=character   }
+                {OpenEdge/Web/DataObject/doh_execute_setargvalues.i &OPER-ARG=oOperArg &DATA-TYPE=longchar    }
+                {OpenEdge/Web/DataObject/doh_execute_setargvalues.i &OPER-ARG=oOperArg &DATA-TYPE=decimal     }
+                {OpenEdge/Web/DataObject/doh_execute_setargvalues.i &OPER-ARG=oOperArg &DATA-TYPE=logical     }
+                {OpenEdge/Web/DataObject/doh_execute_setargvalues.i &OPER-ARG=oOperArg &DATA-TYPE=date        }
+                {OpenEdge/Web/DataObject/doh_execute_setargvalues.i &OPER-ARG=oOperArg &DATA-TYPE=datetime    }
+                {OpenEdge/Web/DataObject/doh_execute_setargvalues.i &OPER-ARG=oOperArg &DATA-TYPE=datetime-tz }
+                {OpenEdge/Web/DataObject/doh_execute_setargvalues.i &OPER-ARG=oOperArg &DATA-TYPE=handle      }
+                {OpenEdge/Web/DataObject/doh_execute_setargvalues.i &OPER-ARG=oOperArg &DATA-TYPE=recid       }
+                {OpenEdge/Web/DataObject/doh_execute_setargvalues.i &OPER-ARG=oOperArg &DATA-TYPE=rowid       }
+                {OpenEdge/Web/DataObject/doh_execute_setargvalues.i &OPER-ARG=oOperArg &DATA-TYPE=raw         }
+                {OpenEdge/Web/DataObject/doh_execute_setargvalues.i &OPER-ARG=oOperArg &DATA-TYPE=memptr      }
+                {OpenEdge/Web/DataObject/doh_execute_setargvalues.i &OPER-ARG=oOperArg &DATA-TYPE=pds         &SWITCH-VALUE=dataset-handle }
+                {OpenEdge/Web/DataObject/doh_execute_setargvalues.i &OPER-ARG=oOperArg &DATA-TYPE=tt          &SWITCH-VALUE=table-handle   }
+                {OpenEdge/Web/DataObject/doh_execute_setargvalues.i &OPER-ARG=oOperArg &DATA-TYPE=plo         &SWITCH-VALUE=class          }
                 otherwise
                     undo, throw new AppError(substitute('Unsupported data type &1', oOperArg:Parameter:ABLType), 0).
             end case.   /* oOperParam:ABLType */
@@ -290,7 +294,6 @@ class OpenEdge.Web.DataObject.ClassOperationHandler  inherits OperationHandler:
         
         return integer(StatusCodeEnum:None).
         finally:
-            ClearArguments().
             /* clean variables */
             define variable iCleanLoop as integer no-undo.
             /* memptrs */

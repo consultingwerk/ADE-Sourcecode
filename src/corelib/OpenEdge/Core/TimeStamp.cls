@@ -1,11 +1,11 @@
 /************************************************
-Copyright (c)  2013, 2016, 2018, 2021 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2013, 2016, 2018, 2021-2022 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : TimeStamp
     Purpose     : Primitive class for date, TimeStamp and TimeStamp-tz values
-    Syntax      : 
-    Description : 
+    Syntax      :
+    Description :
     @author pjudge
     Created     : Mon Nov 22 14:29:32 EST 2010
     Notes       : * Named 'TimeStamp' because of keyword/namespace conflicts with
@@ -14,12 +14,13 @@ Copyright (c)  2013, 2016, 2018, 2021 by Progress Software Corporation. All righ
   ---------------------------------------------------------------------- */
 block-level on error undo, throw.
 
-using Ccs.Common.Support.IDateTimeTzHolder from propath.
-using OpenEdge.Core.TimeStamp from propath.
-using OpenEdge.Core.TimeStampConstants from propath.
-using Progress.Lang.Object from propath.
+using OpenEdge.Core.Assert.
+using OpenEdge.Core.TimeStamp.
+using OpenEdge.Core.TimeStampConstants.
+using Progress.Collections.IComparable.
+using Progress.Lang.Object.
 
-class OpenEdge.Core.TimeStamp serializable : 
+class OpenEdge.Core.TimeStamp serializable implements IComparable<TimeStamp>:
     
     /* (mandatory) The format of the data as passed into the constructor. One of DATE, DATETIME or DATETIME-TZ */
     define public property Format as character no-undo get. private set.
@@ -28,7 +29,7 @@ class OpenEdge.Core.TimeStamp serializable :
     define private variable miTime as integer no-undo.
     define private variable miTZOffset as integer no-undo.
     
-    /* Constructor 
+    /* Constructor
        
        @param date A timestamp. Timezone is inferred from the session */
     constructor public TimeStamp(ptTimeStamp as date):
@@ -38,7 +39,7 @@ class OpenEdge.Core.TimeStamp serializable :
                this-object:Format = 'Date'.
     end constructor.
     
-    /* Constructor 
+    /* Constructor
        
        @param datetime A timestamp. Timezone is inferred from the session */
     constructor public TimeStamp(ptTimeStamp as datetime):
@@ -49,7 +50,7 @@ class OpenEdge.Core.TimeStamp serializable :
                this-object:Format = 'DateTime'.
     end constructor.
     
-    /* Constructor 
+    /* Constructor
        
        @param datetime-tz A 'complete' timestamp */
     constructor public TimeStamp(ptTimeStamp as datetime-tz):
@@ -61,7 +62,7 @@ class OpenEdge.Core.TimeStamp serializable :
                this-object:Format = 'DateTime-TZ'.
     end constructor.
 
-    /* Constructor 
+    /* Constructor
        
        @param character An ISO-DATE representation of a timestamp */
     constructor public TimeStamp(input pcTimeStamp as character):
@@ -163,7 +164,124 @@ class OpenEdge.Core.TimeStamp serializable :
         
         return datetime-tz(pcValue).
         finally:
-            session:date-format = cDateFormat.        
+            session:date-format = cDateFormat.
+        end finally.
+    end method.
+    
+    /* Attempts to parse a string representing a timestamp into a DATETIME-TZ value
+    
+       Strings that can be parsed:
+          YY/MM/DD@HH:MM:SS.SSS[timezone]
+            in this case the century is assumed to be the current century
+          
+          CCYY/MM/DD@HH:MM:SS.SSS[timezone]
+          CCYY-MM-DDTHH:MM:SS.SSS[timezone]
+          
+          Any single character can be used for date or time separators.
+          
+          Timezone values can be
+            +NNNN
+            -NNNN
+            +NN:NN
+            -NN:NN
+            Z
+       
+       @param character The timestamp string
+       @return datetime-tz A valid timestamp, or the unknown value if the string cannot be parsed. */
+    method static public datetime-tz TryParseTimestamp(input pValue as character):
+        define variable dtz as datetime-tz no-undo.
+        define variable tz as integer no-undo.
+        
+        //123456789012345678901234567890
+        //22/02/04@13:47:55.989-0500
+        if length(pValue) eq 26
+        and index(pValue, '@':u) eq 9
+        then
+        do:
+            assign tz = integer(substring(pValue, 23, 2)) * 60
+                      + integer(substring(pValue, 25, 2)).
+            if substring(pValue, 22, 1) eq '-':u then
+                assign tz *= -1.
+            
+            assign dtz = datetime-tz(integer(substring(pValue, 4, 2)),      // month
+                                     integer(substring(pValue, 7, 2)),      // day
+                                     // assume the truncated year is the current century
+                                     integer(truncate(year(today) / 100, 0) * 100) + integer(substring(pValue, 1, 2)),
+                                     integer(substring(pValue, 10, 2)),     // hour
+                                     integer(substring(pValue, 13, 2)),     // minute
+                                     integer(substring(pValue, 16, 2)),     // second
+                                     integer(substring(pValue, 19, 3)),     // millisecond
+                                     tz )                                   // timezone
+                          no-error.
+        end.
+        else
+        //123456789012345678901234567890
+        //2022/02/04@13:47:55.989-05:00
+        if length(pValue) eq 29
+        and ( index(pValue, '@':u) eq 11
+             or index(pValue, 'T':u) eq 11 )
+        then
+        do:
+            assign tz = integer(substring(pValue, 25, 2)) * 60
+                      + integer(substring(pValue, 28, 2)).
+            if substring(pValue, 24, 1) eq '-':u then
+                assign tz *= -1.
+            
+            assign dtz = datetime-tz(integer(substring(pValue, 6, 2)),      // month
+                                     integer(substring(pValue, 9, 2)),      // day
+                                     integer(substring(pValue, 1, 4)),      // year
+                                     integer(substring(pValue, 12, 2)),     // hour
+                                     integer(substring(pValue, 15, 2)),     // minute
+                                     integer(substring(pValue, 18, 2)),     // second
+                                     integer(substring(pValue, 21, 3)),     // millisecond
+                                     tz )                                   // timezone
+                          no-error.
+        end.
+        else
+        //123456789012345678901234567890
+        //2022/02/04@13:47:55.989-0500
+        if length(pValue) eq 28
+        and ( index(pValue, '@':u) eq 11
+             or index(pValue, 'T':u) eq 11 )
+        then
+        do:
+            assign tz = integer(substring(pValue, 25, 2)) * 60
+                      + integer(substring(pValue, 27, 2)).
+            if substring(pValue, 24, 1) eq '-':u then
+                assign tz *= -1.
+            
+            assign dtz = datetime-tz(integer(substring(pValue, 6, 2)),      // month
+                                     integer(substring(pValue, 9, 2)),      // day
+                                     integer(substring(pValue, 1, 4)),      // year
+                                     integer(substring(pValue, 12, 2)),     // hour
+                                     integer(substring(pValue, 15, 2)),     // minute
+                                     integer(substring(pValue, 18, 2)),     // second
+                                     integer(substring(pValue, 21, 3)),     // millisecond
+                                     tz )                                   // timezone
+                          no-error.
+        end.
+        //123456789012345678901234567890
+        //2022/02/04@13:47:55.989Z
+        else
+        if length(pValue) eq 24
+        and index(pValue, 'T':u) eq 11
+        and index(pValue, 'Z') eq 24
+        then
+            assign dtz = datetime-tz(integer(substring(pValue, 6, 2)),      // month
+                                     integer(substring(pValue, 9, 2)),      // day
+                                     integer(substring(pValue, 1, 4)),      // year
+                                     integer(substring(pValue, 12, 2)),     // hour
+                                     integer(substring(pValue, 15, 2)),     // minute
+                                     integer(substring(pValue, 18, 2)),     // second
+                                     integer(substring(pValue, 21, 3)),     // millisecond
+                                     0 )                                    // timezone
+                          no-error.
+        
+        return dtz.
+        finally:
+            // get rid of any dangling  error status
+            assign error-status:error = no
+                   no-error.
         end finally.
     end method.
     
@@ -181,7 +299,7 @@ class OpenEdge.Core.TimeStamp serializable :
         define variable cTime as character no-undo.
         define variable iYear as integer no-undo.
         define variable iMonth as integer no-undo.
-        define variable iDay as integer no-undo.        
+        define variable iDay as integer no-undo.
         /* Always English month names. Use the CSV to convert from name to number */
         define variable cMonthList as character no-undo
             initial 'Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec'.
@@ -217,7 +335,7 @@ class OpenEdge.Core.TimeStamp serializable :
             0).                         /* timezone (always GMT per spec) */
     end method.
     
-    /** Converts an ABL date into an HTTP 'sane date', according to RFC 822, as 
+    /** Converts an ABL date into an HTTP 'sane date', according to RFC 822, as
         defined at http://www.w3.org/Protocols/rfc2616/rfc2616-sec3.html#sec3.3
         
         One of the following formats will be used:
@@ -237,19 +355,19 @@ class OpenEdge.Core.TimeStamp serializable :
         
         if timezone(ptValue) eq 0 then
             assign tUTCValue = ptValue.
-        else    
+        else
             assign tUTCValue = datetime-tz(ptValue, 0).
         
         /* Sun, 06 Nov 1994 08:49:37 GMT  */
         return substitute('&1, &2 &3 &4 &5 GMT',
                 cDayOfWeekList[weekday(tUTCValue)],
                 string(day(tUTCValue), '99'),
-                cMonthList[month(tUTCValue)],                
+                cMonthList[month(tUTCValue)],
                 year(tUTCValue),
                 string(integer(mtime(tUTCValue) / 1000), 'HH:MM:SS') ).
     end method.
     
-    /** Converts this TimeStamp into an HTTP 'sane date', according to RFC 822, as 
+    /** Converts this TimeStamp into an HTTP 'sane date', according to RFC 822, as
         defined at http://www.w3.org/Protocols/rfc2616/rfc2616-sec3.html#sec3.3
         
         One of the following formats will be used:
@@ -288,14 +406,15 @@ class OpenEdge.Core.TimeStamp serializable :
         return miTime.
     end method.
     
-
     /* Returns the time interval in seconds between unix epoch and this date
             where unix epoch is an ABL date constructed as
                 datetime(1,1,1970,0,0,0,0)
        
        @return int64 The seconds since the unix epoch  */
     method public int64 SecondsSinceUnixEpoch():
-        var datetime-tz thisDate = ToDateTimeTz().
+        define variable thisDate as datetime-tz no-undo.
+         
+        assign thisDate = this-object:ToDateTimeTz().
         return interval(thisDate, TimeStampConstants:UnixEpoch, "seconds").
     end method.
     
@@ -305,8 +424,42 @@ class OpenEdge.Core.TimeStamp serializable :
        
        @return int64 The number of milliseconds since the unix epoch  */
     method public int64 MillisecondsSinceUnixEpoch():
-        var datetime-tz thisDate = ToDateTimeTz().
+        define variable thisDate as datetime-tz no-undo.
+         
+        assign thisDate = this-object:ToDateTimeTz().
         return interval(thisDate, TimeStampConstants:UnixEpoch, "milliseconds").
-    end method.    
+    end method.
+    
+    /* Comparison method, used by SortedSet's default comparer
+        
+        - If the returned value is less than 0 (zero), then the current object sorts before the object passed in.
+        - If the returned value equals 0 (zero) , then the current object occupies the same position in the sort order.
+        - If the returned value is greater than 0(zero), then the current object sorts after the object passed in.
+        - If either object's Value is the unknown value (?), then that sorts high/early/before
+        
+        @param TimeStamp The object to compare to.
+        @return integer  0 = same object
+                        +1 = sorts after
+                        -1 = sorts before   */
+    method public integer CompareTo(input pOther as TimeStamp):
+        Assert:NotNull(pOther, 'CompareTo object').
+        
+        if this-object:ToDateTimeTz() eq pOther:ToDateTimeTz() then
+            return 0.
+        else
+        // unknown values sort first/lower
+        if this-object:ToDateTimeTz() gt pOther:ToDateTimeTz()
+        or pOther:ToDateTimeTz() eq ?
+        then
+            return +1.
+        else
+        if this-object:ToDateTimeTz() lt pOther:ToDateTimeTz()
+        or this-object:ToDateTimeTz() eq ?
+        then
+            return -1.
+        
+        // this will raise an error in the Comparer; we should never get here though.
+        return ?.
+    end method.
     
 end class.

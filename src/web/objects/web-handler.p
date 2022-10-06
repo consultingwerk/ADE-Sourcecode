@@ -38,6 +38,9 @@ end.
    init-session runs within.  This program is set as web-utilities-hdl. */
 run webutil/paswebstart.p persistent.
 
+/* Initialize the tagmap file. */
+RUN reset-tagmap-utilities IN web-utilities-hdl.
+
 procedure process-web-request :
     define variable cMimeCharset       as character  no-undo.
     define variable cProCharset        as character  no-undo.

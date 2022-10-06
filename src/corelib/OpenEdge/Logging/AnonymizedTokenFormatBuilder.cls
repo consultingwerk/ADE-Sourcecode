@@ -1,12 +1,18 @@
 /************************************************
-Copyright (c) 2018, 2021 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2018, 2021-2022 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : AnonymizedTokenFormatBuilder
-    Purpose     : Builds a AnonymizedTokenFormat logging filter 
+    Purpose     : Builds a AnonymizedTokenFormat logging filter
     Author(s)   : pjudge
     Created     : 2018-11-08
-    Notes       : 
+    Notes       : To configure this filter in a logging.config file, use one or more of the
+                  following properties
+                    hashAlgo    : The name of the hashing algorithm to use. See OpenEdge.Logging.Format.AnonymizedTokenFormat for
+                                  valid values
+                    hashSalt    : The value of a salt to use for hashing. This property is mainly for testing purposes. The value
+                                  may contain tokens (so that, for example, a timestamp may be used as the salt).
+                    tokensToAnon: a csv list of tokens to anonymise. Tokens should NOT include the ${} characters
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
@@ -15,11 +21,14 @@ using OpenEdge.Core.ISupportInitialize.
 using OpenEdge.Logging.Filter.ILoggerFilter.
 using OpenEdge.Logging.Filter.LogFilterBuilder.
 using OpenEdge.Logging.Format.AnonymizedTokenFormat.
+using OpenEdge.Core.Util.TokenResolver.
 
-class OpenEdge.Logging.AnonymizedTokenFormatBuilder inherits LogFilterBuilder: 
-    /* Constructor */
-    constructor public AnonymizedTokenFormatBuilder(input filterName as character):
-        super(filterName).
+class OpenEdge.Logging.AnonymizedTokenFormatBuilder inherits LogFilterBuilder:
+    /* Constructor
+       
+       @param character The filter name */
+    constructor public AnonymizedTokenFormatBuilder(input pFilterName as character):
+        super(pFilterName).
     end constructor.
     
     /* Creates the instance.
@@ -41,6 +50,9 @@ class OpenEdge.Logging.AnonymizedTokenFormatBuilder inherits LogFilterBuilder:
             atf = dynamic-new string(filterType:TypeName) (hashAlgo).
         else
             atf = dynamic-new string(filterType:TypeName) ().
+        
+        if HasOption('hashSalt') then
+            assign atf:Salt = TokenResolver:Resolve(GetOptionStringValue('hashSalt')).
         
         if HasOption('tokensToAnon':u) then
             assign atf:AnonymizeTokens = GetOptionStringValue('tokensToAnon':u).

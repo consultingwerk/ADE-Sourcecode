@@ -1,11 +1,11 @@
 /************************************************
-Copyright (c) 2013-2020 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2013-2020, 2022 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : String
     Purpose     : Primitive class for character/longchar variables
-    Syntax      : 
-    Description : 
+    Syntax      :
+    Description :
     @author pjudge
     Created     : Tue Aug 11 13:08:46 EDT 2009
     Notes       : * Named 'String' because of keyword/namespace conflicts with
@@ -13,7 +13,11 @@ Copyright (c) 2013-2020 by Progress Software Corporation. All rights reserved.
                   * Initial requirement for collections; having a class for the
                     primitive value means that we don't have to distinguish between
                     primitives and types, which makes the code more readable.
-                  * This class based on the AutoEdge|TheFactory version 
+                  * This class based on the AutoEdge|TheFactory version
+                  * There are different CompareTo implementations since
+                    we can optimise for String objects by looking at the private
+                    variable value; for ILongcharHolder we need to get the Value
+                    property value.
   ---------------------------------------------------------------------- */
 block-level on error undo, throw.
 
@@ -22,30 +26,36 @@ using OpenEdge.Core.Assert.
 using OpenEdge.Core.Collections.Array.
 using OpenEdge.Core.ISupportEncoding.
 using OpenEdge.Core.StringConstant.
+using Progress.Collections.IComparable.
 using Progress.Lang.Object.
 
 /* Don't have a USING for this class, so that we can avoid conflicts with the STRING() ABL keyword/function
 using OpenEdge.Core.String.*/
 
-class OpenEdge.Core.String serializable
-        implements ILongcharHolder, ISupportEncoding:
+class OpenEdge.Core.String
+serializable
+implements ILongcharHolder
+         , ISupportEncoding
+         , IComparable<ILongcharHolder>
+         , IComparable<OpenEdge.Core.String>
+:
     
-    /* Helper/holder for an empty String instance.  */  
+    /* Helper/holder for an empty String instance.  */
     define static private variable moEmptyString as OpenEdge.Core.String no-undo.
     
-    /* Helper/holder for an unknown value String instance.  */  
+    /* Helper/holder for an unknown value String instance.  */
     define static private variable mUnknownString as OpenEdge.Core.String no-undo.
     
-    /* Holds the actual value, in UTF-8. UTF-8 can hold pretty much all characters, so let's be smart and use that. 
+    /* Holds the actual value, in UTF-8. UTF-8 can hold pretty much all characters, so let's be smart and use that.
        SERIALIZABLE since this is the actual value 'holder' */
-    define private serializable variable mUTF8Value as longchar no-undo. 
+    define private serializable variable mUTF8Value as longchar no-undo.
     
-    /* Content encoding (eg utf-8) of this string. Defaults to CPINTERNAL if not specified */ 
+    /* Content encoding (eg utf-8) of this string. Defaults to CPINTERNAL if not specified */
     define public property Encoding as character no-undo get. set.
     
-    /** Contains the actual string value. Marked as NON-SERIALIZABLE since the actual value is derived, 
+    /** Contains the actual string value. Marked as NON-SERIALIZABLE since the actual value is derived,
         and stored in the private mUTF8Value variable */
-    define public non-serializable property Value as longchar no-undo
+    define final public non-serializable property Value as longchar no-undo
         get():
             // no need for changes if we're using UTF-8 as CPINTERNAL
             if this-object:Encoding eq 'UTF-8':u then
@@ -55,7 +65,7 @@ class OpenEdge.Core.String serializable
         end get.
     
     /** Returns the size of the contained string, in characters */
-    define public property Size as int64 no-undo
+    define final public non-serializable property Size as int64 no-undo
         get():
             return length(mUTF8Value).
         end get.
@@ -70,7 +80,7 @@ class OpenEdge.Core.String serializable
                .
     end constructor.
     
-    /* Constructor 
+    /* Constructor
        
        @param longchar A string value */
     constructor public String(input pcString as longchar):
@@ -81,7 +91,7 @@ class OpenEdge.Core.String serializable
                .
     end constructor.
     
-    /* Constructor 
+    /* Constructor
        
        @param longchar A string value */
     constructor public String(input pcString as character):
@@ -92,7 +102,7 @@ class OpenEdge.Core.String serializable
     
     /** Trims whitespace off the contained string */
     method public void Trim():
-        /* we can't use the ABL TRIM keyword, since we run into 
+        /* we can't use the ABL TRIM keyword, since we run into
            name conflicts, so do a left- and right-trim instead. */
         assign mUTF8Value = right-trim(left-trim(mUTF8Value)).
     end method.
@@ -103,7 +113,7 @@ class OpenEdge.Core.String serializable
     method public void Trim(input pCharacter as character):
         Assert:NotNull(pCharacter, 'Trim character').
         
-        /* we can't use the ABL TRIM keyword, since we run into 
+        /* we can't use the ABL TRIM keyword, since we run into
            name conflicts, so do a left- and right-trim instead. */
         assign mUTF8Value = right-trim(left-trim(mUTF8Value, pCharacter), pCharacter).
     end method.
@@ -135,7 +145,7 @@ class OpenEdge.Core.String serializable
             return super:Equals(p0).
     end method.
     
-    /** Splits the value of this string into an array based on 
+    /** Splits the value of this string into an array based on
         a specified delimiter
         
         @param character A delimter used to split the string
@@ -144,7 +154,7 @@ class OpenEdge.Core.String serializable
         return OpenEdge.Core.String:Split(this-object, pcDelimiter).
     end method.
     
-    /** Splits the value of this string into an array based on 
+    /** Splits the value of this string into an array based on
         a default delimiter
         
         @return Array  An array object of strings */
@@ -153,7 +163,7 @@ class OpenEdge.Core.String serializable
     end method.
         
     /** Splits the value of this string into an array using
-        a default delmiter 
+        a default delmiter
         
         @param OpenEdge.Core.String A value to split
         @return Array  An array object of strings */
@@ -162,7 +172,7 @@ class OpenEdge.Core.String serializable
     end method.
     
     /** Splits the value of this string into an array using
-        a specified delmiter 
+        a specified delmiter
         
         If the delimiter does not appear in the string, and the string is not unknown,
         then the array has an extent of 1 and contains the string.
@@ -198,7 +208,7 @@ class OpenEdge.Core.String serializable
     // Splits: ABL primitives
     
     /** Splits the value of this string into an array using
-        a default delmiter 
+        a default delmiter
         
         @param longchar A value to split
         @return character[] An array of strings */
@@ -235,18 +245,9 @@ class OpenEdge.Core.String serializable
                    .
         else
             assign extent(cArray) = iMax.
-        
-        if iMax eq 0 then
-            {&_proparse_ prolint-nowarn(overflow)}
-            assign extent(cArray) = 1
-                   // this should only happen of value and delimiter are empty
-                   cArray[1]      = pcValue
-                   .
-        else
-            assign extent(cArray) = iMax.
         do iLoop = 1 to iMax:
             assign cArray[iLoop] = entry(iLoop, pcValue, pcDelimiter).
-        end. 
+        end.
         
         return cArray.
     end method.
@@ -260,7 +261,7 @@ class OpenEdge.Core.String serializable
     method static public OpenEdge.Core.String Join(input poValue as Array,
                                                    input pcDelimiter as character):
         Assert:IsType(poValue, get-class(OpenEdge.Core.String)).
-        return OpenEdge.Core.String:Join(cast(poValue:ToArray(), OpenEdge.Core.String), pcDelimiter).                    
+        return OpenEdge.Core.String:Join(cast(poValue:ToArray(), OpenEdge.Core.String), pcDelimiter).
     end method.
     
     /** Joins an array's contents into a delimited string
@@ -327,14 +328,14 @@ class OpenEdge.Core.String serializable
     end method.
         
     /* Adds the input string to the end of the current string.
-       No validation (for unknowns in particular) is done on either 
+       No validation (for unknowns in particular) is done on either
        string value.
        
        @param longchar A value to append */
     method public void Append(input pcValue as longchar):
-        // no-op allowed on the special Empty string. don't use the Equals() 
+        // no-op allowed on the special Empty string. don't use the Equals()
         // overload cos it checks values first
-        if int64(this-object) eq int64(moEmptyString) 
+        if int64(this-object) eq int64(moEmptyString)
         or int64(this-object) eq int64(mUnknownString)
         then
             return.
@@ -343,30 +344,30 @@ class OpenEdge.Core.String serializable
     end method.
     
     /* Adds the input string to the end of the current string.
-       No validation (for unknowns in particular) is done on either 
+       No validation (for unknowns in particular) is done on either
        string value.
        
        @param OpenEdge.Core.String A value to append */
     method public void Append(input poValue as OpenEdge.Core.String):
-        // no-op allowed on the special Empty string. don't use the Equals() 
+        // no-op allowed on the special Empty string. don't use the Equals()
         // overload cos it checks values first
-        if int64(this-object) eq int64(moEmptyString) 
+        if int64(this-object) eq int64(moEmptyString)
         or int64(this-object) eq int64(mUnknownString)
         then
             return.
         
-        assign mUTF8Value = mUTF8Value  + poValue:mUTF8Value . 
+        assign mUTF8Value = mUTF8Value  + poValue:mUTF8Value .
     end method.
 
     /* Adds the input string to the beginning of the current string.
-       No validation (for unknowns in particular) is done on either 
+       No validation (for unknowns in particular) is done on either
        string value.
        
        @param longchar A value to prepend */
     method public void Prepend(input pcValue as longchar):
-        // no-op allowed on the special Empty string. don't use the Equals() 
+        // no-op allowed on the special Empty string. don't use the Equals()
         // overload cos it checks values first
-        if int64(this-object) eq int64(moEmptyString) 
+        if int64(this-object) eq int64(moEmptyString)
         or int64(this-object) eq int64(mUnknownString)
         then
             return.
@@ -375,27 +376,27 @@ class OpenEdge.Core.String serializable
     end method.
 
     /* Adds the input string to the beginning of the current string.
-       No validation (for unknowns in particular) is done on either 
+       No validation (for unknowns in particular) is done on either
        string value.
        
        @param OpenEdge.Core.String A value to prepend */
     method public void Prepend(input poValue as OpenEdge.Core.String):
-        // no-op allowed on the special Empty string. don't use the Equals() 
+        // no-op allowed on the special Empty string. don't use the Equals()
         // overload cos it checks values first
         if int64(this-object) eq int64(moEmptyString)
         or int64(this-object) eq int64(mUnknownString)
         then
             return.
         
-        assign mUTF8Value = poValue:mUTF8Value + mUTF8Value. 
+        assign mUTF8Value = poValue:mUTF8Value + mUTF8Value.
     end method.
     
     /* Indicates whether the string is quoted with either double (") or single (') quotes.
        The first AND last characters must be the same and must either the quote character
        
        @param longchar  A string to check
-       @return logical TRUE if the string is non-null and has matching leading and trailing quotes. */    
-    method static public logical IsQuoted(input pcValue as longchar):        
+       @return logical TRUE if the string is non-null and has matching leading and trailing quotes. */
+    method static public logical IsQuoted(input pcValue as longchar):
         if IsQuoted(pcValue, StringConstant:DOUBLE_QUOTE) then
             return true.
         
@@ -407,7 +408,7 @@ class OpenEdge.Core.String serializable
        
        @param longchar  A string to check
        @param character The quote character
-       @return logical TRUE if the string is non-null and has matching leading and trailing quotes. */    
+       @return logical TRUE if the string is non-null and has matching leading and trailing quotes. */
     method static public logical IsQuoted(input pcValue as longchar,
                                           input pcQuote as character):
         // left- and right-trim since this class has a Trim() method and we cannot disambiguate
@@ -416,8 +417,8 @@ class OpenEdge.Core.String serializable
         
         Assert:NotNullOrEmpty(pcQuote, 'Quote character').
         
-        return (index(pcValue, pcQuote)   eq 1 and 
-                r-index(pcValue, pcQuote) eq length(pcValue, 'character':u)). 
+        return (index(pcValue, pcQuote)   eq 1 and
+                r-index(pcValue, pcQuote) eq length(pcValue, 'character':u)).
     end method.
     
     method public logical IsNullOrEmpty():
@@ -447,6 +448,65 @@ class OpenEdge.Core.String serializable
             return true.
         
         return false.
+    end method.
+
+    /* Comparison method, used by SortedSet's default comparer. This method uses the Value property to compare.
+       
+       - If the returned value is less than 0 (zero), then the current object sorts before the object passed in.
+       - If the returned value equals 0 (zero) , then the current object occupies the same position in the sort order.
+       - If the returned value is greater than 0(zero), then the current object sorts after the object passed in.
+       - If either object's Value is the unknown value (?), then that sorts high/early/before
+       
+       @param ILongcharHolder The object to compare to.
+       @return integer  0 = same object
+                       +1 = sorts after
+                       -1 = sorts before   */
+    method public integer CompareTo(input pOther as ILongcharHolder):
+        Assert:NotNull(pOther, 'CompareTo object').
+        
+        if this-object:Value eq pOther:Value then
+            return  0.
+        else
+        if this-object:Value gt pOther:Value
+        or pOther:Value eq ?
+        then
+            return +1.
+        else
+        if this-object:Value lt pOther:Value
+        or this-object:Value eq ?
+        then
+            return -1.
+    end method.
+    
+    /* Comparison method, used by SortedSet's default comparer.
+       
+       Due to the ABL's "class private" rules, instances of String can read each others private variables/properties,
+       which avoied the Value property getter work.
+       
+       - If the returned value is less than 0 (zero), then the current object sorts before the object passed in.
+       - If the returned value equals 0 (zero) , then the current object occupies the same position in the sort order.
+       - If the returned value is greater than 0(zero), then the current object sorts after the object passed in.
+       - If either object's Value is the unknown value (?), then that sorts high/early/before
+        
+       @param OpenEdge.Core.String The object to compare to.
+       @return integer  0 = same object
+                       +1 = sorts after
+                       -1 = sorts before   */
+    method public integer CompareTo(input pOther as OpenEdge.Core.String):
+        Assert:NotNull(pOther, 'CompareTo object').
+        
+        if this-object:mUTF8Value eq pOther:mUTF8Value then
+            return  0.
+        else
+        if this-object:mUTF8Value gt pOther:mUTF8Value
+        or pOther:mUTF8Value eq ?
+        then
+            return +1.
+        else
+        if this-object:mUTF8Value lt pOther:mUTF8Value
+        or this-object:mUTF8Value eq ?
+        then
+            return -1.
     end method.
 
 end class.

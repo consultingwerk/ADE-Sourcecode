@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2017-2018, 2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2017-2018, 2021-2022 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : SemanticVersion
@@ -20,9 +20,10 @@ block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.SemanticVersion.
+using Progress.Collections.IComparable.
 using Progress.Lang.Object.
 
-class OpenEdge.Core.SemanticVersion serializable:
+class OpenEdge.Core.SemanticVersion serializable implements IComparable<SemanticVersion>:
     /* The major version */
     define public property Major as integer no-undo get. private set.
     
@@ -164,6 +165,95 @@ class OpenEdge.Core.SemanticVersion serializable:
                     and this-object:BuildMetadata eq cast(pCompare, SemanticVersion):BuildMetadata ).
         
         return false.
+    end method.
+
+    /* Comparison method, used by SortedSet's default comparer
+        - used specs from https://semver.org/spec/v2.0.0.html to do compare
+          - per the spec, "Build metadata MUST be ignored when determining version precedence. Thus two versions 
+                           that differ only in the build metadata, have the same precedence.", so it just
+                           sorts mormally.
+                           
+        - If the returned value is less than 0 (zero), then the current object sorts before the object passed in.
+        - If the returned value equals 0 (zero) , then the current object occupies the same position in the sort order.
+        - If the returned value is greater than 0(zero), then the current object sorts after the object passed in.
+        - If either object's Value is the unknown value (?), then that sorts high/early/before
+        
+        @param SemanticVersion The object to compare to.
+        @return integer  0 = same object
+                        +1 = sorts after
+                        -1 = sorts before   */
+    method public integer CompareTo(input pOther as SemanticVersion):
+        Assert:NotNull(pOther, 'CompareTo object').
+        
+        if this-object:Major         eq pOther:Major and
+           this-object:Minor         eq pOther:Minor and
+           this-object:Patch         eq pOther:Patch and
+           this-object:Prerelease    eq pOther:Prerelease and
+           this-object:BuildMetadata eq pOther:BuildMetadata
+        then
+            return 0.
+
+        // Check Major Version
+        if this-object:Major gt pOther:Major
+        then
+            return +1.
+        else
+        if this-object:Major lt pOther:Major
+        then
+            return -1.
+               
+        // Check Minor Version
+        if this-object:Minor gt pOther:Minor
+        then
+            return +1.
+        else        
+        if this-object:Minor lt pOther:Minor
+        then
+            return -1.
+            
+        // Check Patch Version
+        if this-object:Patch gt pOther:Patch
+        then
+            return +1.
+        else        
+        if this-object:Patch lt pOther:Patch
+        then
+            return -1.
+
+        // Check Prerelease Version.  If Prerelease version has a value
+        // it should sort before an empty value since releases for customers
+        // have no Prerelease value.  https://semver.org/spec/v2.0.0.html explains
+        // prerelease precedence.
+        if this-object:Prerelease gt "" and
+           pOther:Prerelease eq ""
+        then
+            // We want a prerelease value to go before blank
+            return -1.
+        else
+        if this-object:Prerelease eq "" and
+           pOther:Prerelease gt ""
+        then
+            // We want a blank value to go after prerelease value
+            return +1.
+        
+        // Sort by Prerelease when both values are present
+        if this-object:Prerelease gt pOther:Prerelease
+        then
+            return +1.
+        else        
+        if this-object:Prerelease lt pOther:Prerelease
+        then
+            return -1.
+        
+        //  Normal Sort by BuildMetadata
+        if this-object:BuildMetadata gt pOther:BuildMetadata
+        then
+            return +1.
+        else        
+            return -1.
+            
+        // this will raise an error in the Comparer; we should never get here though.
+        return ?.
     end method.
     
 end class.

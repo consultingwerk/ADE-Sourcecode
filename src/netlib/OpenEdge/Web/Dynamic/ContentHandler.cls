@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2021 by Progress Software Corporation.
+ * Copyright (c) 2016, 2021-2022 by Progress Software Corporation.
  * 14 Oak Park Bedford, MA 01730.  All rights reserved.
  *
  * No part of this program or document may be reproduced
@@ -182,7 +182,7 @@ class OpenEdge.Web.Dynamic.ContentHandler
         copy-lob file cFullPathName to mFile.
         iFileLength = get-size(mFile).
         {&_proparse_ prolint-nowarn(overflow)}
-        response:ContentLength = integer(iFileLength).
+        response:ContentLength = int64(iFileLength).
         writer:write(mFile, 1, iFileLength).                
     end method.
 

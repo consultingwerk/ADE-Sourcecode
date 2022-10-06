@@ -143,7 +143,7 @@ class OpenEdge.BusinessRules.RulesServerConnection use-widget-pool implements IS
             define variable oAppError as AppError no-undo.
                      
             oAppError = new AppError(oSoapError:GetMessage(1)).
-            IF oSoapError:GetMessageNum(1) EQ 11506 THEN DO:
+            if oSoapError:GetMessageNum(1) eq 11506 then do:
                 create x-document xmlDoc.
                 create x-noderef xmlNode.
     
@@ -152,11 +152,11 @@ class OpenEdge.BusinessRules.RulesServerConnection use-widget-pool implements IS
 
                 oAppError:AddMessage(substitute('Decision Service &1 is not available on the Business Rules server',
                                                  quoter(xmlNode:get-attribute ('decisionServiceName'))), 0).
-            END.
-            ELSE DO:
+            end.
+            else do:
                 oAppError:AddMessage(oSoapError:SoapFault:soap-fault-code, oSoapError:GetMessageNum(1)).
                 oAppError:AddMessage(oSoapError:SoapFault:soap-fault-actor, oSoapError:GetMessageNum(1)).
-            END.                
+            end.                
             undo, throw oAppError.
         end catch.
         finally:
@@ -169,6 +169,7 @@ class OpenEdge.BusinessRules.RulesServerConnection use-widget-pool implements IS
         
         @param character The decision service name.
         @return logical Whether the decision service is deployed of not. */
+    {&_proparse_ prolint-nowarn(varusage)}
     method public logical IsDecisionServiceAvailable(input pcServiceName as character):
         return true.
     end method.
@@ -178,6 +179,7 @@ class OpenEdge.BusinessRules.RulesServerConnection use-widget-pool implements IS
         @param character The decision service name.
         @param decimal The version to query.
         @return logical Whether the decision service is deployed of not. */
+    {&_proparse_ prolint-nowarn(varusage)}
     method public logical IsDecisionServiceAvailable(input pcServiceName as character, 
                                                      input pdVersion as decimal):
         return true.                                                
@@ -190,9 +192,9 @@ class OpenEdge.BusinessRules.RulesServerConnection use-widget-pool implements IS
         @param datetime-tz The effective datetime stamp on which a decision service
                            is deployed.
         @return logical Whether the decision service is deployed of not. */    
+    {&_proparse_ prolint-nowarn(varusage)}
     method public logical IsDecisionServiceAvailable(input pcServiceName as character, 
                                                      input ptEffectiveOn as datetime-tz):
-        
         return true.
     end method.    
     

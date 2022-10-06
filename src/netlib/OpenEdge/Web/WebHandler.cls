@@ -1,20 +1,20 @@
 /************************************************
-Copyright (c) 2015-2017 by Progress Software Corporation. All rights reserved.
-*************************************************/ 
+Copyright (c) 2015-2017, 2022 by Progress Software Corporation. All rights reserved.
+*************************************************/
 /*------------------------------------------------------------------------
    Purpose     : Abstract class to use as a basis for building WebSpeed for
                  PASOE request handlers
-   Syntax      : 
-   Description : 
+   Syntax      :
+   Description :
    Author(s)   : mbanks
    Created     : Wed Jan 14 14:38:25 EST 2015
    Notes       : * Concrete child classes must implement the HandleNotImplemented and
-                   HandleNotAllowedMethod methods so which are the baseline on 
+                   HandleNotAllowedMethod methods so which are the baseline on
                    we control the messages back (either created entirely in ABL or
                    served by PASOE).
                  * Concrete child classes MAY implement HandleException if they want
-                   to control the way error states are handled. The default is to return 
-                   an integer status code. 
+                   to control the way error states are handled. The default is to return
+                   an integer status code.
  ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
@@ -30,23 +30,31 @@ using OpenEdge.Web.IWebRequest.
 using OpenEdge.Web.SendExceptionError.
 using OpenEdge.Web.WebRequest.
 using Progress.Web.IWebHandler.
-using OpenEdge.Web.WebHandler.
 
 class OpenEdge.Web.WebHandler abstract
             implements IWebHandler, ISupportLogging :
-
-    // A reference to the Logger in use by an implementer
-    define public property Logger as ILogWriter no-undo get. set.
     
-    /* Default constructor */
-    constructor public WebHandler():
-        assign this-object:Logger = LoggerBuilder:GetLogger(get-class(WebHandler)).
-    end constructor.
+    /* A reference to the Logger in use by an implementer */
+    define public property Logger as ILogWriter no-undo
+        get():
+            // If the property value is set, use that since that will have been a
+            // deliberate act.
+            //
+            // If not set, then always ask for a new one, because this
+            // class may be run as a singleton, which means that the first logger used will
+            // be *the* logger for the life of this session (which breaks the administrator's
+            // ability to configure loggers).
+            if valid-object(this-object:Logger) then
+                return this-object:Logger.
+            else
+                return LoggerBuilder:GetLogger(this-object:GetClass()).
+        end get.
+        set.
     
     /* Handle request by calling the specific handler for the request method
        
        @return integer An HTTP status code. Zero means that the webhandler will take care of
-                       any errors. A non-zero value means that the PASOE webapp's error handling 
+                       any errors. A non-zero value means that the PASOE webapp's error handling
                        will return a standard page for the error */
     method public integer HandleRequest( ):
         define variable webRequest as IWebRequest no-undo.
@@ -93,7 +101,7 @@ class OpenEdge.Web.WebHandler abstract
         end catch.
     end method.
     
-    /* Handles an exception that has been raised while dealing with the request 
+    /* Handles an exception that has been raised while dealing with the request
     
        @param Progress.Lang.Error The as-yet-unhandled exception
        @param IWebRequest The request that resulting in the exception
@@ -105,20 +113,20 @@ class OpenEdge.Web.WebHandler abstract
         assign iReturnCode = integer(StatusCodeEnum:None).
         
         if not valid-object(poError) then
-            assign iReturnCode = integer(StatusCodeEnum:InternalServerError).             
+            assign iReturnCode = integer(StatusCodeEnum:InternalServerError).
         else
         do:
             /* bad: We know something went wrong, and we were told what */
             if type-of(poError, SendExceptionError) then
                 assign iReturnCode = integer(cast(poError, SendExceptionError):StatusCode).
-            else            
-                assign iReturnCode = integer(StatusCodeEnum:InternalServerError).             
+            else
+                assign iReturnCode = integer(StatusCodeEnum:InternalServerError).
             
-            // Raise a Trace event to get the exception name and call stack 
-            Logger:Error(substitute('Request error for &1 &2: status code &3', 
+            // Raise a Trace event to get the exception name and call stack
+            Logger:Error(substitute('Request error for &1 &2: status code &3',
                                 poRequest:Method,
                                 poRequest:URI:Path,
-                                iReturnCode), 
+                                iReturnCode),
                          poError).
         end.
         
@@ -127,91 +135,91 @@ class OpenEdge.Web.WebHandler abstract
     
     /* Handler for unsupported methods
        
-       @param IWebRequest The request being serviced 
-       @return integer An optional status code. A zero or null value means this 
+       @param IWebRequest The request being serviced
+       @return integer An optional status code. A zero or null value means this
                               method will deal with all errors */
     method abstract protected integer HandleNotAllowedMethod(input poRequest as IWebRequest).
        
     /* Handler for unknown methods
        
-       @param IWebRequest The request being serviced 
-       @return integer An optional status code. A zero or null value means this 
+       @param IWebRequest The request being serviced
+       @return integer An optional status code. A zero or null value means this
                               method will deal with all errors */
     method abstract protected integer HandleNotImplemented(input poRequest as IWebRequest).
        
     /* Default handler for the HTTP DELETE method
        
-       @param IWebRequest The request being serviced 
-       @return integer An optional status code. A zero or null value means this 
+       @param IWebRequest The request being serviced
+       @return integer An optional status code. A zero or null value means this
                               method will deal with all errors */
     method protected integer HandleDelete(input poRequest as IWebRequest):
-        return HandleNotAllowedMethod(poRequest).    
+        return HandleNotAllowedMethod(poRequest).
     end method.
 
     /* Default handler for the HTTP GET method
        
-       @param IWebRequest The request being serviced 
-       @return integer An optional status code. A zero or null value means this 
+       @param IWebRequest The request being serviced
+       @return integer An optional status code. A zero or null value means this
                               method will deal with all errors */
     method protected integer HandleGet(input poRequest as IWebRequest):
-        return HandleNotAllowedMethod(poRequest).    
+        return HandleNotAllowedMethod(poRequest).
     end method.
 
     /* Default handler for the HTTP POST method
        
-       @param IWebRequest The request being serviced 
-       @return integer An optional status code. A zero or null value means this 
+       @param IWebRequest The request being serviced
+       @return integer An optional status code. A zero or null value means this
                               method will deal with all errors */
     method protected integer HandlePost(input poRequest as IWebRequest):
-        return HandleNotAllowedMethod(poRequest).    
+        return HandleNotAllowedMethod(poRequest).
     end method.
 
     /* Default handler for the HTTP PUT method
        
-       @param IWebRequest The request being serviced 
-       @return integer An optional status code. A zero or null value means this 
+       @param IWebRequest The request being serviced
+       @return integer An optional status code. A zero or null value means this
                               method will deal with all errors */
     method protected integer HandlePut(input poRequest as IWebRequest):
-        return HandleNotAllowedMethod(poRequest).    
+        return HandleNotAllowedMethod(poRequest).
     end method.
 
     /* Default handler for the HTTP PATCH method
        
-       @param IWebRequest The request being serviced 
-       @return integer An optional status code. A zero or null value means this 
+       @param IWebRequest The request being serviced
+       @return integer An optional status code. A zero or null value means this
                               method will deal with all errors */
     method protected integer HandlePatch(input poRequest as IWebRequest):
-        return HandleNotAllowedMethod(poRequest).    
+        return HandleNotAllowedMethod(poRequest).
     end method.
 
     /* Default handler for the HTTP HEAD method
        
-       @param IWebRequest The request being serviced 
-       @return integer An optional status code. A zero or null value means this 
+       @param IWebRequest The request being serviced
+       @return integer An optional status code. A zero or null value means this
                               method will deal with all errors */
     method protected integer HandleHead(input poRequest as IWebRequest):
-        return HandleNotAllowedMethod(poRequest).    
+        return HandleNotAllowedMethod(poRequest).
     end method.
 
     /* Default handler for the HTTP OPTIONS method
        
-       @param IWebRequest The request being serviced 
-       @return integer An optional status code. A zero or null value means this 
+       @param IWebRequest The request being serviced
+       @return integer An optional status code. A zero or null value means this
                               method will deal with all errors */
     method protected integer HandleOptions(input poRequest as IWebRequest):
-         return HandleNotAllowedMethod(poRequest).    
+         return HandleNotAllowedMethod(poRequest).
     end method.
         
     /* Default handler for the HTTP TRACE method
        
-       @param IWebRequest The request being serviced 
-       @return integer An optional status code. A zero or null value means this 
+       @param IWebRequest The request being serviced
+       @return integer An optional status code. A zero or null value means this
                               method will deal with all errors */
     method protected integer HandleTrace(input poRequest as IWebRequest):
-        return HandleNotAllowedMethod(poRequest).    
+        return HandleNotAllowedMethod(poRequest).
     end method.
     
-    /** Logs a message 
+    /** Logs a message
         
         @param character The message to log
         @param integer  The level this message should be logged at */
@@ -224,12 +232,12 @@ class OpenEdge.Web.WebHandler abstract
             when integer(LogLevelEnum:INFO ) then Logger:Info(pcMessage).
             when integer(LogLevelEnum:DEBUG) then Logger:Debug(pcMessage).
             when integer(LogLevelEnum:TRACE) then Logger:Trace(pcMessage).
-            otherwise 
+            otherwise
                 Logger:Warn(pcMessage).
         end case.
     end method.
     
-    /* Ensures that the request's Accept header and the operation's 
+    /* Ensures that the request's Accept header and the operation's
        ContentType values are compatible, per https://tools.ietf.org/html/rfc7231#section-5.3.2
        
        ContentType must be a complete type/subtype.
@@ -237,9 +245,9 @@ class OpenEdge.Web.WebHandler abstract
        values appear the we can service the request.
        
        @param IWebRequest The request that resulting in the exception
-       @param character The MIME type we're wanting to return (usally from the operation) 
+       @param character The MIME type we're wanting to return (usally from the operation)
        @return logical TRUE if the operation's ContentType is compatible with the request's Accept value */
-    method protected logical CanAcceptContentType(input pRequest as IWebRequest,                                              
+    method protected logical CanAcceptContentType(input pRequest as IWebRequest,
                                                   input pContentType as character):
         define variable reqAccept as character no-undo.
         define variable cnt as integer no-undo.
@@ -267,9 +275,9 @@ class OpenEdge.Web.WebHandler abstract
         do cnt = 1 to maxTypes while not canAccept:
             assign reqCType = MimeTypeHelper:SplitType(entry(cnt, reqAccept))
                    .
-            // stars mean anything goes; exact match means we're good here          
-            if    (reqCType[1] eq '*':u        and reqCType[2] eq '*':u) 
-               or (reqCType[1] eq compCType[1] and reqCType[2] eq compCType[2]) 
+            // stars mean anything goes; exact match means we're good here
+            if    (reqCType[1] eq '*':u        and reqCType[2] eq '*':u)
+               or (reqCType[1] eq compCType[1] and reqCType[2] eq compCType[2])
                then
             do:
                 assign canAccept = true.
@@ -282,7 +290,7 @@ class OpenEdge.Web.WebHandler abstract
             
             // *-groups and exact matches
             if    reqCType[2] eq '*':u
-               or reqCType[2] eq compCType[2] 
+               or reqCType[2] eq compCType[2]
                then
             do:
                 assign canAccept = true.

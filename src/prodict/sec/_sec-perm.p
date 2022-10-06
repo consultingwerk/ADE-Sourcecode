@@ -44,7 +44,8 @@
     fernando Nov 03, 2005  Make sure 'grant' toggle-box is not selected by default
                            if scrolling through roles, after it gets sensitive again.
     fernando 11/30/07      Check if read-only mode.
-    tmasood  05/21/21      Fixed the invalid value FALSE pass to a toggle-box                           
+    tmasood  05/21/21      Fixed the invalid value FALSE pass to a toggle-box  
+    tmasood  12/21/21      Allow Audit Admin to Grant roles                         
 ------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress AppBuilder.       */
 /*----------------------------------------------------------------------*/
@@ -844,6 +845,11 @@ PROCEDURE localButtonState :
   DEFINE VARIABLE lCanGrant  AS LOGICAL     NO-UNDO.
   DEFINE VARIABLE lCanChange AS LOGICAL     NO-UNDO.
   DEFINE VARIABLE lCanRevoke AS LOGICAL     NO-UNDO.
+  
+  /* If user an Audit Administrator then allow him to Grant roles */
+  IF (hasRole(USERID("DICTDB"),"_sys.audit.admin",FALSE)  OR 
+      hasRole(USERID("DICTDB"),"_pvm.audit.admin",FALSE)) AND ronly THEN
+    ASSIGN ronly = NO.
   
   IF NOT ronly THEN
   GRANT-BLK:

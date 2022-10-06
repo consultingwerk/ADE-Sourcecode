@@ -21,7 +21,7 @@ using OpenEdge.Net.HTTP.ResponseBuilder.
 
 class OpenEdge.Net.HTTP.DefaultResponseBuilder inherits ResponseBuilder:
     /* custom implementation */
-    define override public property Response as IHttpResponse no-undo
+    define final override public property Response as IHttpResponse no-undo
         get():
             return NewResponse().
         end get.

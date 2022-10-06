@@ -357,6 +357,41 @@ class OpenEdge.Logging.LoggerBuilder inherits ConfigBuilder:
         return false.
     end method.
     
+    /* Removes a group of loggers from the cache. This is for cases where we know the group / partial name
+       but not the individual loggers that share that config.
+       
+       The group name has a '.' appended to try to enfore the 'groupness', and not delete any individual cached loggers
+       
+       @param character The logger group name.
+       @return logical TRUE if the any logger instance records were removed */
+    method static protected logical RemoveGroupFromCache(input pLoggerName as character):
+        var logical removed = false.
+        var integer pos, len.
+        define buffer bLogger for Logger.
+        
+        if pLoggerName eq ?
+        or pLoggerName eq ''
+        or pLoggerName eq '.'
+        then
+            return removed.
+        
+        // check if there are groups of loggers with this name
+        assign pLoggerName = trim(pLoggerName)
+               len         = length(pLoggerName)
+               pos         = r-index(pLoggerName, '.')
+               .
+        if not substring(pLoggerName, len, 1) eq '.' then
+            assign pLoggerName += '.'.
+        
+        for each bLogger
+           where bLogger.LoggerName begins pLoggerName:
+            delete bLogger.
+            assign removed = true.
+        end.
+        
+        return removed.
+    end method.
+    
     /* Indicates whether a cached instance of a logger exists.
        
        @param character The logger name

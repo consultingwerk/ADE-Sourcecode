@@ -49,7 +49,8 @@ class OpenEdge.Web.DataObject.MessageElement serializable:
             when ElementTypeEnum:None or
             when ElementTypeEnum:Body or
             when ElementTypeEnum:HeaderSet or
-            when ElementTypeEnum:QueryMap then
+            when ElementTypeEnum:QueryMap or
+            when ElementTypeEnum:QueryParams then
                 /*NO-OP*/ .
             
             otherwise

@@ -274,9 +274,10 @@ class OpenEdge.BusinessRules.RulesServerConnectionParameters implements IConnect
                     assign oQuery = oURL:GetJsonArray('query')
                            iMax = oQuery:Length
                            .
+                    TYPEBLK:
                     do iLoop = 1 to iMax while lAddQuery:
                         if not oQuery:GetType(iLoop) eq JsonDataType:OBJECT then
-                            next.
+                            next TYPEBLK.
                         
                         oWsdl = oQuery:GetJsonObject(iLoop).
 

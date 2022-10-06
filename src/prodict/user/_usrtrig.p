@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000-2022 by Progress Software Corporation. All rights *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -34,6 +34,7 @@
                         When the trigger procedure was large (gt 32K), it
                         would generate error 444.  "tcode" is a local var
                         that is not used in any comparison (as stated). 
+      tmasood   05/17/22 Added the check for unique trigger procedure file name                  
 
 ---------------------------------------------------------------------------*/
 
@@ -50,6 +51,9 @@ DEFINE INPUT-OUTPUT PARAMETER p_Check  	  AS LOGICAL   NO-UNDO.
 DEFINE VARIABLE tcode  AS CHARACTER   NO-UNDO.
 DEFINE VARIABLE saved  AS LOGICAL     NO-UNDO.
 DEFINE VARIABLE fname  AS CHARACTER   NO-UNDO.
+
+DEFINE BUFFER b_File  for _File.
+DEFINE BUFFER b_Field for _Field.
 
 FORM
    tcode view-as EDITOR INNER-CHARS 72 INNER-LINES 13 SCROLLBAR-V  SKIP
@@ -124,6 +128,9 @@ END.
 
 
 /*=========================Mainline code=================================*/
+DEFINE VARIABLE answer   AS LOGICAL   NO-UNDO.
+DEFINE VARIABLE s_Res    AS LOGICAL NO-UNDO. 
+DEFINE VARIABLE new_trig AS LOGICAL NO-UNDO.
 
 IF p_pgm = "" OR p_pgm = ? THEN DO:
   HIDE MESSAGE NO-PAUSE.
@@ -139,6 +146,48 @@ END.
    &FRAME  = "FRAME trigcode"
    &OK     = "btn_OK"
    &CANCEL = "btn_Cancel"}
+   
+/* If this procedure exists already, ask the user what he wants. */
+FIND _File WHERE _File._File-Name = p_tname NO-LOCK NO-ERROR.
+FIND _Field WHERE _Field._Field-Name = p_fname NO-LOCK NO-ERROR.
+
+IF CAN-FIND(_file-trig WHERE _file-trig._file-recid = RECID(_File)
+                         AND _file-trig._event = p_event) OR 
+   CAN-FIND(_field-trig WHERE _field-trig._field-recid = RECID(_Field)
+                          AND _field-trig._event = p_event) THEN 
+  ASSIGN new_trig = FALSE.
+ELSE 
+  ASSIGN new_trig = TRUE.
+
+IF p_fname = "" AND NOT new_trig THEN
+  FIND FIRST _file-trig WHERE _file-trig._file-recid <> RECID(_File)
+                          AND _file-trig._Proc-Name = p_pgm NO-ERROR.
+ELSE
+  FIND FIRST _file-trig WHERE _file-trig._Proc-Name = p_pgm NO-ERROR.
+  
+IF p_fname <> "" AND NOT new_trig THEN
+  FIND FIRST _field-trig WHERE _field-trig._field-recid <> RECID(_Field)
+                           AND _field-trig._Proc-Name = p_pgm NO-ERROR.
+ELSE
+  FIND FIRST _field-trig WHERE _field-trig._Proc-Name = p_pgm NO-ERROR.
+IF AVAILABLE _file-trig OR AVAILABLE _field-trig THEN DO:
+    FIND b_File WHERE RECID(b_File) = _file-trig._file-recid NO-LOCK NO-ERROR.
+    IF AVAILABLE _field-trig THEN
+     FIND b_Field WHERE RECID(b_Field) = _field-trig._field-recid NO-LOCK NO-ERROR.
+    MESSAGE "This file name already used as trigger procedure for " + p_event + " of " + (IF AVAILABLE b_File THEN b_File._File-Name ELSE "") +
+              (if AVAILABLE b_Field then "." + b_Field._Field-Name else "") SKIP
+              "Select:" SKIP
+              "   Yes to use the contents of the existing file" SKIP
+              "   No to enter a different file name."
+              VIEW-AS ALERT-BOX QUESTION BUTTONS YES-NO UPDATE answer.
+    IF answer THEN
+    DO:
+       s_Res = tcode:read-file(p_pgm) IN FRAME trigcode.
+       tcode = tcode:screen-value IN FRAME trigcode.
+    END.
+    ELSE
+      RETURN.
+END.  
 
 /* Look for this procedure and load it if it's out there. If it's a 
    new file, preset the edit widget for this type of trigger. It will

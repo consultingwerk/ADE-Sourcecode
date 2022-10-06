@@ -10,7 +10,8 @@ Copyright (c) 2013-2022 by Progress Software Corporation. All rights reserved.
    Author(s)   : hgarapat
    Created     : Wed Jun 27 18:18:40 IST 2012
    Notes       : Modified the annotations. The newly modified annotations are common for both class and procedure files.
-                 Current annotations are Before, Setup, Test, TearDown, After.
+                 Current annotations are BeforeAll, BeforeEach, Test, AfterEach, AfterAll, and Ignore.
+                 Legacy annotations Before, Setup, TearDown, and After are supported but logged as deprecated.
  ----------------------------------------------------------------------*/
 
 BLOCK-LEVEL ON ERROR UNDO, THROW.
@@ -56,10 +57,10 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
     DEFINE PRIVATE STREAM dirlist.
 
     // A reference to the Logger in use by an implementer
-    DEFINE PUBLIC PROPERTY Logger as ILogWriter NO-UNDO GET. SET.
+    DEFINE PUBLIC PROPERTY Logger AS ILogWriter NO-UNDO GET. SET.
 
     // Class members
-    DEFINE PRIVATE VARIABLE TREE_DEPTH_END   AS CHARACTER  NO-UNDO INIT "~\NULL".
+    DEFINE PRIVATE VARIABLE TREE_DEPTH_END AS CHARACTER  NO-UNDO INIT "~\NULL".
 
     DEFINE PRIVATE VARIABLE testModel AS TestRootModel NO-UNDO.
     DEFINE PRIVATE VARIABLE TEST_FOLDER_ROOT AS CHARACTER NO-UNDO INIT "TEST_ROOT".
@@ -100,22 +101,28 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
     END METHOD.
 
     /*------------------------------------------------------------------------------
-     Purpose: This is newly added constructor, which accepts formatted JSON object of configuration file.
-     Notes:
+        Constructor, which accepts formatted JSON object of configuration file.
+       
+        @param TestConfig Configuration for this test run
+        @param character  The name of the 'update' file, used by PDSOE for incremental reporting of this test run
     ------------------------------------------------------------------------------*/
-    CONSTRUCTOR PUBLIC ABLRunner ( INPUT inputConfig AS CLASS TestConfig, INPUT pUpdateFile AS CHARACTER ):
+    CONSTRUCTOR PUBLIC ABLRunner ( INPUT inputConfig AS CLASS TestConfig,
+                                   INPUT pUpdateFile AS CHARACTER ):
         THIS-OBJECT().
-        IF not valid-object(inputConfig) THEN
+        IF NOT VALID-OBJECT(inputConfig) THEN
             RETURN ERROR NEW AppError("TestConfig can not be null.", 0).
         testConfig = inputConfig.
         /*Get the ABLUnit results file*/
         ablResultsFile = testConfig:GetResultsFile().
-        THIS-OBJECT:updateFile = pUpdateFile.
+        IF NOT pUpdateFile EQ ? THEN
+            ASSIGN THIS-OBJECT:updateFile = pUpdateFile.
     END CONSTRUCTOR.
 
     /*------------------------------------------------------------------------------
-     Purpose: This method will return the full path of a given file.
-     Notes:
+        This method will return the full path of a given file.
+
+        @param  character A single, simple file name
+        @return character The full path to the file on disk
     ------------------------------------------------------------------------------*/
     METHOD PRIVATE CHARACTER GetFullPathname ( INPUT pcFile AS CHARACTER ):
         DEFINE VARIABLE cReturn AS CHARACTER NO-UNDO.
@@ -131,8 +138,7 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
     END METHOD.
 
     /*------------------------------------------------------------------------------
-     Purpose: This method will locate any local XREF files if configured to do so.
-     Notes:
+        This method will locate any local XREF files if configured to do so.
     ------------------------------------------------------------------------------*/
     METHOD PROTECTED VOID FindXrefFiles ( ):
         EMPTY TEMP-TABLE ttXrefs.
@@ -148,8 +154,10 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
     END METHOD.
 
     /*------------------------------------------------------------------------------
-     Purpose: This method will recurse into a directory and build a TT structure.
-     Notes:
+        This method will recurse into a directory and build a TT structure.
+
+        @param character
+        @param character
     ------------------------------------------------------------------------------*/
     METHOD PROTECTED VOID RecurseDir ( INPUT pcFrom    AS CHARACTER,
                                        INPUT pcExtMask AS CHARACTER ):
@@ -190,22 +198,23 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
     END METHOD.
 
     /*------------------------------------------------------------------------------
-     This method should return a valid XREF path which physically exists on disk. As
-     XREF files can be created using different patterns for file extensions (based
-     on how the file was compiled), we need to create a couple of standard candiate
-     filenames using the expected file extension. The order for locating a valid XREF
-     file will use the following steps:
+        This method should return a valid XREF path which physically exists on disk. As
+        XREF files can be created using different patterns for file extensions (based
+        on how the file was compiled), we need to create a couple of standard candiate
+        filenames using the expected file extension. The order for locating a valid XREF
+        file will use the following steps:
          1. Use the given test case (type: class or procedure) replacing the file extension:
             1a. Create a candidate filename using a common pattern for the PCTCompile task.
             1b. Create a candidate filename using a common pattern for PDSOE/Explicit naming.
          2. Search for a matching XREF filename in a list of potential, available files.
          3. Return ? if no matching XREF file was located.
 
-       @param  character The test case being examined for addition to ABLUnit
-       @param  character The expected type of test case (class or proc[edure])
-       @return character The located XREF file (or ? if not found)
+        @param  character The test case being examined for addition to ABLUnit
+        @param  character The expected type of test case (class or proc[edure])
+        @return character The located XREF file (or ? if not found)
     ------------------------------------------------------------------------------*/
-    METHOD PROTECTED CHARACTER GetXRefFile ( INPUT pcTestCase AS CHARACTER, INPUT pcTestType AS CHARACTER ):
+    METHOD PROTECTED CHARACTER GetXRefFile ( INPUT pcTestCase AS CHARACTER,
+                                             INPUT pcTestType AS CHARACTER ):
         DEFINE VARIABLE testCase      AS String    NO-UNDO.
         DEFINE VARIABLE testPath      AS Array     NO-UNDO.
         DEFINE VARIABLE baseName      AS CHARACTER NO-UNDO.
@@ -284,8 +293,8 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
         FOR EACH ttXrefs NO-LOCK
            WHERE ttXrefs.FileName EQ candidateName[1]
               OR ttXrefs.FileName EQ candidateName[2]
-              by ttXrefs.ParentDir
-              by ttXrefs.FileName:
+              BY ttXrefs.ParentDir
+              BY ttXrefs.FileName:
             matchedFiles:Add(NEW OpenEdge.Core.String(ttXrefs.FullPath)).
         END.
 
@@ -335,12 +344,15 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
         RETURN foundFile. /* Return a matched file if not already encountered a RETURN statement. */
     END METHOD.
 
-
     /*------------------------------------------------------------------------------
-     Purpose: Produce a score for 2 files based on the # of matching directories.
-     Notes:
+        Produce a score for 2 files based on the # of matching directories.
+
+        @param  Array     A list of test paths
+        @oaram  Array     A list of matched files
+        @return integer[] A list of scores
     ------------------------------------------------------------------------------*/
-    METHOD PRIVATE INTEGER EXTENT ScoreMatches ( INPUT poTestPath AS Array, INPUT poMatchedFiles AS Array ):
+    METHOD PRIVATE INTEGER EXTENT ScoreMatches ( INPUT poTestPath     AS Array,
+                                                 INPUT poMatchedFiles AS Array ):
         DEFINE VARIABLE xrefPath    AS Array   NO-UNDO.
         DEFINE VARIABLE iMatchScore AS INTEGER NO-UNDO EXTENT.
         DEFINE VARIABLE iMax        AS INTEGER NO-UNDO.
@@ -376,10 +388,8 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
         RETURN iMatchScore.
     END METHOD.
 
-
     /*------------------------------------------------------------------------------
-     Purpose: This method runs the tests that are passed as JsonObject.
-     Notes:
+        This method runs the tests that are passed as JsonObject.
     ------------------------------------------------------------------------------*/
     METHOD PUBLIC VOID RunTests ( ):
         DEFINE VARIABLE testsArray AS JsonArray NO-UNDO.
@@ -394,15 +404,15 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
         DEFINE VARIABLE testResource AS CHARACTER NO-UNDO.
         
         // Check if there's a ServiceManager and if that has a results writer defined
-        if valid-object(Ccs.Common.Application:ServiceManager) then
-        do:
-            assign writer = cast(Ccs.Common.Application:ServiceManager:getService(get-class(IResultsWriter)), IResultsWriter)
+        IF VALID-OBJECT(Ccs.Common.Application:ServiceManager) THEN
+        DO:
+            ASSIGN writer = CAST(Ccs.Common.Application:ServiceManager:getService(GET-CLASS(IResultsWriter)), IResultsWriter)
                    no-error.
             // in case an error was raised by the getService() call, clear it out (ie totally ignore it)
-            assign error-status:error = no.
-        end.
+            ASSIGN ERROR-STATUS:ERROR = NO.
+        END.
         
-        if not valid-object(writer) then
+        IF NOT VALID-OBJECT(writer) THEN
             ASSIGN writer = NEW ResultsXmlWriter().
         
         THIS-OBJECT:FindXrefFiles().
@@ -430,14 +440,14 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
             END.
         END.
         
-        Logger:Debug(substitute('&1 tests loaded',testsArray:Length)).
+        Logger:Debug(SUBSTITUTE('&1 tests loaded',testsArray:Length)).
 
         IF testEntity NE ? THEN DO:
             runtests(testEntity, updateFile).
-            Logger:Debug(substitute('&1 tests run',testsArray:Length)).
+            Logger:Debug(SUBSTITUTE('&1 tests run',testsArray:Length)).
             
             writer:WriteToFile(ablResultsFile, testEntity).
-            Logger:Debug(substitute('Results output created at &1', ablResultsFile)).
+            Logger:Debug(SUBSTITUTE('Results output created at &1', ablResultsFile)).
         END.
 
         FINALLY:
@@ -451,8 +461,9 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
     /*------------------------------------------------------------------------------
         Generates the procedure information in xref xml file
 
-        @param character The ABL program (.P, .CLS, or .R) file name
-        @return TypeInfo Unit test type info about the program
+        @param  character The test case being examined for addition to ABLUnit
+        @param  character The expected type of test case (class or proc[edure])
+        @return TypeInfo  Unit test type info about the program
     ------------------------------------------------------------------------------*/
     METHOD PUBLIC TypeInfo BuildTypeInfo ( INPUT testCase AS CHARACTER,
                                            INPUT testType AS CHARACTER ):
@@ -499,18 +510,20 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
         END FINALLY.
     END METHOD.
 
-    /* Builds the attribute value, as ABLUnit expects it "value,value2" etc
-       
-       The annotation data format is
+    /*------------------------------------------------------------------------------
+        Builds the attribute value, as ABLUnit expects it "value,value2" etc
+        The annotation data format is:
            "anno-name" :
                 {"x": "y"}  // x=y split up
                 {"x": ["p", "q"]}  // x=y split up
                 null        // no parens in source
-       @param character The attribute name. If blank or null, the null string is returned
-       @param JsonObject The annotation data. If invalid, the null string is returned
-       @return character The attribute value, joined together   */
-    method private character BuildAttributeValue(input pAttrName as character,
-                                                 input pAttrData as JsonObject):
+
+        @param  character  The attribute name. If blank or null, the null string is returned
+        @param  JsonObject The annotation data. If invalid, the null string is returned
+        @return character  The attribute value, joined together
+    ------------------------------------------------------------------------------*/
+    method private character BuildAttributeValue ( input pAttrName as character,
+                                                   input pAttrData as JsonObject ):
         define variable attrVal as character no-undo.
         define variable jsonVal as character no-undo.
         define variable delim as character no-undo.
@@ -551,11 +564,13 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
         return attrVal.
     end method.
     
-    /* Create an Array of AnnotationInfo objects from the JSON data
+    /*------------------------------------------------------------------------------
+        Create an Array of AnnotationInfo objects from the JSON data
        
-       @param JsonObject The annotation JSON data
-       @return Array An array of annotation data. Will always be a valid object */
-    method private Array BuildAnnotationInfo(input pData as JsonObject):
+        @param  JsonObject The annotation JSON data
+        @return Array      An array of annotation data. Will always be a valid object
+    ------------------------------------------------------------------------------*/
+    method private Array BuildAnnotationInfo ( input pData as JsonObject ):
         define variable annotationsInfo as Array no-undo.
         define variable propNames as longchar extent no-undo.
         define variable cnt as integer no-undo.
@@ -595,7 +610,7 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
                 []          // combo of {} and null
             */
             case pData:GetType(annoName):
-                // eg @Test or @Before
+                // eg @Test or @Before/@BeforeAll
                 when JsonDataType:NULL then
                     annotationsInfo:Add(new AnnotationInfo(annoName, '':u, '':u)).
                 
@@ -646,8 +661,11 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
     
     /*------------------------------------------------------------------------------
         Parses the XREF XML file for Test Methods and Procedures
+
+        @param  character The XREF data as an XML file
+        @return TypeInfo  Unit test type info about the program
     ------------------------------------------------------------------------------*/
-    METHOD PUBLIC TypeInfo ParseXMLDocument(INPUT xmlDocument AS CHARACTER):
+    METHOD PUBLIC TypeInfo ParseXMLDocument ( INPUT xmlDocument AS CHARACTER ):
         define variable annoWriter as AnnotationWriter no-undo.
         define variable fileAnnots as JsonObject no-undo.
         // LONGCHAR arrays don't suffer from certain size constraints
@@ -793,12 +811,16 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
     END METHOD.
     
     /*------------------------------------------------------------------------------
-            Given a testclass and test method, this method will store and
-            run the test methods and calls a method which writes the results in the xml file
+        Given a testclass and test method, this method will store and run the
+        test methods and calls a method which writes the results in the xml file
+
+        @param  character  The test class name
+        @param  character  The test class method name
+        @return TestEntity The entity being run (class/method/suite/root)
     ------------------------------------------------------------------------------*/
-    METHOD PUBLIC VOID populateTestModelForTestClass(INPUT testClassName AS CHARACTER,
-                                                     INPUT testMethod AS CHARACTER,
-                                                     INPUT testEntity AS TestEntity):
+    METHOD PUBLIC VOID populateTestModelForTestClass ( INPUT testClassName AS CHARACTER,
+                                                       INPUT testMethod    AS CHARACTER,
+                                                       INPUT testEntity    AS TestEntity ):
         {&_proparse_ prolint-nowarn(varusage)}
         DEFINE VARIABLE testClassType   AS Progress.Lang.Object NO-UNDO.
         DEFINE VARIABLE methodInfoList  AS Array                NO-UNDO.
@@ -812,25 +834,24 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
         DEFINE VARIABLE testResult      AS TestTestResult       NO-UNDO.
         DEFINE VARIABLE typeInfo        AS TypeInfo             NO-UNDO.
         DEFINE VARIABLE isTestClass     AS LOGICAL              NO-UNDO INITIAL NO.
+        DEFINE VARIABLE testInfo        AS TestInfo             NO-UNDO.
 
         /** for qualified classes input **/
         testClassName = getRelativePathOfClasses(testClassName).
         typeInfo = BuildTypeInfo(testClassName, "class").
+
         // May be invalid for interfaces. This does not indicate an error condition
-        if not valid-object(typeInfo) then
-            return.
+        IF NOT VALID-OBJECT(typeInfo) THEN
+            RETURN.
         
         methodInfoList = typeInfo:methods.
         classAnnotInfo = NEW ClassAnnotationInfo().
 
         // Check whether the test method is ignored
         ignoreTest = AnnotationUtil:HasIgnoreAnnotation(typeInfo:classInfo:annotationsInfo).
-        /*
-        Loop through the parsed method information from xref xml file
-        */
-        DEFINE VARIABLE testInfo AS TestInfo no-undo.
 
-        DO i=1 TO typeInfo:methodsCount:
+        // Loop through the parsed method information from xref xml file
+        DO i = 1 TO typeInfo:methodsCount:
             testInfo = CAST(methodInfoList:GetValue(i), TestInfo).
 
             DEFINE VARIABLE annotations AS Array NO-UNDO.
@@ -841,48 +862,79 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
             annotations = testInfo:annotations.
             annotationsCount = testInfo:annotationsCount.
 
-            DO j=1 TO annotationsCount:
-            annotationInfo = CAST(annotations:GetValue(j), AnnotationInfo).
-            annotationName = annotationInfo:getAnnotationName().
-            CASE annotationName:
-                WHEN "TestSuite" THEN
-                IF NOT ignoreTest THEN
-                    ASSIGN testSuiteCount = testSuiteCount + 1
-                           testSuiteInfo  = testInfo
-                           isTestClass    = TRUE
-                           .
-                WHEN "Before" THEN
-                    classAnnotInfo:setBeforeClass(testInfo).
+            TESTBLK:
+            DO j = 1 TO annotationsCount:
+                annotationInfo = CAST(annotations:GetValue(j), AnnotationInfo).
+                annotationName = annotationInfo:getAnnotationName().
 
-                WHEN "Setup" THEN
-                    classAnnotInfo:setBeforeMethod(testInfo).
+                // Log a warning that these annotations are deprecated in favor of certain alternatives.
+                CASE annotationName:
+                    WHEN "Before" THEN
+                        THIS-OBJECT:Logger:Warn(SUBSTITUTE("Test class '&1' method '&2' uses @Before annotation which will be deprecated, please use @BeforeAll.", testClassName, testInfo:testName)).
+    
+                    WHEN "Setup" THEN
+                        THIS-OBJECT:Logger:Warn(SUBSTITUTE("Test class '&1' method '&2' uses @Setup annotation which will be deprecated, please use @BeforeEach.", testClassName, testInfo:testName)).
 
-                WHEN "Test" THEN
-                DO:
-                    classAnnotInfo:AddTestMethod(testInfo).
+                    WHEN "TearDown" THEN
+                        THIS-OBJECT:Logger:Warn(SUBSTITUTE("Test class '&1' method '&2' uses @TearDown annotation which will be deprecated, please use @AfterEach.", testClassName, testInfo:testName)).
+    
+                    WHEN "After" THEN
+                        THIS-OBJECT:Logger:Warn(SUBSTITUTE("Test class '&1' method '&2' uses @After annotation which will be deprecated, please use @AfterAll.", testClassName, testInfo:testName)).
+                END CASE.
 
-                    // if there's one annotated method, this is a test
-                    ASSIGN isTestClass = TRUE.
+                // Take action as based on the annotation.
+                CASE annotationName:
+                    WHEN "TestSuite" THEN
+                        IF NOT ignoreTest THEN
+                            ASSIGN testSuiteCount = testSuiteCount + 1
+                                   testSuiteInfo  = testInfo
+                                   isTestClass    = TRUE
+                                   .
+                    
+                    WHEN "BeforeAll" OR
+                    WHEN "Before" THEN
+                        // @BeforeAll (legacy: @Before) - Executed once; runs before the tests and methods marked with @BeforeEach (legacy: @Setup).
+                        classAnnotInfo:setBeforeClass(testInfo).
+    
+                    WHEN "BeforeEach" OR
+                    WHEN "Setup" THEN
+                        // @BeforeEach (legacy: @Setup) - Executed before each test.
+                        classAnnotInfo:setBeforeMethod(testInfo).
+    
+                    WHEN "Test" THEN
+                    DO:
+                        classAnnotInfo:AddTestMethod(testInfo).
+    
+                        // if there's one annotated method, this is a test
+                        ASSIGN isTestClass = TRUE.
+    
+                        IF testInfo:getTestName() = testMethod THEN
+                            ASSIGN testMethodInfo = testInfo.
+                    END.
+    
+                    WHEN "AfterEach" OR
+                    WHEN "TearDown" THEN
+                        // @AfterEach (legacy: @TearDown) - Executed after each test.
+                        classAnnotInfo:setAfterMethod(testInfo).
+    
+                    WHEN "AfterAll" OR
+                    WHEN "After" THEN
+                        // @AfterAll (legacy: @After) - Executed once; runs after all tests and methods marked with @AfterEach.
+                        classAnnotInfo:setAfterClass(testInfo).
 
-                    IF testInfo:getTestName() = testMethod THEN
-                        ASSIGN testMethodInfo = testInfo.
-                END.
-
-                WHEN "TearDown" THEN
-                    classAnnotInfo:setAfterMethod(testInfo).
-
-                WHEN "After" THEN
-                    classAnnotInfo:setAfterClass(testInfo).
-            END CASE.
-            END.
-        END.
+                    WHEN "Ignore" THEN
+                        // Any annotation not found above would be skipped anyway, but just make it explicit.
+                        NEXT TESTBLK.
+                END CASE.
+            END. // annotationsCount
+        END. // typeInfo:methodsCount
 
         IF NOT isTestClass THEN
             RETURN.
 
         IF NOT testSuiteCount = 0  THEN
         DO:
-            DEFINE VARIABLE testSuite AS TestSuite no-undo.
+            DEFINE VARIABLE testSuite AS TestSuite NO-UNDO.
             testSuite = NEW TestSuite(currentID).
             currentID = currentID + 1.
             testSuite:Name = testClassName.
@@ -897,8 +949,8 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
         ELSE DO:
             DEFINE VARIABLE testClass AS TestClass NO-UNDO.
             
-            assign testClass                = NEW TestClass(currentID)
-                   testClass:Logger         = this-object:Logger
+            ASSIGN testClass                = NEW TestClass(currentID)
+                   testClass:Logger         = THIS-OBJECT:Logger
                    currentID                = currentID + 1
                    testClass:Name           = testClassName
                    testClass:AnnotationInfo = classAnnotInfo
@@ -911,19 +963,25 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
             ELSE
             // The testMethod variable only has a value when we're testing a single test in a testcase. If it's a
             // private/protected method then it won't appear in the annotations, and we will skip it since we cannot test it
-            if testMethod eq '':u
-            or valid-object(testMethodInfo)
-            then
+            IF testMethod EQ '':u
+            OR valid-object(testMethodInfo)
+            THEN
                 populateTestModelForTestMethod(testClassType, testClassName, classAnnotInfo, testMethodInfo, (testMethod = ""), testClass).
         END.
-
     END METHOD.
 
     /*------------------------------------------------------------------------------
-     Purpose:
-     Notes:
+         Modify properties for ignored test
+
+         @param TestTestResult
+         @param TestEntity The entity being run (class/method/suite/root)
+         @param character
+         @param TestTypeResult
     ------------------------------------------------------------------------------*/
-    METHOD PRIVATE VOID UpdateIgnoreDetails( testResult AS TestTestResult, testEntity AS TestEntity, testName AS CHARACTER, summaryResult AS TestTypeResult ):
+    METHOD PRIVATE VOID UpdateIgnoreDetails ( INPUT testResult    AS TestTestResult,
+                                              INPUT testEntity    AS TestEntity,
+                                              INPUT testName      AS CHARACTER,
+                                              INPUT summaryResult AS TestTypeResult ):
         ASSIGN testResult = NEW TestTestResult(testName).
         testResult:TestResult = TestResultEnum:StatusIgnored.
 
@@ -933,14 +991,14 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
     END METHOD.
     
     {&_proparse_ prolint-nowarn(varusage)}
-    METHOD PUBLIC VOID populateTestModelForTestMethod(INPUT testClassType AS Progress.Lang.Object,
-                                                      INPUT testClassName AS CHARACTER,
-                                                      INPUT classAnnotInfo AS ClassAnnotationInfo,
-                                                      INPUT pTestMethodInfo AS TestInfo,
-                                                      INPUT runAllMethods AS LOGICAL,
-                                                      INPUT testEntity AS TestEntity):
+    METHOD PUBLIC VOID populateTestModelForTestMethod  ( INPUT testClassType   AS Progress.Lang.Object,
+                                                         INPUT testClassName   AS CHARACTER,
+                                                         INPUT classAnnotInfo  AS ClassAnnotationInfo,
+                                                         INPUT pTestMethodInfo AS TestInfo,
+                                                         INPUT runAllMethods   AS LOGICAL,
+                                                         INPUT testEntity      AS TestEntity ):
         DEFINE VARIABLE testmethod  AS TestMethod NO-UNDO.
-        DEFINE VARIABLE testInfo AS TestInfo no-undo.
+        DEFINE VARIABLE testInfo AS TestInfo NO-UNDO.
         DEFINE VARIABLE j AS INTEGER NO-UNDO.
         DEFINE VARIABLE testCount AS INTEGER NO-UNDO.
 
@@ -966,17 +1024,27 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
         END.
     END METHOD.
 
+    /*------------------------------------------------------------------------------
+         Populate test model for internal procedures
+
+         @param handle
+         @param character
+         @param ProcedureAnnotationInfo
+         @param TestInfo
+         @param logical
+         @param TestEntity The entity being run (class/method/suite/root)
+    ------------------------------------------------------------------------------*/
     {&_proparse_ prolint-nowarn(varusage)}
-    METHOD PUBLIC VOID populateTestModelForInternalProcs(INPUT procHandle AS HANDLE,
-                                                         INPUT testProcedureName AS CHARACTER,
-                                                         INPUT procAnnotInfo AS ProcedureAnnotationInfo,
-                                                         INPUT testProcInfo AS TestInfo,
-                                                         INPUT runAllProcs AS LOGICAL,
-                                                         INPUT testEntity AS TestEntity):
+    METHOD PUBLIC VOID populateTestModelForInternalProcs ( INPUT procHandle        AS HANDLE,
+                                                           INPUT testProcedureName AS CHARACTER,
+                                                           INPUT procAnnotInfo     AS ProcedureAnnotationInfo,
+                                                           INPUT testProcInfo      AS TestInfo,
+                                                           INPUT runAllProcs       AS LOGICAL,
+                                                           INPUT testEntity        AS TestEntity ):
         DEFINE VARIABLE testProcsCount AS INTEGER NO-UNDO.
         DEFINE VARIABLE j AS INTEGER NO-UNDO.
         DEFINE VARIABLE internalProcTestEntity AS TestMethod NO-UNDO.
-        DEFINE VARIABLE testInfo AS TestInfo no-undo.
+        DEFINE VARIABLE testInfo AS TestInfo NO-UNDO.
 
         ASSIGN testProcsCount = procAnnotInfo:Tests:Size.
         IF(runAllProcs) THEN
@@ -1001,104 +1069,136 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
     END METHOD.
 
     /*------------------------------------------------------------------------------
-            Given a test procedure and test internal procedure, this method will store and
-            run the test procedures and calls a method which writes the results in the xml file
-            Notes:
+        Given a test procedure and test internal procedure, this method will store and
+        run the test procedures and calls a method which writes the results in the xml file.
+
+        @param character
+        @param character
+        @param TestEntity The entity being run (class/method/suite/root)
     ------------------------------------------------------------------------------*/
-    METHOD PUBLIC VOID populateTestModelForProcedureType(INPUT testProcedureName AS CHARACTER, INPUT testInternalProcedure AS CHARACTER, INPUT testEntity AS TestEntity):
+    METHOD PUBLIC VOID populateTestModelForProcedureType ( INPUT testProcedureName     AS CHARACTER,
+                                                           INPUT testInternalProcedure AS CHARACTER,
+                                                           INPUT testEntity            AS TestEntity ):
         {&_proparse_ prolint-nowarn(varusage)}
-        DEFINE VARIABLE procHandle     AS        HANDLE NO-UNDO.
-        DEFINE VARIABLE procInfoList   AS        Array NO-UNDO.
-        DEFINE VARIABLE procAnnotInfo  AS        ProcedureAnnotationInfo NO-UNDO.
-        DEFINE VARIABLE testSuiteList  AS        TestInfo NO-UNDO.
-        DEFINE VARIABLE i              AS        INTEGER NO-UNDO.
-        DEFINE VARIABLE testSuiteCount AS        INTEGER NO-UNDO INIT 0.
-        DEFINE VARIABLE annotation AS             CHARACTER NO-UNDO.
-        DEFINE VARIABLE testProcInfo   AS        TestInfo NO-UNDO.
-        DEFINE VARIABLE procTestEntity   AS      TestProcedure     NO-UNDO.
-        DEFINE VARIABLE typeInfo AS TypeInfo  NO-UNDO.
-        DEFINE VARIABLE ignoreTest AS LOGICAL  NO-UNDO.
-        DEFINE VARIABLE isTestProc AS LOGICAL NO-UNDO INITIAL NO.
+        DEFINE VARIABLE procHandle     AS HANDLE                  NO-UNDO.
+        DEFINE VARIABLE procInfoList   AS Array                   NO-UNDO.
+        DEFINE VARIABLE procAnnotInfo  AS ProcedureAnnotationInfo NO-UNDO.
+        DEFINE VARIABLE testSuiteList  AS TestInfo                NO-UNDO.
+        DEFINE VARIABLE i              AS INTEGER                 NO-UNDO.
+        DEFINE VARIABLE testSuiteCount AS INTEGER                 NO-UNDO INIT 0.
+        DEFINE VARIABLE annotationName AS CHARACTER               NO-UNDO.
+        DEFINE VARIABLE testProcInfo   AS TestInfo                NO-UNDO.
+        DEFINE VARIABLE procTestEntity AS TestProcedure           NO-UNDO.
+        DEFINE VARIABLE typeInfo       AS TypeInfo                NO-UNDO.
+        DEFINE VARIABLE ignoreTest     AS LOGICAL                 NO-UNDO.
+        DEFINE VARIABLE isTestProc     AS LOGICAL                 NO-UNDO INITIAL NO.
+        DEFINE VARIABLE testInfo       AS TestInfo                NO-UNDO.
         
         typeInfo = BuildTypeInfo(testProcedureName, "proc").
         // May be invalid for interfaces. This does not indicate an error condition
-        if not valid-object(typeInfo) then
-            return.
+        IF NOT VALID-OBJECT(typeInfo) THEN
+            RETURN.
         
         procInfoList = typeInfo:methods.
         procAnnotInfo = NEW ProcedureAnnotationInfo().
-        /*
-        Loops through the procedure information obtained from xref xml file
-        */
-        DEFINE VARIABLE testInfo AS TestInfo no-undo.
-        DO i=1 TO typeInfo:methodsCount:
-            testInfo = CAST(procInfoList:GetValue(i), TestInfo).
+
+        // Loops through the procedure information obtained from xref xml file
+        DO i = 1 TO typeInfo:methodsCount:
             DEFINE VARIABLE annotations AS Array NO-UNDO.
             DEFINE VARIABLE annotationsCount AS INTEGER NO-UNDO.
             DEFINE VARIABLE annotationInfo AS AnnotationInfo NO-UNDO.
             DEFINE VARIABLE j AS INTEGER NO-UNDO.
+
+            testInfo = CAST(procInfoList:GetValue(i), TestInfo).
             annotations = testInfo:annotations.
             annotationsCount = testInfo:annotationsCount.
-            DO j=1 TO annotationsCount:
-            annotationInfo = CAST(annotations:GetValue(j), AnnotationInfo).
-            annotation = annotationInfo:getAnnotationName().
-            CASE annotation:
-                WHEN "TestSuite" THEN
-                    ASSIGN testSuiteCount = testSuiteCount + 1
-                           testSuiteList  = testInfo
-                           isTestProc     = YES
-                           .
 
-                WHEN "Before" THEN
-                DO:
-                    procAnnotInfo:setBeforeProcedure(testInfo).
-                    IF testInfo:getTestName() = testInternalProcedure THEN
-                        testProcInfo = testInfo.
-                END.
+            DO j = 1 TO annotationsCount:
+                annotationInfo = CAST(annotations:GetValue(j), AnnotationInfo).
+                annotationName = annotationInfo:getAnnotationName().
 
-                WHEN "Setup" THEN
-                DO:
-                    procAnnotInfo:setBefore(testInfo).
-                    IF testInfo:getTestName() = testInternalProcedure THEN
-                        testProcInfo = testInfo.
-                END.
+                // Log a warning that these annotations are deprecated in favor of certain alternatives.
+                CASE annotationName:
+                    WHEN "Before" THEN
+                        THIS-OBJECT:Logger:Warn(SUBSTITUTE("Test procedure '&1' in '&2' uses @Before annotation which will be deprecated, please use @BeforeAll.", testInfo:testName, testProcedureName)).
+    
+                    WHEN "Setup" THEN
+                        THIS-OBJECT:Logger:Warn(SUBSTITUTE("Test procedure '&1' in '&2' uses @Setup annotation which will be deprecated, please use @BeforeEach.", testInfo:testName, testProcedureName)).
 
-                WHEN "Test" THEN
-                DO:
-                    procAnnotInfo:addTestProc(testInfo).
+                    WHEN "TearDown" THEN
+                        THIS-OBJECT:Logger:Warn(SUBSTITUTE("Test procedure '&1' in '&2' uses @TearDown annotation which will be deprecated, please use @AfterEach.", testInfo:testName, testProcedureName)).
+    
+                    WHEN "After" THEN
+                        THIS-OBJECT:Logger:Warn(SUBSTITUTE("Test procedure '&1' in '&2' uses @After annotation which will be deprecated, please use @AfterAll.", testInfo:testName, testProcedureName)).
+                END CASE.
 
-                    // if there's one annotated method, this is a test
-                    ASSIGN isTestProc = TRUE.
-
-                    IF testInfo:getTestName() = testInternalProcedure THEN
-                        testProcInfo = testInfo.
-                END.
-
-                WHEN "TearDown" THEN
-                DO:
-                    procAnnotInfo:setAfter(testInfo).
-                    IF testInfo:getTestName() = testInternalProcedure THEN
-                        testProcInfo = testInfo.
-                END.
-
-                WHEN "After" THEN
-                DO:
-                    procAnnotInfo:setAfterProcedure(testInfo).
-                    IF testInfo:getTestName() = testInternalProcedure THEN
-                        testProcInfo = testInfo.
-                END.
-                WHEN "Ignore" THEN
-                   ignoreTest = TRUE.
-            END CASE.
-            END.
-        END.
+                // Take action as based on the annotation.
+                CASE annotationName:
+                    WHEN "TestSuite" THEN
+                        ASSIGN testSuiteCount = testSuiteCount + 1
+                               testSuiteList  = testInfo
+                               isTestProc     = YES
+                               .
+    
+                    WHEN "BeforeAll" OR
+                    WHEN "Before" THEN
+                    DO:
+                        // @BeforeAll (legacy: @Before) - Executed once; runs before the tests and methods marked with @BeforeEach (legacy: @Setup).
+                        procAnnotInfo:setBeforeProcedure(testInfo).
+                        IF testInfo:getTestName() = testInternalProcedure THEN
+                            testProcInfo = testInfo.
+                    END.
+    
+                    WHEN "BeforeEach" OR
+                    WHEN "Setup" THEN
+                    DO:
+                        // @BeforeEach (legacy: @Setup) - Executed before each test.
+                        procAnnotInfo:setBefore(testInfo).
+                        IF testInfo:getTestName() = testInternalProcedure THEN
+                            testProcInfo = testInfo.
+                    END.
+    
+                    WHEN "Test" THEN
+                    DO:
+                        procAnnotInfo:addTestProc(testInfo).
+    
+                        // if there's one annotated method, this is a test
+                        ASSIGN isTestProc = TRUE.
+    
+                        IF testInfo:getTestName() = testInternalProcedure THEN
+                            testProcInfo = testInfo.
+                    END.
+    
+                    WHEN "AfterEach" OR
+                    WHEN "TearDown" THEN
+                    DO:
+                        // @AfterEach (legacy: @TearDown) - Executed after each test.
+                        procAnnotInfo:setAfter(testInfo).
+                        IF testInfo:getTestName() = testInternalProcedure THEN
+                            testProcInfo = testInfo.
+                    END.
+    
+                    WHEN "AfterAll" OR
+                    WHEN "After" THEN
+                    DO:
+                        // @AfterAll (legacy: @After) - Executed once; runs after all tests and methods marked with @AfterEach.
+                        procAnnotInfo:setAfterProcedure(testInfo).
+                        IF testInfo:getTestName() = testInternalProcedure THEN
+                            testProcInfo = testInfo.
+                    END.
+    
+                    WHEN "Ignore" THEN
+                       ignoreTest = TRUE.
+                END CASE.
+            END. // annotationsCount
+        END. // typeInfo:methodsCount
 
         IF NOT isTestProc THEN
             RETURN.
 
         IF NOT testSuiteCount = 0  THEN
         DO:
-            DEFINE VARIABLE testProcSuite AS TestEntity no-undo.
+            DEFINE VARIABLE testProcSuite AS TestEntity NO-UNDO.
             testProcSuite = NEW TestSuite(currentID).
             currentID = currentID + 1.
             testProcSuite:Name = testProcedureName.
@@ -1115,9 +1215,9 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
         END.
         ELSE IF testSuiteCount = 0 THEN
         DO:
-            assign procTestEntity                = NEW TestProcedure(currentID)
+            ASSIGN procTestEntity                = NEW TestProcedure(currentID)
                    currentID                     = currentID + 1
-                   procTestEntity:Logger         = this-object:Logger
+                   procTestEntity:Logger         = THIS-OBJECT:Logger
                    procTestEntity:Name           = testProcedureName
                    procTestEntity:AnnotationInfo = procAnnotInfo
                    .
@@ -1130,9 +1230,15 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
     END METHOD.
 
     /*------------------------------------------------------------------------------
-       Compiles and call the corresponding method or internal procedure to run the testcase
+        Compiles and call the corresponding method or internal procedure to run the testcase
+
+        @param  character
+        @param  character
+        @return TestEntity The entity being run (class/method/suite/root)
     ------------------------------------------------------------------------------*/
-    METHOD PUBLIC VOID populateTestModelForTestCase(INPUT testCase AS CHARACTER, INPUT test AS CHARACTER, INPUT testEntity AS TestEntity):
+    METHOD PUBLIC VOID populateTestModelForTestCase ( INPUT testCase   AS CHARACTER,
+                                                      INPUT test       AS CHARACTER,
+                                                      INPUT testEntity AS TestEntity ):
         IF (testCase MATCHES "*~~.p") THEN
             populateTestModelForProcedureType(testCase, test, testEntity).
         ELSE IF (testCase MATCHES "*~~.cls") THEN
@@ -1148,31 +1254,44 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
     END METHOD.
 
     /*------------------------------------------------------------------------------
-            Runs the corresponding method based on the type of the testcase.
+        Runs the corresponding method based on the type of the testcase.
+
+        @param  character
+        @param  integer
+        @return TestEntity The entity being run (class/method/suite/root)
     ------------------------------------------------------------------------------*/
-    METHOD PUBLIC TestEntity populateTestModel(INPUT testCase AS CHARACTER, INPUT testCount AS INTEGER):
+    METHOD PUBLIC TestEntity populateTestModel ( INPUT testCase  AS CHARACTER,
+                                                 INPUT testCount AS INTEGER ):
         populateTestModel(testCase, testCount, testModel).
-        loadSerializedTree(testModel).
         RETURN testModel.
     END METHOD.
-
+    
     /*------------------------------------------------------------------------------
-            load serialized tree
+        Load serialized tree
+
+        @param  TestEntity The entity being run (class/method/suite/root)
+        @return longchar
     ------------------------------------------------------------------------------*/
-    METHOD PUBLIC LONGCHAR loadSerializedTree(INPUT testEntity AS TestEntity):
+    METHOD PUBLIC LONGCHAR loadSerializedTree ( INPUT testEntity AS TestEntity ):
         DEFINE VARIABLE testEntities AS Array NO-UNDO.
         DEFINE VARIABLE newTestEntity AS TestEntity NO-UNDO.
         DEFINE VARIABLE i AS INTEGER NO-UNDO.
         DEFINE VARIABLE serializedtree AS LONGCHAR NO-UNDO.
         DEFINE VARIABLE isTestSuite AS CHARACTER NO-UNDO INIT "false".
+        DEFINE VARIABLE cnt AS INTEGER NO-UNDO.
         
-        testEntities = testEntity:getTestEntities().
-
-        DO i=1 TO testEntity:getChildrenSize():
+        // no point in doing this work if it's never going to be written to disk
+        IF THIS-OBJECT:updateFile EQ '' THEN
+            RETURN ''.
+        
+        ASSIGN testEntities = testEntity:getTestEntities()
+               cnt          = testEntity:getChildrenSize()
+               .
+        DO i=1 TO cnt:
             newTestEntity = CAST(testEntities:GetValue(i), TestEntity).
             serializedTree = serializedTree + loadSerializedTree(newTestEntity).
         END.
-
+        
         IF(TYPE-OF (testEntity, TestSuite)) THEN
             isTestSuite = "true".
         serializedTree = testEntity:Name + "?" + isTestSuite + "?" + String(testEntity:id) +  "*" + serializedTree + TREE_DEPTH_END + "*".
@@ -1180,21 +1299,28 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
     END METHOD.
 
     /*------------------------------------------------------------------------------
-            populates the model based on the test input. looks at all the relavant test methods,internal procedures in the test input.
+        Populates the model based on the test input. looks at all the relevant
+        test methods, internal procedures in the test input.
+
+        @param character
+        @param integer
+        @param TestEntity The entity being run (class/method/suite/root)
     ------------------------------------------------------------------------------*/
-    METHOD PRIVATE VOID populateTestModel(INPUT testCase AS CHARACTER, INPUT testCount AS INTEGER, INPUT testEntity AS TestEntity):
+    METHOD PRIVATE VOID populateTestModel ( INPUT testCase   AS CHARACTER,
+                                            INPUT testCount  AS INTEGER,
+                                            INPUT testEntity AS TestEntity ):
         DEFINE VARIABLE testClass  AS CHARACTER NO-UNDO.
         DEFINE VARIABLE testMethod AS CHARACTER NO-UNDO.
         
         IF testCount = 1 THEN
-            assign testClass  = testCase
+            ASSIGN testClass  = testCase
                    testMethod = '':u
                    .
-        else
-            assign testClass = ENTRY(1, testCase, "#")
+        ELSE
+            ASSIGN testClass = ENTRY(1, testCase, "#")
                    testMethod = ENTRY(2, testCase, "#")
                    .
-        assign FILE-INFO:FILE-NAME = testClass.
+        ASSIGN FILE-INFO:FILE-NAME = testClass.
         IF (FILE-INFO:FILE-TYPE BEGINS "D") THEN
             populateTestModelForTestFolder(testClass, testEntity).
         ELSE
@@ -1206,10 +1332,13 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
     END METHOD.
 
     /*------------------------------------------------------------------------------
-            populates the test model for the ABL Unit files inside the testfolder
-    ------------------------------------------------------------------------------*/
-    METHOD PUBLIC VOID populateTestModelForTestFolder(INPUT testFolder AS CHARACTER, INPUT testEnity AS TestEntity):
+        Populates the test model for the ABL Unit files inside the testfolder
 
+        @param character
+        @param TestEntity The entity being run (class/method/suite/root)
+    ------------------------------------------------------------------------------*/
+    METHOD PUBLIC VOID populateTestModelForTestFolder ( INPUT testFolder AS CHARACTER,
+                                                        INPUT testEnity  AS TestEntity ):
         DEFINE VARIABLE fileN     AS CHARACTER NO-UNDO.
         DEFINE VARIABLE fCodes    AS CHARACTER NO-UNDO.
 
@@ -1223,11 +1352,11 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
                fCodes BEGINS "D" THEN NEXT DIRBLK.
             
             // only use r-code if xrefs are in use
-            if (testConfig:useXref
-                and fileN MATCHES "*~~.r")
-            or (fileN MATCHES "*~~.cls"
+            IF (testConfig:useXref
+                AND fileN MATCHES "*~~.r")
+            OR (fileN MATCHES "*~~.cls"
                 OR fileN MATCHES "*~~.p")
-            then
+            THEN
                 populateTestModelForTestCase(testFolder + "~/" + fileN, "", testEnity).
         END.
 
@@ -1236,10 +1365,14 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
         END FINALLY.
     END METHOD.
 
-    /*
+    /*------------------------------------------------------------------------------
         Iterates through all the test cases in the TestSuite annotations
-    */
-    METHOD PUBLIC VOID populateTestModelForTestSuite(INPUT testSuiteList AS TestInfo, INPUT testEntity AS TestEntity):
+
+        @param TestInfo
+        @param TestEntity The entity being run (class/method/suite/root)
+    ------------------------------------------------------------------------------*/
+    METHOD PUBLIC VOID populateTestModelForTestSuite ( INPUT testSuiteList AS TestInfo,
+                                                       INPUT testEntity    AS TestEntity ):
         DEFINE VARIABLE attrValue AS CHARACTER NO-UNDO.
         DEFINE VARIABLE attrName  AS CHARACTER NO-UNDO.
         DEFINE VARIABLE annotations AS Array NO-UNDO.
@@ -1256,7 +1389,7 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
         annotations = testSuiteList:annotations.
         annotationsCount = testSuiteList:annotationsCount.
         ANNOBLK:
-        DO j=1 TO annotationsCount:
+        DO j = 1 TO annotationsCount:
             annotationInfo = CAST(annotations:GetValue(j), AnnotationInfo).
 
             IF annotationInfo:AnnotationType NE "TestSuite" THEN
@@ -1305,10 +1438,17 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
             ELSE
             MESSAGE "@TestSuite annotation attribute name should be 'classes' or 'procedures'"
                 VIEW-AS ALERT-BOX.
-        END.
+        END. // annotationsCount
     END METHOD.
 
-    METHOD PUBLIC VOID HandleTestSuiteClasses(INPUT testEntity AS TestEntity, INPUT classes AS CHARACTER):
+    /*------------------------------------------------------------------------------
+        Handler for test suite classes
+
+        @param  TestEntity
+        @return character
+    ------------------------------------------------------------------------------*/
+    METHOD PUBLIC VOID HandleTestSuiteClasses ( INPUT testEntity AS TestEntity,
+                                                INPUT classes    AS CHARACTER ):
         DEFINE VARIABLE testClassesCount AS INTEGER NO-UNDO.
         DEFINE VARIABLE i AS INTEGER NO-UNDO.
         DEFINE VARIABLE testCase  AS CHARACTER NO-UNDO.
@@ -1324,10 +1464,13 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
         END.
     END METHOD.
 
-    /**
-    returns the relative path of the classes if the input is of qualified type.
-    **/
-    METHOD PUBLIC CHARACTER getRelativePathOfClasses(INPUT testcase AS CHARACTER):
+    /*------------------------------------------------------------------------------
+        Returns the relative path of the classes if the input is of qualified type.
+
+        @param  character
+        @return character
+    ------------------------------------------------------------------------------*/
+    METHOD PUBLIC CHARACTER getRelativePathOfClasses ( INPUT testcase AS CHARACTER ):
         IF NOT (testCase MATCHES "*~~.cls" OR testCase MATCHES "*~~.r") THEN
         DO:
             testcase = REPLACE (testCase, ".", "/").
@@ -1337,25 +1480,34 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
         RETURN testcase.
     END METHOD.
 
-    METHOD PUBLIC VOID HandleTestSuiteProcedures(INPUT testEntity AS TestEntity, INPUT procedures AS CHARACTER):
+    /*------------------------------------------------------------------------------
+        Runs a TestEntity and aggregates results
+
+        @param TestEntity The entity being run (class/method/suite/root)
+        @param character
+    ------------------------------------------------------------------------------*/
+    METHOD PUBLIC VOID HandleTestSuiteProcedures ( INPUT testEntity AS TestEntity,
+                                                   INPUT procedures AS CHARACTER ):
       DEFINE VARIABLE testProceduresCount AS INTEGER NO-UNDO.
       DEFINE VARIABLE i AS INTEGER NO-UNDO.
       DEFINE VARIABLE testCase  AS CHARACTER NO-UNDO.
       testProceduresCount = NUM-ENTRIES(procedures, ",").
-            DO i = 1 TO testProceduresCount:
-                testCase = ENTRY (i, procedures, ",").
-                testCase = TRIM(testCase).
-                IF NOT testcase = "" THEN
-                    populateTestModel(testCase, 1, testEntity).
-            END.
+      DO i = 1 TO testProceduresCount:
+          testCase = ENTRY (i, procedures, ",").
+          testCase = TRIM(testCase).
+          IF NOT testcase = "" THEN
+              populateTestModel(testCase, 1, testEntity).
+      END.
     END METHOD.
 
-    /* Processes a test entity's TestResult based on status
+    /*------------------------------------------------------------------------------
+        Processes a test entity's TestResult based on status
 
-       @param TestEntity     The entity to process
-       @param TestTypeResult The summary to which this result aggregates */
-    METHOD PRIVATE VOID ProcessTestResult(INPUT pEntity AS TestEntity,
-                                          INPUT pSummary AS TestTypeResult):
+        @param TestEntity The entity being run (class/method/suite/root)
+        @param TestTypeResult The summary to which this result aggregates
+    ------------------------------------------------------------------------------*/
+    METHOD PRIVATE VOID ProcessTestResult ( INPUT pEntity  AS TestEntity,
+                                            INPUT pSummary AS TestTypeResult ):
         DEFINE VARIABLE tr AS TestTestResult EXTENT NO-UNDO.
         DEFINE VARIABLE cnt AS INTEGER NO-UNDO.
         DEFINE VARIABLE loop AS INTEGER NO-UNDO.
@@ -1403,13 +1555,15 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
             updateFile(updateFile, "TEST_END " + STRING(pEntity:Id) + " " + STRING(pEntity:timeTaken), FALSE).
     END METHOD.
 
-    /* Runs a TestEntity and aggregates results
+    /*------------------------------------------------------------------------------
+        Runs a TestEntity and aggregates results
 
-       @param TestEntity The entity being run (class/method/suite/root)
-       @param character The ABLUnit output file (not results.xml)
-       @return TestTypeResult  The aggregate result for this test entity  */
-    METHOD PUBLIC TestTypeResult runtests(INPUT testEntity AS TestEntity,
-                                          INPUT pUpdateFile AS CHARACTER):
+        @param  TestEntity The entity being run (class/method/suite/root)
+        @param  character The ABLUnit output file (not results.xml)
+        @return TestTypeResult  The aggregate result for this test entity
+    ------------------------------------------------------------------------------*/
+    METHOD PUBLIC TestTypeResult runtests ( INPUT testEntity  AS TestEntity,
+                                            INPUT pUpdateFile AS CHARACTER ):
         DEFINE VARIABLE children            AS Array                  NO-UNDO.
         DEFINE VARIABLE childrenSize        AS INTEGER                NO-UNDO.
         DEFINE VARIABLE j                   AS INTEGER                NO-UNDO.
@@ -1429,7 +1583,7 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
         /*Start*/
         
         IF  testEntity:Summary:ignoreCount GT 0
-        and not type-of(testEntity, TestRootModel)
+        AND NOT type-of(testEntity, TestRootModel)
         THEN
         DO:
             updateFile(pUpdateFile, "TEST_IGNORED " + STRING(testEntity:Id), FALSE).
@@ -1518,11 +1672,15 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
     END METHOD.
 
     /*------------------------------------------------------------------------------
-           updates stack trace with the given error in the given file
+        Updates stack trace with the given error in the given file
+
+        @param PLO
+        @param character
+        @param character
     ------------------------------------------------------------------------------*/
-    METHOD PRIVATE VOID updateStackTrace(INPUT errorResult AS Progress.Lang.Error,
-                                         INPUT pUpdateFile AS CHARACTER,
-                                         INPUT id AS CHARACTER):
+    METHOD PRIVATE VOID updateStackTrace ( INPUT errorResult AS Progress.Lang.Error,
+                                           INPUT pUpdateFile AS CHARACTER,
+                                           INPUT id          AS CHARACTER ):
         IF NOT pUpdateFile = "" THEN
         DO ON ERROR UNDO, THROW:
             DEFINE VARIABLE stackTrace     AS CHARACTER            NO-UNDO.
@@ -1539,7 +1697,6 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
             END.
 
             stackTrace = errorResult:CallStack.
-
             numMessages = errorResult:NumMessages.
             DO i=1 TO numMessages:
                 PUT UNFORMATTED "STACK_TRACE " id " " errorResult:GetMessage(i) SKIP.
@@ -1552,26 +1709,28 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
                     PUT UNFORMATTED "STACK_TRACE " id " " stackTraceLine SKIP.
             END.
 
-            numMessages = NUM-ENTRIES(stackTrace,CHR(10) + CHR(13)).
+            numMessages = NUM-ENTRIES(stackTrace, StringConstant:LF).
             DO i=1 TO numMessages:
-                stackTraceLine = ENTRY(i, stackTrace, CHR(10) + CHR(13)).
+                stackTraceLine = ENTRY(i, stackTrace, StringConstant:LF).
                 PUT UNFORMATTED "STACK_TRACE " id " " stackTraceLine SKIP.
             END.
 
             FINALLY:
-                OUTPUT close.
+                OUTPUT CLOSE.
             END FINALLY.
         END.
     END METHOD.
 
-    /* Writes a stack trace for a stop condition
+    /*------------------------------------------------------------------------------
+        Writes a stack trace for a stop condition
 
-       @param Progress.Lang.Stop THe stop condition
-       @param character The file into which to write
-       @param character The ID of the test entity   */
-    METHOD PRIVATE VOID updateStackTrace(INPUT pStop AS Progress.Lang.Stop,
-                                         INPUT pUpdateFile AS CHARACTER,
-                                         INPUT pId AS CHARACTER):
+        @param Progress.Lang.Stop THe stop condition
+        @param character The file into which to write
+        @param character The ID of the test entity
+    ------------------------------------------------------------------------------*/
+    METHOD PRIVATE VOID updateStackTrace ( INPUT pStop       AS Progress.Lang.Stop,
+                                           INPUT pUpdateFile AS CHARACTER,
+                                           INPUT pId         AS CHARACTER ):
         DEFINE VARIABLE loop AS INTEGER NO-UNDO.
         DEFINE VARIABLE cnt AS INTEGER NO-UNDO.
         DEFINE VARIABLE traceLine AS CHARACTER NO-UNDO.
@@ -1604,10 +1763,10 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
             IF NOT traceLine EQ '':u THEN
                 PUT UNFORMATTED "STACK_TRACE " pId " User: " traceLine SKIP.
         END.
-        //
-        ASSIGN cnt = NUM-ENTRIES(pStop:CallStack, CHR(10) + CHR(13)).
+        
+        ASSIGN cnt = NUM-ENTRIES(pStop:CallStack, StringConstant:LF).
         DO loop = 1  TO cnt:
-            ASSIGN traceLine = ENTRY(loop, pStop:CallStack, CHR(10) + CHR(13)).
+            ASSIGN traceLine = ENTRY(loop, pStop:CallStack, StringConstant:LF).
             PUT UNFORMATTED "STACK_TRACE " pId " " traceLine SKIP.
         END.
         FINALLY:
@@ -1615,18 +1774,25 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
         END FINALLY.
     END METHOD.
 
-     /*------------------------------------------------------------------------------
-           writes to the update file the given content. If override is true, the file is overwritten.
+    /*------------------------------------------------------------------------------
+        Writes to the update file the given content.
+        If override is true, the file is overwritten.
+
+        @param character
+        @param longchar
+        @param logical
     ------------------------------------------------------------------------------*/
-    METHOD PUBLIC VOID updateFile(INPUT pUpdateFile AS CHARACTER, INPUT content AS LONGCHAR, INPUT override AS LOGICAL):
+    METHOD PUBLIC VOID updateFile ( INPUT pUpdateFile AS CHARACTER,
+                                    INPUT content     AS LONGCHAR,
+                                    INPUT lOverride   AS LOGICAL ):
         IF NOT pUpdateFile = "" THEN
-           DO:
-                content = content + "~n".
-                   IF override THEN
-                    COPY-LOB content TO FILE pUpdateFile .
-                   ELSE
-                    COPY-LOB content TO FILE pUpdateFile  APPEND.
-           END.
+        DO:
+            content = content + StringConstant:LF.
+            IF lOverride THEN
+                COPY-LOB content TO FILE pUpdateFile.
+            ELSE
+                COPY-LOB content TO FILE pUpdateFile  APPEND.
+        END.
     END METHOD.
 
 END CLASS.

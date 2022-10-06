@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2013, 2018-2019,2021 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2013, 2018-2019, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : DecisionService
@@ -90,20 +90,20 @@ class OpenEdge.BusinessRules.DecisionService use-widget-pool:
                                        input pcDecisionServiceName as character,
                                        input pdVersion as decimal):
         this-object(poServer, pcDecisionServiceName, pdVersion, ?).
-    end method.
+    end constructor.
     
     /* Details shown by the private constructor  doc. */
     constructor public DecisionService(input poServer as RulesServerConnection,
                                        input pcDecisionServiceName as character):
         this-object(poServer, pcDecisionServiceName, ?, ?).
-    end method.
+    end constructor.
     
     /* Details shown by the private constructor  doc. */
     constructor public DecisionService(input poServer as RulesServerConnection,
                                        input pcDecisionServiceName as character,
                                        input ptEffectiveOn as datetime-tz):
         this-object(poServer, pcDecisionServiceName, ?, ptEffectiveOn).
-    end method.
+    end constructor.
     
     destructor DecisionService():
         DestroyComponent().
@@ -128,9 +128,7 @@ class OpenEdge.BusinessRules.DecisionService use-widget-pool:
         
         /* Must specify either version OR date OR neither */
         if pdVersion ne ? and ptEffectiveOn ne ? then
-            undo, throw new AppError(
-                    substitute('Decision Service versions can be selected by either version number or date or neither, but not both')
-                    , 0).
+            undo, throw new AppError('Decision Service versions can be selected by either version number or date or neither, but not both').
         
         if pdVersion ne ? then
             Assert:IsZeroOrPositive(pdVersion, 'Decision Service Version').
@@ -149,7 +147,7 @@ class OpenEdge.BusinessRules.DecisionService use-widget-pool:
             this-object:moDecisionServiceSelector = DecisionServiceSelectorEnum:Default.
             
         Initialise().
-    end method.
+    end constructor.
     
     method protected void DestroyComponent():
         empty temp-table ttTables.
@@ -161,9 +159,6 @@ class OpenEdge.BusinessRules.DecisionService use-widget-pool:
     end method.
     
     method protected void Initialise():
-        define variable oAppError as AppError no-undo.
-        define variable cSub2 as character no-undo.
-        
         moPayloadBuilder = new PayloadBuilder().
         
         /* Read SOAP response */
@@ -483,6 +478,7 @@ class OpenEdge.BusinessRules.DecisionService use-widget-pool:
     
     /** CHARACTERS event handler for the SAX-READER. Method implemented as per 
         ABL documentation.  */
+    {&_proparse_ prolint-nowarn(varusage)}
     method void SaxReaderCharactersHandler(input phSaxReader as handle,
                                            input pcCharData as longchar,
                                            input piNumChars as integer):
@@ -494,15 +490,13 @@ class OpenEdge.BusinessRules.DecisionService use-widget-pool:
     
     /** START-ELEMENT event handler for the SAX-READER. Method implemented as per 
         ABL documentation.  */
+    {&_proparse_ prolint-nowarn(varusage)}
     method void SaxReaderStartElementHandler(input phSaxReader    as handle,
                                              input pcNamespaceURI as character,
                                              input pcLocalName    as character,
                                              input pcQName        as character,
                                              input phAttributes   as handle):
         define variable iIdx as integer no-undo.
-        define variable iLoop as integer no-undo.
-        define variable iMax as integer no-undo.
-        define variable cValue as character no-undo.
         define variable lIsBufferNode as logical no-undo.
         define variable cBufferAttributeName as character no-undo.
         
@@ -663,6 +657,7 @@ class OpenEdge.BusinessRules.DecisionService use-widget-pool:
     
     /** END-ELEMENT event handler for the SAX-READER. Method implemented as per 
         ABL documentation.  */
+    {&_proparse_ prolint-nowarn(varusage)}
     method public void SaxReaderEndElementHandler(input phSaxReader as handle,
                                                   input pcNamespaceURI as character,
                                                   input pcLocalName as character,
@@ -709,10 +704,13 @@ class OpenEdge.BusinessRules.DecisionService use-widget-pool:
                                 integer(entry(3, mcCurrentFieldValue, '-')),
                                 integer(entry(1, mcCurrentFieldValue, '-'))).
                     when 'datetime' then
+                        {&_proparse_ prolint-nowarn(varusage)}
                         mhBufferField:buffer-value = TimeStamp:ToABLDateTimeFromISO(string(mcCurrentFieldValue)).
                     when 'datetime-tz' then
+                        {&_proparse_ prolint-nowarn(varusage)}
                         mhBufferField:buffer-value = TimeStamp:ToABLDateTimeTzFromISO(string(mcCurrentFieldValue)).
                     when 'character' then 
+                        {&_proparse_ prolint-nowarn(varusage)}
                         mhBufferField:buffer-value = string(mcCurrentFieldValue).
                     when 'clob' then
                         mhBufferField:buffer-value = mcCurrentFieldValue. 

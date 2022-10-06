@@ -15,15 +15,18 @@ block-level on error undo, throw.
 using Ccs.Common.Support.IMemptrHolder.
 using OpenEdge.Core.ByteBucket.
 using OpenEdge.Core.SemanticVersion.
+using OpenEdge.Core.String.
 using OpenEdge.Core.Collections.IIterator.
 using OpenEdge.Core.Collections.IMapEntry.
-using OpenEdge.Core.Collections.IStringStringMap.
+using OpenEdge.Core.Collections.IStringKeyedMap.
 using OpenEdge.Net.HTTP.Cookie.
 using OpenEdge.Net.HTTP.StatusCodeHelper.
 using OpenEdge.Net.HTTP.Trace.ExchangeData.
 using OpenEdge.Net.HTTP.Trace.Formatter.ITraceFormatter.
+using OpenEdge.Net.UriEncoder.
 using Progress.Json.ObjectModel.JsonArray.
 using Progress.Json.ObjectModel.JsonObject.
+using Progress.Collections.List.
 
 class OpenEdge.Net.HTTP.Trace.Formatter.HarFormatter
 implements ITraceFormatter:
@@ -44,6 +47,7 @@ implements ITraceFormatter:
         var JsonArray entries.
         var IMapEntry mapEntry.
         var IIterator iterator.
+        var UriEncoder encoder = new UriEncoder().
         var integer cnt, loop.
         var character strData, delim.
         var memptr mData.
@@ -100,8 +104,11 @@ implements ITraceFormatter:
                 do while iterator:HasNext():
                     assign mapEntry = cast(iterator:Next(), IMapEntry).
                     if valid-object(mapEntry:Value) then
-                        strData = substitute('&1&2&3=&4', strData, delim, string(mapEntry:Key), string(mapEntry:Value)).
+                        // Add the decoded value of the String object.
+                        {&_proparse_ prolint-nowarn(overflow)}
+                        strData = substitute('&1&2&3=&4', strData, delim, string(mapEntry:Key), encoder:Decode(string(mapEntry:Value))).
                     else
+                        // No value, just add the named parameter.
                         strData = substitute('&1&2&3', strData, delim, string(mapEntry:Key)).
                     assign delim = '&':u.
                 end.
@@ -110,6 +117,7 @@ implements ITraceFormatter:
 
             curItem:Add('httpVersion':u, pTraceData[loop]:RequestHttpVersion).
             curItem:Add('cookies':u, GetCookies(pTraceData[loop]:RequestCookies)).
+
             curItem:Add('queryString':u, GetQueryString(pTraceData[loop]:QueryString)).
             AddHeaders(pTraceData[loop]:RequestHeaders, curItem, no).
 
@@ -149,26 +157,50 @@ implements ITraceFormatter:
 
         @param character a standard query string
         @param JsonArray An array of objects representing the query string. May be null. */
-    method private JsonArray GetQueryString(input pData as IStringStringMap):
+    method private JsonArray GetQueryString(input pData as IStringKeyedMap):
         var IIterator iterator.
         var IMapEntry mapEntry.
         var JsonArray arrData.
         var JsonObject itemData.
+        var List<String> sl.
+        var UriEncoder encoder = new UriEncoder().
+        var integer cnt, loop.
 
         assign arrData = new JsonArray().
 
         if pData eq ? then
             return arrData.
-       
+
         assign iterator = pData:EntrySet:Iterator().
         do while iterator:HasNext():
             assign mapEntry = cast(iterator:Next(), IMapEntry).
             assign itemData = new JsonObject().
-            itemData:Add('name':u,  string(mapEntry:Key)).
-            if valid-object(mapEntry:Value) then
-                itemData:Add('value':u, string(mapEntry:Value)).
+            itemData:Add('name':u, string(mapEntry:Key)). // Add the parameter name in a "name" property.
+
+             // Add the parameter value(s) in a "value" property.
+            if valid-object(mapEntry:Value) then do:
+                assign sl = cast(mapEntry:Value, List<String>).
+                assign cnt = sl:Count.
+                case cnt:
+                    when 0 then
+                        itemData:AddNull('value':u). // No count, no value.
+                    when 1 then
+                        // Add the value as just a decoded string.
+                        {&_proparse_ prolint-nowarn(overflow)}
+                        itemData:Add('value':u, encoder:Decode(string(sl:Get(1):Value))).
+                    otherwise do:
+                        itemData:Add('value':u, new JsonArray()). // Create an empty array for multiple values.
+                        do loop = 1 to cnt:
+                            // Add the decoded value of the String object.
+                            {&_proparse_ prolint-nowarn(overflow)}
+                            itemData:GetJsonArray('value':u):Add(encoder:Decode(string(sl:Get(loop):Value))).
+                        end.
+                    end.
+                end case.
+            end.
             else
-                itemData:AddNull('value':u).
+                itemData:AddNull('value':u). // Otherwise just add a null property.
+
             arrData:Add(itemData).
         end.
 

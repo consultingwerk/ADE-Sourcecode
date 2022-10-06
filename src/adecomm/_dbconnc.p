@@ -1,5 +1,5 @@
 /************************************************************************
-* Copyright (C) 2000,2009,2016 by Progress Software Corporation.        *
+* Copyright (C) 2000,2009,2016,2022 by Progress Software Corporation.   *
 * All rights reserved. Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                              *
 *                                                                       *
@@ -62,6 +62,7 @@ Modified:
   07/30/92 by Elliot Chikofsky
   08/08/11 rkamboj -     fixed issue of login when special chracter in password 
                         at the time of db connect. Applied set-db-client method.
+  02/24/22 tmasood - Added the support for -Pin argument
 
 ----------------------------------------------------------------------------*/
 {adecomm/cbvar.i}
@@ -90,6 +91,7 @@ DEFINE              VARIABLE setdbclnt       AS LOGICAL NO-UNDO.
 DEFINE              VARIABLE currentdb       AS CHAR VIEW-AS TEXT FORMAT "x(32)" NO-UNDO.
 /*Define              variable  qbf_l_name    as logical NO-UNDO. / * l-name NOT needed */
 Define              variable  qbf_p_name     as logical  NO-UNDO. /* p-name NOT needed */
+DEFINE              VARIABLE  Pin            AS LOGICAL   NO-UNDO.   
 
 &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
    /* "Blue bar" optional text */
@@ -145,10 +147,12 @@ form
    ext_Type              label "&Database Type"             colon  18
                                 format "x(11)" {&STDPH_FILL}     
 
-   p_Multi_User    label "&Multiple Users"      at     35
+   p_Multi_User    label "&Multiple Users"      at     31
                                 view-as TOGGLE-BOX
-   Pass_Phrase     label "Passphrase"      at     57
-                                view-as TOGGLE-BOX                       SKIP({&VM_WID})
+   Pass_Phrase     label "Passphrase"      at     49
+                                view-as TOGGLE-BOX                             
+   Pin             label "Pin"      at     63
+                                view-as TOGGLE-BOX                             SKIP({&VM_WID})
    p_UserId              label "&User ID"                         colon  18 
                                 format "x(50)" {&STDPH_FILL}             SKIP({&VM_WID})
    p_Password            label "Pass&word"                        colon  18
@@ -301,6 +305,7 @@ do:
 /*    input frame connect p_Type    */
       input frame connect p_Multi_User
       input frame connect Pass_Phrase
+      input frame connect Pin
       input frame connect p_UserId
       input frame connect p_Password
       input frame connect p_Trig_Loc
@@ -366,30 +371,43 @@ do:
        return no-apply.
        end.
       else do:
-       IF NOT Pass_Phrase THEN DO:
+       IF NOT Pass_Phrase AND NOT Pin THEN DO:
            run adecomm/_setcurs.p ("WAIT").
            connect VALUE(args) VALUE(p_Unix_Parms) NO-ERROR.
            run adecomm/_setcurs.p ("").
        END.
 
-       IF Pass_Phrase OR
-          (ERROR-STATUS:ERROR AND ERROR-STATUS:GET-NUMBER(1) = 15271) THEN DO:
-          /* if missing or incorrect passphrase for a database
+       IF Pass_Phrase OR Pin OR
+          (ERROR-STATUS:ERROR AND 
+          (ERROR-STATUS:GET-NUMBER(1) = 15271 OR ERROR-STATUS:GET-NUMBER(1) = 20409)) THEN DO:
+          /* if missing or incorrect passphrase/pin for a database
              with encryption enabled and manual start, prompt
              for the passphrase now.
           */
           DEFINE VARIABLE cpassPhrase AS CHARACTER NO-UNDO.
+          DEFINE VARIABLE cPin        AS CHARACTER NO-UNDO.
+          DEFINE VARIABLE cKeyStoreParams AS CHARACTER NO-UNDO INITIAL "".
 
-          RUN _passphrase.p (OUTPUT cpassPhrase).
+          RUN _passphrase.p (INPUT Pass_Phrase,
+                             INPUT Pin,
+                             OUTPUT cpassPhrase,
+                             OUTPUT cPin).
 
-          /* if they don't specify a passphrase when asked to, we will
+          /* if they don't specify a passphrase/pin when asked to, we will
              just display the errors we got above.
           */
           IF cpassPhrase <> ? AND length(cpassPhrase) > 0 THEN DO:
-             /* this will let them try once. If it fails, then they will
+               ASSIGN cKeyStoreParams = "-KeyStorePassPhrase " + QUOTER(cpassPhrase).
+          END.
+          IF cPin <> ? AND length(cPin) > 0 THEN DO:
+              ASSIGN cKeyStoreParams = cKeyStoreParams + " -KeyStorePin " + QUOTER(cPin).
+          END.
+          
+          IF cKeyStoreParams NE ""  THEN DO:
+          /* this will let them try once. If it fails, then they will
                  need to try to connect again.
-             */
-              connect VALUE(args) VALUE("-KeyStorePassPhrase " + QUOTER(cpassPhrase)) VALUE(p_Unix_Parms) NO-ERROR.
+           */
+              connect VALUE(args) VALUE(cKeyStoreParams) VALUE(p_Unix_Parms) NO-ERROR.
           END.
        END.
        if  NUM-DBS > num then ASSIGN currentdb = LDBNAME(num + 1).
@@ -607,6 +625,7 @@ display
    ext_Type             
    p_Multi_User
    Pass_Phrase
+   Pin
    p_UserId
    p_Password    
    p_Trig_Loc
@@ -620,6 +639,7 @@ do ON ERROR UNDO,LEAVE  ON ENDKEY UNDO,LEAVE:
           p_LName   /* when qbf_l_name */
           p_Multi_User
           Pass_Phrase
+          Pin
           p_UserId
           p_Password
           p_Trig_Loc

@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2018-2019, 2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2018-2019, 2021-2022 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : TokenResolver
@@ -15,8 +15,10 @@ Copyright (c) 2018-2019, 2021 by Progress Software Corporation and/or one of its
                     group-name = session | env | guid | t[ime] | web | ver[sion]
                              cp | req[uest] | name | err
                     
-                    If a token cannot be resovled, or resolves to a value of
-                    ? (unknown) then the token name is used.
+                    If a token cannot be resolved, or resolves to a value of
+                    ? (unknown) then the token name is used, unless the token is marked
+                    as allowing the unknown value. Tokens indicate this by a leading "?" - so a token of "{?cp.uid}"
+                    will resolve to "?" when no user is asserted.
                   
                   * Group args for SESSION
                     - any readable attribute on the session handle may be used
@@ -80,15 +82,8 @@ Copyright (c) 2018-2019, 2021 by Progress Software Corporation and/or one of its
                    SESSION  : The current session id
                    THREAD   : (PASOE) the current thread id
                  
-                 * Group args for WEB
-                    WEBAPP["." webapp-type]
-                        webapp-type
-                            NAME : the context/webapp name (default)
-                            PATH : the fully-qualified path of the webapp
-                            
-                    SVC
-                    any other cgi value
-                    
+                 * Group args for WEB are processed in OpenEdge.Web.Logging.WebRequestTokenResolver
+                 
                  * Group args for CP (client principal)
                    credential-arg "." db-name
                    credential-arg
@@ -131,11 +126,11 @@ Copyright (c) 2018-2019, 2021 by Progress Software Corporation and/or one of its
                     RETVAL     : return value, if an AppError
                     STACK      : the callstack, if enabled
                     TYPE       : the error type (class)
+                 
  ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
 using Ccs.Common.Support.IDateTimeTzHolder.
-using Ccs.Common.Support.IHandleHolder.
 using OpenEdge.Core.String.
 using OpenEdge.Core.StringConstant.
 using OpenEdge.Core.TimeStamp.
@@ -147,7 +142,6 @@ using OpenEdge.Security.Principal.
 using Progress.Lang.AppError.
 
 class OpenEdge.Core.Util.TokenResolver:
-    
     /* Event published after a token is resolved by this resolver. Allows a listener to override the value */
     define static public event TokenResolved signature void (input pSender as Progress.Lang.Object,
                                                              input pArgs as TokenResolverEventArgs).
@@ -490,7 +484,7 @@ class OpenEdge.Core.Util.TokenResolver:
         end.
         return args.
     end method.
-
+    
     /* Resolves a CP-based token arg, based on the client-principal.
         
        It is the CALLER's responsibility to clean up the C-P object represented by this handle
@@ -603,6 +597,7 @@ class OpenEdge.Core.Util.TokenResolver:
     end method.
     
     /* Resolves a single token into appropriate values, optionally using some input context
+       
        @param Token (required) The token
        @param Progress.Lang.Object (optional) Context used to resolve the token. eg a TimeStamp for times */
     method static public void ResolveToken(input pToken as Token,
@@ -627,6 +622,7 @@ class OpenEdge.Core.Util.TokenResolver:
                tea:SourceValue = pContext
                .
         // see if anyone wants to change this token, or handle tokens we don't know about
+        // WEB tokens are resolved via this publish mechanism
         TokenResolver:TokenResolved:Publish(get-class(TokenResolver), tea).
         
         // if the value is still ?, resolve as best we can
@@ -653,19 +649,19 @@ class OpenEdge.Core.Util.TokenResolver:
                 assign tea:TokenValue = substring(base64-encode(generate-uuid), 1, 22).
             
             when 'env':u then
-                case pTokenArg:
-                    when 'CATALINA_BASE':u then
-                    do:
-                        if mInstanceRoot eq '':u then
+            case pTokenArg:
+                when 'CATALINA_BASE':u then
+                do:
+                    if mInstanceRoot eq '':u then
                         assign tea:TokenValue = os-getenv(pTokenArg)
                                mInstanceRoot  = tea:TokenValue
-                                   .
-                        else
+                               .
+                    else
                         assign tea:TokenValue = mInstanceRoot.
-                    end.
-                    otherwise
+                end.
+                otherwise
                     assign tea:TokenValue = os-getenv(pTokenArg).
-                end case.
+            end case.   // ENV.<arg>
             
             when 'version':u or
             when 'ver':u then
@@ -697,26 +693,6 @@ class OpenEdge.Core.Util.TokenResolver:
                 when 'proc':u then
                     assign tea:TokenValue = session:current-request-info:ProcedureName.
             end case.
-            
-            when 'web':u then
-            // if we're not in a WEBSPEED or PASOE session, these'll resolve to null/unknown
-            case pTokenArg:
-                // the file-system path to the webapp
-                when 'webapp.path':u then
-                    assign tea:TokenValue = web-context:get-cgi-value('env':u, 'BASE_PATH':u).
-                // the webapp name
-                when 'webapp':u or
-                when 'webapp.name':u then
-                do:
-                    // we want a name here not a path. for that, use webapp.path
-                    assign tea:TokenValue = trim(web-context:get-cgi-value('env':u, 'CONTEXT_PATH':u), '/':u).
-                    if tea:TokenValue eq '':u then
-                        assign tea:TokenValue = 'ROOT':u.
-                end.
-                
-                otherwise
-                    assign tea:TokenValue = web-context:get-cgi-value('env':u, caps(pTokenArg)).
-            end case.  // web
             
             when 'cp':u then
                 if     valid-object(pContext)
@@ -782,22 +758,18 @@ class OpenEdge.Core.Util.TokenResolver:
        @param character The source string
        @return character The resolved string */
     method static public character Resolve(input pcBaseString as character):
-        define variable tokens as Token extent no-undo.
-        define variable loop as integer no-undo.
-        define variable cnt as integer no-undo.
-        define variable resolvedString as character no-undo.
-        define variable tokenCtx as Progress.Lang.Object no-undo.
-        define variable currentTime as datetime-tz no-undo.
-        define variable currentUser as handle no-undo.
-        define variable pos as integer no-undo.
-        define variable logicalDb as character no-undo.
+        var Token[] tokens.
+        var Progress.Lang.Object tokenCtx.
+        var handle currentUser.
+        var datetime-tz currentTime.
+        var integer strLen, loop, cnt, pos.
+        var character tokenStr, logicalDb.
         
         assign /* use a variable to fix the time used in the filename. if we use now or time, we may flip
                   to the next (milli)second during the execution of this loop */
                currentTime    = now
                tokens         = TokenResolver:Parse(pcBaseString)
                cnt            = extent(tokens)
-               resolvedString = pcBaseString
                .
         do loop = 1 to cnt:
             case tokens[loop]:Group:
@@ -823,8 +795,8 @@ class OpenEdge.Core.Util.TokenResolver:
                         assign currentUser = security-policy:get-client().
                     
                     if valid-handle(currentUser) then
-                        // the C-P represented by currentUser is manually cleaned up in this method's finally block
-                        assign tokenCtx = new Principal(currentUser).
+                        // the C-P represented by currentUser is manually cleaned up in the Principal object's destructor
+                        assign tokenCtx = new Principal(currentUser, true).
                 end.    //cp
                 
                 when 'name':u then
@@ -837,20 +809,25 @@ class OpenEdge.Core.Util.TokenResolver:
             end case.
             
             // resolve the individual token
-            ResolveToken(tokens[loop], tokenCtx).
+            assign tokens[loop]:Value = ResolveToken(tokens[loop]:Group, tokens[loop]:Arg, tokenCtx).
             
-            if not tokens[loop]:Value eq ? then
-                assign resolvedString = replace(resolvedString,
-                                                '$':u + StringConstant:CURLY_OPEN + string(tokens[loop]) + StringConstant:CURLY_CLOSE,
-                                                tokens[loop]:Value
-                                                ).
+            // If there are multiple of the same-named tokens in the string, replace them one-by-one,
+            // Actual value
+            if not tokens[loop]:Value eq ?
+            // unknown value uses "?"
+            or tokens[loop]:AllowUnknownValue
+            then
+                assign tokenStr     = '$':u + StringConstant:CURLY_OPEN + string(tokens[loop]) + StringConstant:CURLY_CLOSE
+                       strLen       = length(tokenStr)
+                       pos          = index(pcBaseString, tokenStr)
+                       pcBaseString = replace(substring(pcBaseString, 1, pos + strLen), tokenStr,
+                                              // using SUBSTITUTE() to turn ? into "?"
+                                              substitute('&1', tokens[loop]:Value))
+                                    + substring(pcBaseString, pos + strLen + 1)
+                       .
         end.
         
-        return resolvedString.
-        finally:
-            if valid-object(currentUser) then
-                delete object currentUser no-error.
-        end finally.
+        return pcBaseString.
     end method.
     
 end class.

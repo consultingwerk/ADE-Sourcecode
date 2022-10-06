@@ -1,21 +1,24 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2022 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : ServiceRegistryLoader
     Purpose     : Loads DOH services from a JSON file
-    Syntax      : 
-    Description : 
+    Syntax      :
+    Description :
     Author(s)   : pjudge
     Created     : Wed May 18 13:06:41 EDT 2016
-    Notes       : 
+    Notes       :
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.Assertion.AssertFile.
 using OpenEdge.Core.DateTimeAddIntervalEnum.
+using OpenEdge.Core.File.
 using OpenEdge.Core.IOModeEnum.
+using OpenEdge.Core.Json.JsonPropertyHelper.
+using OpenEdge.Core.JsonDataTypeEnum.
 using OpenEdge.Core.SemanticVersion.
 using OpenEdge.Core.String.
 using OpenEdge.Core.StringConstant.
@@ -42,13 +45,12 @@ using Progress.Json.ObjectModel.JsonArray.
 using Progress.Json.ObjectModel.JsonDataType.
 using Progress.Json.ObjectModel.JsonObject.
 using Progress.Json.ObjectModel.ObjectModelParser.
-using OpenEdge.Core.Json.JsonPropertyHelper.
-using OpenEdge.Core.JsonDataTypeEnum.
+using OpenEdge.Core.Util.TokenResolver.
 
 class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
 
     /* We never add records to this, just use it to test case-sensitivity. */
-    define private static temp-table ttCaseSensitive no-undo 
+    define private static temp-table ttCaseSensitive no-undo
         field csChar as character case-sensitive
         field csClob as clob case-sensitive
         .
@@ -92,21 +94,22 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
     
     /* Default constructor */
     constructor public ServiceRegistryLoader():
-        assign mJsonParser    = new ObjectModelParser()
-               mcInstanceRoot = replace(os-getenv ('CATALINA_BASE':u), StringConstant:BACKSLASH, '/':u)
+        assign mJsonParser        = new ObjectModelParser()
+               // use the token resolution mechanism to allow hooks for testing
+               mcInstanceRoot     = replace(TokenResolver:ResolveToken('env', 'CATALINA_BASE', ?), StringConstant:BACKSLASH, '/':u)
                // Note that it's NOT the ServiceRegistry type
                this-object:Logger = LoggerBuilder:GetLogger(this-object:GetClass())
                .
     end constructor.
     
-    /* Indicates whether a named service is available. Will attempt to 
+    /* Indicates whether a named service is available. Will attempt to
        locate a service map if it is not yet registered, and will register
        it if one can be found. The search path for finding the service mapping
        files is
        
        1. Look in the webapp's WEB-INF/openedge folder first
        2. Look in the instance's /openedge folder next
-       3. Look in the rest of PROPATH  
+       3. Look in the rest of PROPATH
        
        @param character The name of the mapped service
        @param character The name of the webapp currently executed
@@ -120,14 +123,14 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
         return TryFindService(pcServiceName, '':u, pcWebAppPath).
     end method.
     
-    /* Indicates whether a named service is available. Will attempt to 
+    /* Indicates whether a named service is available. Will attempt to
        locate a service map if it is not yet registered, and will register
        it if one can be found. The search path for finding the service mapping
        files is
        
        1. Look in the webapp's WEB-INF/openedge folder first
        2. Look in the instance's /openedge folder next
-       3. Look in the rest of PROPATH  
+       3. Look in the rest of PROPATH
        
        @param character The name of the mapped service
        @param character The version of the service
@@ -135,9 +138,9 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
        @return logical TRUE if the service exists */
     method public logical TryFindService(input pServiceName as character,
                                          input pVersion as character,
-                                         input pWebAppPath as character):                                             
-        define variable cFilename as character no-undo.
-        define variable lRegistered  as logical no-undo.
+                                         input pWebAppPath as character):
+        var File mappingFile.
+        var character filePrefix.
         
         Assert:NotNull(pServiceName, 'Service name').
         Assert:NotNull(pVersion, 'Service version').
@@ -149,80 +152,51 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
             assign pWebAppPath = 'ROOT':u.
         
         Logger:Trace(substitute('Searching for service "&1" version "&2" in path "&3"',
-                            pServiceName, pVersion, pWebAppPath)).
+                                pServiceName, pVersion, pWebAppPath)).
         
         if this-object:Registry:HasService(pServiceName, pVersion) then
             return true.
         
         // 1. Look in the webapps' WEB-INF/openedge folder first
         // -----------------------------------------------------
-        // GEN file first 
-        assign file-info:file-name = substitute('&1/webapps/&2/WEB-INF/openedge/&3.gen':u,
-                                mcInstanceRoot,
-                                pWebAppPath,
-                                pServiceName)
-               cFilename = file-info:full-pathname.
-        if cFilename ne ? then
-            LoadFromFile(pServiceName, pVersion, file-info:handle).
+        assign filePrefix = substitute('&1/webapps/&2/WEB-INF/openedge/&3':u,
+                                         mcInstanceRoot,
+                                         pWebAppPath,
+                                         pServiceName).
+        // GEN file first, then MAP file next
+        LoadFromFile(pServiceName, pVersion, new File(filePrefix + '.gen')).
+        LoadFromFile(pServiceName, pVersion, new File(filePrefix + '.map')).
         
-        // MAP file next
-        assign file-info:file-name = substitute('&1/webapps/&2/WEB-INF/openedge/&3.map':u,
-                                mcInstanceRoot,
-                                pWebAppPath,
-                                pServiceName)
-               cFilename = file-info:full-pathname.
-        if cFilename ne ? then
-            LoadFromFile(pServiceName, pVersion, file-info:handle).
-        
-        assign lRegistered = this-object:Registry:HasService(pServiceName, pVersion).
+        if this-object:Registry:HasService(pServiceName, pVersion) then
+            return true.
         
         // 2. Look in the instance's /openedge folder next
         // -----------------------------------------------
-        if not lRegistered  then
-        do:
-            // GEN file first 
-            assign file-info:file-name = substitute('&1/openedge/&2.gen':u,
-                                    mcInstanceRoot,
-                                    pServiceName)
-                   cFilename = file-info:full-pathname.
-            if cFilename ne ? then
-                LoadFromFile(pServiceName, pVersion, file-info:handle).
-                       
-            // MAP file next
-            assign file-info:file-name = substitute('&1/openedge/&2.map':u,
-                                    mcInstanceRoot,
-                                    pServiceName)
-                   cFilename = file-info:full-pathname.
-            if cFilename ne ? then
-                LoadFromFile(pServiceName, pVersion, file-info:handle).
-            
-            assign lRegistered = this-object:Registry:HasService(pServiceName, pVersion).
-        end.    // #2
+        assign filePrefix = substitute('&1/openedge/&2':u, mcInstanceRoot, pServiceName).
+        // GEN file first, then MAP file next
+        LoadFromFile(pServiceName, pVersion, new File(filePrefix + '.gen')).
+        LoadFromFile(pServiceName, pVersion, new File(filePrefix + '.map')).
+        if this-object:Registry:HasService(pServiceName, pVersion) then
+            return true.
         
-        // 3. Look in the rest of PROPATH 
+        // 3. Look in the rest of PROPATH
         // -----------------------------------------------
-        if not lRegistered then
-        do:
-            // GEN file first 
-            assign file-info:file-name = substitute('&1.gen':u, pServiceName)
-                   cFilename = file-info:full-pathname.
-            if cFilename ne ? then
-                LoadFromFile(pServiceName, pVersion, file-info:handle).
-            
-            // MAP file next        
-            assign file-info:file-name = substitute('&1.map':u, pServiceName)
-                   cFilename = file-info:full-pathname.
-            if cFilename ne ? then
-                LoadFromFile(pServiceName, pVersion, file-info:handle).
-            
-            assign lRegistered = this-object:Registry:HasService(pServiceName, pVersion).
-        end.    // #3
+        // GEN file first
+        assign mappingFile = new File(pServiceName + '.gen':u).
+        LoadFromFile(pServiceName, pVersion, mappingFile).
         
-        return lRegistered.
+        // MAP file next
+        // if a GEN file exists, then look in the same folder, otherwise look anywhere on PROPATH
+        if mappingFile:FileExists then
+            LoadFromFile(pServiceName, pVersion, new File(mappingFile:AbsoluteFilePath() + '/' + pServiceName + '.map':u)).
+        else
+            LoadFromFile(pServiceName, pVersion, new File(pServiceName + '.map':u)).
+        
+        return this-object:Registry:HasService(pServiceName, pVersion).
     end method.
     
     /* Register a service in this handler.
-    
+       
        @param character  (mandatory) The service name.
        @param JsonObject (recommended) An operation map for the service.
        @param JsonObject (optional) A catalog for the service. Optional since it may exist on disk */
@@ -261,14 +235,14 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
                         interval(registerTime[2], registerTime[1], string(DateTimeAddIntervalEnum:Milliseconds)))).
         
         return svc.
-
+        
         catch oError as Progress.Lang.Error:
             Logger:Error(substitute('Error registering service "&1 v&2"', svc:Name, string(svc:Version)), oError).
             this-object:Registry:DeregisterService(pcServiceName, SemanticVersion:Parse(pcVersion)).
         end catch.
     end method.
     
-    /* Converts a JSON map into internal structures 
+    /* Converts a JSON map into internal structures
        
        @param DataObjectService The service
        @param JsonObject The set of schema
@@ -293,11 +267,14 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
         assign cSchemaName = poSchemas:GetNames()
                iSchemaMax  = extent(cSchemaName)
                .
+        if iSchemaMax eq ? then
+            return 0.
+        
         SCHEMABLK:
         do iSchemaLoop = 1 to iSchemaMax:
             /* Ignore warnings about possible overflows, as schema names should not exceed 32KB. */
             {&_proparse_ prolint-nowarn(overflow)}
-            assign schemaName = string(cSchemaName[iSchemaLoop]).   
+            assign schemaName = string(cSchemaName[iSchemaLoop]).
             if not poSchemas:GetType(schemaName) eq JsonDataType:OBJECT then
                 next SCHEMABLK.
             
@@ -331,12 +308,12 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
                 
                 if valid-object(attribs) then
                 do:
-                    if     attribs:Has(string(ServiceMappingFileSchemaEnum:serializeHidden)) 
+                    if     attribs:Has(string(ServiceMappingFileSchemaEnum:serializeHidden))
                        and attribs:GetType(string(ServiceMappingFileSchemaEnum:serializeHidden)) eq JsonDataType:BOOLEAN
                     then
                         assign hSchema:serialize-hidden = attribs:GetLogical(string(ServiceMappingFileSchemaEnum:serializeHidden)).
                     
-                    if     attribs:Has(string(ServiceMappingFileSchemaEnum:serializeName)) 
+                    if     attribs:Has(string(ServiceMappingFileSchemaEnum:serializeName))
                        and attribs:GetType(string(ServiceMappingFileSchemaEnum:serializeName)) eq JsonDataType:STRING
                     then
                         assign hSchema:serialize-name = attribs:GetCharacter(string(ServiceMappingFileSchemaEnum:serializeName)).
@@ -385,7 +362,7 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
             
             if not pRelations:GetType(loop) eq JsonDataType:OBJECT then
             do:
-                Logger:Warn(substitute('Unable to add relation &2 to dataset &1 - expecting JsonObject but was &3', 
+                Logger:Warn(substitute('Unable to add relation &2 to dataset &1 - expecting JsonObject but was &3',
                                 pDataset:name, loop, string(JsonDataTypeEnum:GetEnum(pRelations:GetType(loop))))).
                 next LOOPBLK.
             end.
@@ -394,21 +371,21 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
             
             if not JsonPropertyHelper:HasTypedProperty(relData, string(ServiceMappingFileSchemaEnum:parentTable), JsonDataType:STRING) then
             do:
-                Logger:Warn(substitute('Unable to add relation &2 to dataset &1 - no parent table name provided', 
+                Logger:Warn(substitute('Unable to add relation &2 to dataset &1 - no parent table name provided',
                                 pDataset:name, loop)).
                 next LOOPBLK.
             end.
             
             if not JsonPropertyHelper:HasTypedProperty(relData, string(ServiceMappingFileSchemaEnum:childTable), JsonDataType:STRING) then
             do:
-                Logger:Warn(substitute('Unable to add relation &2 to dataset &1 - no child table name provided', 
+                Logger:Warn(substitute('Unable to add relation &2 to dataset &1 - no child table name provided',
                                 pDataset:name, loop)).
                 next LOOPBLK.
             end.
             
             if not JsonPropertyHelper:HasTypedProperty(relData, string(ServiceMappingFileSchemaEnum:fields), JsonDataType:ARRAY) then
             do:
-                Logger:Warn(substitute('Unable to add relation &2 to dataset &1 - no fields provided', 
+                Logger:Warn(substitute('Unable to add relation &2 to dataset &1 - no fields provided',
                                 pDataset:name, loop)).
                 next LOOPBLK.
             end.
@@ -422,12 +399,12 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
                    .
             do fldLoop = 1 to fldCnt:
                 if relFlds:GetType(fldLoop) eq JsonDataType:OBJECT then
-                do: 
+                do:
                     assign fldData = relFlds:GetJsonObject(fldLoop).
-                    if     JsonPropertyHelper:HasTypedProperty(fldData, string(ServiceMappingFileSchemaEnum:parentField), JsonDataType:STRING) 
+                    if     JsonPropertyHelper:HasTypedProperty(fldData, string(ServiceMappingFileSchemaEnum:parentField), JsonDataType:STRING)
                        and JsonPropertyHelper:HasTypedProperty(fldData, string(ServiceMappingFileSchemaEnum:childField),  JsonDataType:STRING)
                     then
-                        assign fldPairs = fldPairs 
+                        assign fldPairs = fldPairs
                                         + delim
                                         + fldData:GetCharacter(string(ServiceMappingFileSchemaEnum:parentField))
                                         + ',':u
@@ -452,7 +429,7 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
             if JsonPropertyHelper:HasTypedProperty(relData, string(ServiceMappingFileSchemaEnum:active), JsonDataType:BOOLEAN) then
                 assign isActive = relData:GetLogical(string(ServiceMappingFileSchemaEnum:active)).
             else
-                assign isActive = ?. 
+                assign isActive = ?.
             
             if JsonPropertyHelper:HasTypedProperty(relData, string(ServiceMappingFileSchemaEnum:reposition), JsonDataType:BOOLEAN) then
                 assign isReposition = relData:GetLogical(string(ServiceMappingFileSchemaEnum:reposition)).
@@ -548,7 +525,7 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
                                      ablType,
                                      iExtent).
             
-            // We can only flag fields later so not which (potentially) need updates  
+            // We can only flag fields later so not which (potentially) need updates
             if    oField:Has(string(ServiceMappingFileSchemaEnum:serializeName))
                or oField:Has(string(ServiceMappingFileSchemaEnum:serializeHidden))
             then
@@ -577,7 +554,7 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
                 .
 
             // By definition a temp-table may only have 1 index marked as primary, regardless of index fields.
-            // Only the first primary index to be added as such, while any others will be created as non-primary. 
+            // Only the first primary index to be added as such, while any others will be created as non-primary.
             if lPrimary and not lHasPrimary then do:
                 assign lHasPrimary = true. // On the first primary index, mark that we have our 1 possible.
                 Logger:Info(substitute('Adding primary index "&1" on temp-table "&2".', cIdxName[iIndexLoop],  pcName)).
@@ -609,8 +586,8 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
         
         hTable:temp-table-prepare(pcName, lHasBeforeTable).
         
-        if     poTable:Has(string(ServiceMappingFileSchemaEnum:serializeName)) 
-           and poTable:GetType(string(ServiceMappingFileSchemaEnum:serializeName)) eq JsonDataType:STRING 
+        if     poTable:Has(string(ServiceMappingFileSchemaEnum:serializeName))
+           and poTable:GetType(string(ServiceMappingFileSchemaEnum:serializeName)) eq JsonDataType:STRING
            then
             assign hTable:serialize-name = poTable:GetCharacter(string(ServiceMappingFileSchemaEnum:serializeName)).
         
@@ -623,12 +600,12 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
             assign oField  = oFieldList:GetJsonObject(fieldWithAttr[iFieldLoop])
                    hField  = hBuffer:buffer-field(oField:GetCharacter(string(ServiceMappingFileSchemaEnum:name)))
                    .
-            if     oField:Has(string(ServiceMappingFileSchemaEnum:serializeHidden)) 
+            if     oField:Has(string(ServiceMappingFileSchemaEnum:serializeHidden))
                and oField:GetType(string(ServiceMappingFileSchemaEnum:serializeHidden)) eq JsonDataType:BOOLEAN
-               then 
+               then
                 assign hField:serialize-hidden = oField:GetLogical(string(ServiceMappingFileSchemaEnum:serializeHidden)).
             
-            if     oField:Has(string(ServiceMappingFileSchemaEnum:serializeName)) 
+            if     oField:Has(string(ServiceMappingFileSchemaEnum:serializeName))
                and oField:GetType(string(ServiceMappingFileSchemaEnum:serializeName)) eq JsonDataType:STRING
                then
                 assign hField:serialize-name = oField:GetCharacter(string(ServiceMappingFileSchemaEnum:serializeName)).
@@ -637,9 +614,9 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
         return hTable.
     end method.
     
-    /* Converts a JSON map into internal structures 
+    /* Converts a JSON map into internal structures
        
-       @param DataObjectService The service 
+       @param DataObjectService The service
        @param JsonObject The operation map
        @return integer The number of operations loaded */
     method private integer LoadOperations(input pService as DataObjectService,
@@ -683,6 +660,9 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
         assign relativeUris = poOperations:GetNames()
                iUriMax      = extent(relativeUris)
                .
+        if iUriMax eq ? then
+            return 0.
+        
         URI-LOOP:
         do iUriLoop = 1 to iUriMax:
             {&_proparse_ prolint-nowarn(overflow)}
@@ -715,7 +695,7 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
                                .
                         if oSvc:Has(string(ServiceMappingFileSchemaEnum:type)) then
                             assign targetType = oSvc:GetCharacter(string(ServiceMappingFileSchemaEnum:type)).
-                        // backward-compat and values not set in JSON 
+                        // backward-compat and values not set in JSON
                         case targetType:
                             when 'cls':u  or
                             when '':u     then
@@ -742,7 +722,7 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
                         then
                             assign propArray                      = oVerb:GetJsonArray(string(ServiceMappingFileSchemaEnum:accessControl))
                                    oMappedOperation:AccessControl = propArray:GetCharacter(1, propArray:Length)
-                                   . 
+                                   .
                         
                         ARGS-LOOP:
                         do iArgLoop = 1 to iArgMax:
@@ -758,7 +738,7 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
                                                 )
                                    .
                             if oParam:IOMode:IsFlagSet(IOModeEnum:Return) then
-                                assign oMappedOperation:ReturnValue = oParam. 
+                                assign oMappedOperation:ReturnValue = oParam.
                             else
                                 oMappedOperation:Parameters:Add(oParam).
                             
@@ -820,7 +800,7 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
                                     then
                                         assign msgElem[iElemLoop]:ABLReference = oElem:GetCharacter(string(ServiceMappingFileSchemaEnum:ablRef)).
                                 end.
-                            end.    // ELEM-CNT-LOOP 
+                            end.    // ELEM-CNT-LOOP
                             
                             if iInputCnt gt 0 then
                                 assign extent(oParam:InputElement) = iInputCnt
@@ -840,8 +820,8 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
                                            iInputCnt                      = iInputCnt + 1
                                            .
                                 // Covers INPUT-OUTPUT, OUTPUT and RETURN parameters
-                                if    msgElem[iElemLoop]:IoMode:IsFlagSet(IOModeEnum:Output) 
-                                   or msgElem[iElemLoop]:IoMode:IsFlagSet(IOModeEnum:Return) 
+                                if    msgElem[iElemLoop]:IoMode:IsFlagSet(IOModeEnum:Output)
+                                   or msgElem[iElemLoop]:IoMode:IsFlagSet(IOModeEnum:Return)
                                 then
                                     assign oParam:OutputElement[iOutputCnt] = msgElem[iElemLoop]
                                            iOutputCnt                       = iOutputCnt + 1
@@ -858,7 +838,7 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
                                                                       '':u,     /* type-of */
                                                                       '':u,     /* function */
                                                                       (if oVerb:Has(string(ServiceMappingFileSchemaEnum:options)) then CreateOperationOptions(oVerb:GetJsonObject(string(ServiceMappingFileSchemaEnum:options))) else ?),
-                                                                      (if oVerb:Has(string(ServiceMappingFileSchemaEnum:statusCode)) then oVerb:GetInteger(string(ServiceMappingFileSchemaEnum:statusCode)) else integer(StatusCodeEnum:OK)) 
+                                                                      (if oVerb:Has(string(ServiceMappingFileSchemaEnum:statusCode)) then oVerb:GetInteger(string(ServiceMappingFileSchemaEnum:statusCode)) else integer(StatusCodeEnum:OK))
                                                                       ).
                     // defaults  to VOID
                     otherwise
@@ -886,7 +866,7 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
                     assign oMappedOperation:Name = oVerb:GetCharacter(string(ServiceMappingFileSchemaEnum:name)).
                 
                 // If there are a set of headers defined to return, then add them
-                if     oVerb:Has(string(ServiceMappingFileSchemaEnum:headers)) 
+                if     oVerb:Has(string(ServiceMappingFileSchemaEnum:headers))
                    and oVerb:GetType(string(ServiceMappingFileSchemaEnum:headers)) eq JsonDataType:OBJECT
                 then
                 do:
@@ -897,7 +877,7 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
                            .
                     do propLoop = 1 to propMax:
                         {&_proparse_ prolint-nowarn(overflow)}
-                        assign propertyName = string(propNames[propLoop]). 
+                        assign propertyName = string(propNames[propLoop]).
                         if propData:GetType(propertyName) eq JsonDataType:STRING then
                             oMappedOperation:Headers:Put( HttpHeaderBuilder:Build(propertyName)
                                                             :Value(propData:GetCharacter(propertyName))
@@ -921,13 +901,13 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
             end.    /* VERB-LOOP: */
         end.    /* URI-LOOP: */
         
-        return numOperations.    
+        return numOperations.
     end method.
     
     /* Loads all services from the file
        
-       @param handle The FILE-INFO handle for the file. */
-    method  private void LoadFromFile(input phFile as handle):
+       @param File The file being loaded */
+    method  private void LoadFromFile(input pFile as File):
         define variable oMap as JsonObject no-undo.
         define variable oServiceList as JsonObject no-undo.
         define variable cServiceName as character extent no-undo.
@@ -936,17 +916,25 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
         define variable verCnt as integer no-undo.
         define variable verMax as integer no-undo.
         define variable svcVersions as JsonArray no-undo.
-
-        Assert:NotNull(phFile, 'File handle').
+        define variable fileName as character no-undo.
         
-        Logger:Debug(substitute('Loading map: &1', phFile:full-pathname)).
+        Assert:NotNull(pFile, 'File').
         
-        assign oMap = cast(mJsonParser:ParseFile(file-info:full-pathname), JsonObject).
+        if not pFile:FileExists then
+        do:
+            Logger:Debug(substitute('Mapping file "&1" does not exist', pFile:Name)).
+            return.
+        end.
+        
+        assign fileName = pFile:AbsoluteFileName().
+        Logger:Debug(substitute('Loading map: &1', fileName)).
+        
+        assign oMap = cast(mJsonParser:ParseFile(fileName), JsonObject).
         
         if not oMap:Has(string(ServiceMappingFileSchemaEnum:services)) or
            not oMap:GetType(string(ServiceMappingFileSchemaEnum:services)) eq JsonDataType:OBJECT then
         do:
-            Logger:Debug(substitute('Unable to find any services in file &1', phFile:full-pathname)).
+            Logger:Debug(substitute('Unable to find any services in file &1', fileName)).
             return.
         end.
         
@@ -966,7 +954,7 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
                     assign svcVersions = oServiceList:GetJsonArray(cServiceName[iLoop]).
                 otherwise
                 do:
-                    Logger:Debug(substitute('Unable to find any load service &1 from &2 JSON data1',
+                    Logger:Debug(substitute('Unable to find any load service &1 from &2 JSON data',
                                     cServiceName[iLoop], oServiceList:GetType(cServiceName[iLoop]))).
                     next LOOPBLK.
                 end.
@@ -983,42 +971,49 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
        
        @param character The service name to load
        @param character A version to load
-       @param handle The FILE-INFO handle for the file
-       @return logical TRUE if the named service was found */
-    method private logical LoadFromFile(input pcServiceName as character,
-                                        input pVersion as character,
-                                        input phFile as handle):
+       @param File The file being loaded */
+    method private void LoadFromFile(input pcServiceName as character,
+                                     input pVersion as character,
+                                     input pFile as File):
         define variable oMap as JsonObject no-undo.
         define variable oServiceList as JsonObject no-undo.
         define variable verCnt as integer no-undo.
         define variable verMax as integer no-undo.
         define variable svcVersions as JsonArray no-undo.
+        define variable fileName as character no-undo.
         
         Assert:NotNullOrEmpty(pcServiceName, 'Service name').
-        Assert:NotNull(pVersion, 'Service version'). 
-        Assert:NotNull(phFile, 'File handle').
+        Assert:NotNull(pVersion, 'Service version').
+        Assert:NotNull(pFile, 'File').
         
-        Logger:Debug(substitute('Loading map: &1', phFile:full-pathname)).
+        if not pFile:FileExists then
+        do:
+            Logger:Debug(substitute('Mapping file "&1" does not exist', pFile:Name)).
+            return.
+        end.
         
-        assign oMap = cast(mJsonParser:ParseFile(phFile:full-pathname), JsonObject).
+        assign fileName = pFile:AbsoluteFileName().
+        Logger:Debug(substitute('Loading map: &1', fileName)).
+        
+        assign oMap = cast(mJsonParser:ParseFile(fileName), JsonObject).
         
         if not oMap:Has(string(ServiceMappingFileSchemaEnum:services)) or
            not oMap:GetType(string(ServiceMappingFileSchemaEnum:services)) eq JsonDataType:OBJECT then
         do:
-            Logger:Debug(substitute('No services found in file &1', phFile:full-pathname)).
-            return false.
+            Logger:Debug(substitute('No services found in file &1', fileName)).
+            return.
         end.
         
-        assign oServiceList = oMap:GetJsonObject(string(ServiceMappingFileSchemaEnum:services)). 
+        assign oServiceList = oMap:GetJsonObject(string(ServiceMappingFileSchemaEnum:services)).
         case true:
             when oServiceList:Has(pcServiceName) then
                 /* no-op */ .
             when oServiceList:Has('/':u + pcServiceName) then
-                assign pcServiceName = '/':u + pcServiceName. 
+                assign pcServiceName = '/':u + pcServiceName.
             otherwise
             do:
-                Logger:Debug(substitute('Unable to find service &1 in file &2', pcServiceName, phFile:full-pathname)).
-                return false.
+                Logger:Debug(substitute('Unable to find service &1 in file &2', pcServiceName, fileName)).
+                return.
             end.
         end case.
         
@@ -1032,7 +1027,7 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
                 assign svcVersions = oServiceList:GetJsonArray(pcServiceName).
             otherwise
             do:
-                Logger:Debug(substitute('Unable to find any load service &1 from &2 JSON data1',
+                Logger:Debug(substitute('Unable to find any load service &1 from &2 JSON data',
                                 pcServiceName, oServiceList:GetType(pcServiceName))).
             end.
         end case.
@@ -1041,8 +1036,6 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
         do verCnt = 1 to verMax:
             LoadService(pcServiceName, pVersion, svcVersions:GetJsonObject(verCnt)).
         end.
-        
-        return true.
     end method.
     
     /* Loads and registers a single service name/version service from JSON
@@ -1064,19 +1057,19 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
         else
             assign semVer = new SemanticVersion().
         
-        // If we passed a non-empty version in, then compare         
+        // If we passed a non-empty version in, then compare
         if not pVersion eq '':u
-           and not string(semVer) eq pVersion  
+           and not string(semVer) eq pVersion
         then
             return.
         
-        if     pService:Has(string(ServiceMappingFileSchemaEnum:operations)) 
-           and pService:GetType(string(ServiceMappingFileSchemaEnum:operations)) eq JsonDataType:OBJECT 
+        if     pService:Has(string(ServiceMappingFileSchemaEnum:operations))
+           and pService:GetType(string(ServiceMappingFileSchemaEnum:operations)) eq JsonDataType:OBJECT
            then
             assign oOperations = pService:GetJsonObject(string(ServiceMappingFileSchemaEnum:operations)).
         
-        if     pService:Has(string(ServiceMappingFileSchemaEnum:schemas)) 
-           and pService:GetType(string(ServiceMappingFileSchemaEnum:schemas)) eq JsonDataType:OBJECT 
+        if     pService:Has(string(ServiceMappingFileSchemaEnum:schemas))
+           and pService:GetType(string(ServiceMappingFileSchemaEnum:schemas)) eq JsonDataType:OBJECT
            then
             assign oSchemas = pService:GetJsonObject(string(ServiceMappingFileSchemaEnum:schemas)).
         
@@ -1090,12 +1083,12 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
                                      oCatalog,
                                      oSchemas        ).
         
-        if     pService:Has(string(ServiceMappingFileSchemaEnum:options)) 
-           and pService:GetType(string(ServiceMappingFileSchemaEnum:options)) eq JsonDataType:OBJECT 
+        if     pService:Has(string(ServiceMappingFileSchemaEnum:options))
+           and pService:GetType(string(ServiceMappingFileSchemaEnum:options)) eq JsonDataType:OBJECT
         then
             LoadServiceOptions(svc, pService:GetJsonObject(string(ServiceMappingFileSchemaEnum:options))).
         
-        if     pService:Has(string(ServiceMappingFileSchemaEnum:argumentWriters)) 
+        if     pService:Has(string(ServiceMappingFileSchemaEnum:argumentWriters))
            and pService:GetType(string(ServiceMappingFileSchemaEnum:argumentWriters)) eq JsonDataType:ARRAY
         then
             LoadServiceWriters(svc, pService:GetJsonArray(string(ServiceMappingFileSchemaEnum:argumentWriters))).
@@ -1107,11 +1100,9 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
     method public void RegisterFromFile(input pcFile as character):
         AssertFile:FileExists(pcFile).
         
-        assign file-info:file-name = pcFile.
-        
-        LoadFromFile(file-info:handle).
+        LoadFromFile(new File(pcFile)).
      end method.
-
+    
     /* Registers a named service found in a given file. Can be used at agent startup
        
        @param character A service name
@@ -1121,11 +1112,9 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
         Assert:NotNullOrEmpty(pcServiceName, 'Service name').
         AssertFile:FileExists(pcFile).
         
-        assign file-info:file-name = pcFile. 
-        
-        LoadFromFile(pcServiceName, '':u, file-info:handle).
+        LoadFromFile(pcServiceName, '':u, new File(pcFile)).
      end method.
-
+     
     /* Registers all services found in a given folder. Can be used at agent startup
        
        @param character An extant folder */
@@ -1140,8 +1129,9 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
             import
                 cService ^ cFlag.
             
-            if cFlag eq 'F':u and
-               num-entries(cService, '.':u) gt 1 then
+            if index(cFlag, 'F') gt 0
+            and num-entries(cService, '.':u) gt 1
+            then
             case entry(2, cService, '.':u):
                 when 'gen':u or when 'map':u then
                     /* will register if it can */
@@ -1184,7 +1174,7 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
         
         if pData:Has(string(ServiceMappingFileSchemaEnum:requestEnvelope)) then
         case pData:GetType(string(ServiceMappingFileSchemaEnum:requestEnvelope)):
-            when JsonDataType:BOOLEAN then 
+            when JsonDataType:BOOLEAN then
                 assign options:HasRequestEnvelope = pData:GetLogical(string(ServiceMappingFileSchemaEnum:requestEnvelope)).
             when JsonDataType:STRING then
                 assign options:HasRequestEnvelope = true
@@ -1212,7 +1202,7 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
                        .
         end case.
         
-        if     pData:Has(string(ServiceMappingFileSchemaEnum:schemas)) 
+        if     pData:Has(string(ServiceMappingFileSchemaEnum:schemas))
            and pData:GetType(string(ServiceMappingFileSchemaEnum:schemas)) eq JsonDataType:OBJECT
         then
         do:
@@ -1261,7 +1251,7 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
         then
             assign pSchemaOption:SerializeName = pData:GetCharacter(string(ServiceMappingFileSchemaEnum:serializeName)).
         
-        // Can have FIELDS or TABLES as children 
+        // Can have FIELDS or TABLES as children
         if     pData:Has(string(ServiceMappingFileSchemaEnum:fields))
            and pData:GetType(string(ServiceMappingFileSchemaEnum:fields)) eq JsonDataType:OBJECT
         then
@@ -1323,7 +1313,7 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
             {&_proparse_ prolint-nowarn(varusage)}
             catch uncaught as Progress.Lang.Error:
                 next COUNTLOOP.
-            end catch. 
+            end catch.
         end.
     end method.
     

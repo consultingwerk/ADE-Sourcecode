@@ -62,6 +62,7 @@ block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.Collections.IIterator.
+using OpenEdge.Core.Collections.IStringKeyedMap.
 using OpenEdge.Core.Collections.IStringStringMap.
 using OpenEdge.Core.Collections.MapEntry.
 using OpenEdge.Core.Session.
@@ -69,6 +70,7 @@ using OpenEdge.Core.String.
 using OpenEdge.Net.PercentEncoder.
 using OpenEdge.Net.URI.
 using OpenEdge.Net.UriEncodingTypeEnum.
+using Progress.Collections.List.
 
 @since(rel='12.5.0').
 class OpenEdge.Net.UriEncoder:
@@ -572,16 +574,16 @@ class OpenEdge.Net.UriEncoder:
        
        @param IStringStringMap
        @return character An encoded query string */
-    method public character EncodeQuery(input pQueryMap as IStringStringMap):
+    method public character EncodeQuery (input pQueryMap as IStringStringMap):
         var character encodedQuery, qryString, qryDelim.
         var IIterator iter.
         var MapEntry me.
-               
+
         Assert:NotNull(pQueryMap, 'Query map').
-        
+
         // encode the query strings
-        // we use the map values directly, since they're already encoded, and GetQueryValue()
-        // decodes any stored values
+        // we use the map values directly, since they're already encoded,
+        // and GetQueryValue()/GetQueryValues() decodes any stored values
         assign qryDelim = '?':u
                iter     = pQueryMap:EntrySet:Iterator()
                .
@@ -605,7 +607,53 @@ class OpenEdge.Net.UriEncoder:
         
         return encodedQuery.
     end method.
-    
+
+    /* Encodes a URI's Query string per URI query encoding rules.
+       
+       @param IStringKeyedMap
+       @return character An encoded query string */
+    method public character EncodeQuery (input pQueryMap as IStringKeyedMap):
+        var character encodedQuery, qryString, qryDelim.
+        var IIterator iter.
+        var MapEntry me.
+        var List<String> sl.
+        var integer iCount, iLoop.
+        var character paramVal.
+               
+        Assert:NotNull(pQueryMap, 'Query map').
+
+        // encode the query strings, which will be part of a List<String>
+        // we use the map values directly, since they're already encoded, and GetQueryValue()
+        // decodes any stored values
+        assign qryDelim  = '?':u
+               iter      = pQueryMap:EntrySet:Iterator()
+               qryString = '':u
+               .
+
+        do while iter:HasNext():
+            assign me = cast(iter:Next(), MapEntry).
+
+            assign sl = cast(me:Value, List<String>).
+            assign iCount = sl:count.
+            do iLoop = 1 to iCount:
+                assign paramVal = string(sl:Get(iLoop)). // Gets string of value (or unknown).
+
+                if paramVal eq ? then // No value, just start a new named parameter in the query string.
+                    assign qryString = substitute('&1&2':u, qryDelim, me:Key:ToString()). // eg. "[?|&]key"
+                else
+                    assign qryString = substitute('&1&2=&3':u, qryDelim, me:Key:ToString(), paramVal). // eg. "[?|&]key=value"
+
+                // Not sure why this Encode() is necessary, since the values are already encoded, but
+                // it has been here for a while and seems to do no harm (since encoded values are not re-encoded)
+                // this will also encode the query name if needed
+                assign encodedQuery += mEncoder_Query:Encode(qryString).
+                assign qryDelim = '&':u.
+            end. // do iLoop
+        end. // do while
+        
+        return encodedQuery.
+    end method.
+
     /* Encodes a string per URI Scheme encoding rules
        
        https://tools.ietf.org/html/rfc3986#page-11

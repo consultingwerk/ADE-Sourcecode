@@ -25,6 +25,7 @@ using OpenEdge.Core.Collections.ValueCollection.
 using OpenEdge.Core.String.
 using OpenEdge.Core.StringConstant.
 using Progress.Lang.Object.
+using OpenEdge.Core.Collections.IMapEntry.
 
 class OpenEdge.Core.Collections.StringStringMap implements IStringStringMap:
     /* Hash algorithm used to determine the index value for the String value */
@@ -385,7 +386,7 @@ class OpenEdge.Core.Collections.StringStringMap implements IStringStringMap:
        
        @param IMap A valid map */
     method public void PutAll(input pMap as IMap):
-        define variable key as Object no-undo.
+        define variable mapEntry as IMapEntry no-undo.
         define variable iter  as IIterator no-undo.
         
         Assert:NotNull(pMap, 'Source map').
@@ -394,10 +395,10 @@ class OpenEdge.Core.Collections.StringStringMap implements IStringStringMap:
             PutAll(cast(pMap, IStringStringMap)).
         else
         do:
-            assign iter = pMap:KeySet:Iterator(). 
+            assign iter = pMap:EntrySet:Iterator(). 
             do while iter:HasNext():
-                assign key = iter:Next().
-                this-object:Put(key, pMap:Get(key)).
+                assign mapEntry = cast(iter:Next(), IMapEntry).
+                this-object:Put(mapEntry:Key, mapEntry:Value).
             end.
         end.
     end method.
@@ -406,7 +407,7 @@ class OpenEdge.Core.Collections.StringStringMap implements IStringStringMap:
        
        @param IStringStringMap A valid map */
     method public void PutAll(input pMap as IStringStringMap):
-        define variable key as Object no-undo.
+        define variable mapEntry as IMapEntry no-undo.
         define variable iter  as IIterator no-undo.
         define buffer srcMap for StrStrMap.
         define buffer tgtMap for StrStrMap.
@@ -436,9 +437,9 @@ class OpenEdge.Core.Collections.StringStringMap implements IStringStringMap:
         do:
             assign iter = pMap:KeySet:Iterator(). 
             do while iter:HasNext():
-                assign key = iter:Next().
+                assign mapEntry = cast(iter:Next(), IMapEntry).
                 // safe cast because this is a IStringStringMap
-                this-object:Put(string(key), cast(pMap:Get(key), String)).
+                this-object:Put(string(mapEntry:Key), cast(mapEntry:Value, String)).
             end.
         end.
     end method.

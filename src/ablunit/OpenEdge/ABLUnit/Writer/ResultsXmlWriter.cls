@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2020-2021 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2020-2022 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : ResultsXmlWriter
@@ -48,9 +48,6 @@ implements IResultsWriter:
         xmlDoc:save('longchar':u, xml).
         
         return xml.
-        finally:
-            delete widget-pool.
-        end finally.
     end method.
     
     /* Writes the test results in the xml file
@@ -66,12 +63,9 @@ implements IResultsWriter:
         assign xmlDoc = WriteXml(pTestEntity).
         
         xmlDoc:save('file':u, pXmlFileName).
-        finally:
-            delete widget-pool.
-        end finally.
     end method.
     
-    /* Writes the testENtity as XML
+    /* Writes the test entity as XML
        
        @param  TestEntity The test to write (root)
        @param  ICollection A collection holding all X-DOC or X-NODEREF handles for cleanup after writing of the doc.

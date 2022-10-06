@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2019-2021 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2019-2022 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : JsonConfigLoggerBuilder
@@ -98,7 +98,12 @@ class OpenEdge.Logging.JsonConfigLoggerBuilder inherits LoggerBuilder:
         define buffer lbFilter for LogFilter.
         
         for each lbConfig:
+            // try individual name and groups
+            // we don't care about the return values, since the config may have been
+            // updated before any loggers were created from the config
             LoggerBuilder:RemoveFromCache(lbConfig.LoggerName).
+            LoggerBuilder:RemoveGroupFromCache(lbConfig.LoggerName).
+            
             delete lbConfig.
         end.
         empty temp-table lbFilter.
@@ -460,7 +465,7 @@ class OpenEdge.Logging.JsonConfigLoggerBuilder inherits LoggerBuilder:
         // don't recurse
         if not isDefault then
             return FindLogger(JsonConfigLoggerBuilder:DefaultLogger, buffer pbLogger).
-        
+    
         return false.
     end method.
     

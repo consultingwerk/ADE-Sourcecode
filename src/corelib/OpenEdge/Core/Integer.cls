@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2016, 2019 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2016, 2019, 2022 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : Integer
@@ -12,10 +12,15 @@ Copyright (c) 2016, 2019 by Progress Software Corporation. All rights reserved.
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
-using Ccs.Common.Support.IInt64Holder.
-using OpenEdge.Core.Assert.
+USING Ccs.Common.Support.IInt64Holder.
+USING OpenEdge.Core.Assert.
+USING Progress.Collections.IComparable.
 
-class OpenEdge.Core.Integer implements IInt64Holder:
+
+class OpenEdge.Core.Integer implements IInt64Holder,
+           // Compare to the interface so that other implementations of IIntegerHolder can be sorted with this one
+           IComparable<IInt64Holder>:
+               
     define public property Value as int64 no-undo get. set.
 
     constructor public Integer(input piValue as int64):
@@ -40,7 +45,7 @@ class OpenEdge.Core.Integer implements IInt64Holder:
          if type-of(PO, IInt64Holder) then
          do:
            valCompare = dynamic-property(PO, 'Value').
-           If this-object:Value eq valCompare then 
+           If this-object:Value eq valCompare then
              return true.
          end.
          return false.
@@ -48,5 +53,38 @@ class OpenEdge.Core.Integer implements IInt64Holder:
     method override public character ToString():
         return string(this-object:Value).
     end method.
+    
+        /* Comparison method, used by SortedSet's default comparer
+        
+        - If the returned value is less than 0 (zero), then the current object sorts before the object passed in.
+        - If the returned value equals 0 (zero) , then the current object occupies the same position in the sort order.
+        - If the returned value is greater than 0(zero), then the current object sorts after the object passed in.
+        - If either object's Value is the unknown value (?), then that sorts high/early/before
+        
+        @param IInt64Holder The object to compare to.
+        @return integer  0 = same object
+                        +1 = sorts after
+                        -1 = sorts before   */
+    method public integer CompareTo(input pOther as IInt64Holder):
+        Assert:NotNull(pOther, 'CompareTo object').
+        
+        if this-object:Value eq pOther:Value then
+            return 0.
+        else
+        // unknown values sort first/lower
+        if this-object:Value gt pOther:Value
+        or pOther:Value eq ?
+        then
+            return +1.
+        else
+        if this-object:Value lt pOther:Value
+        or this-object:Value eq ?
+        then
+            return -1.
+        
+        // this will raise an error in the Comparer; we should never get here though.
+        return ?.
+    end method.
+    
 end class.
 

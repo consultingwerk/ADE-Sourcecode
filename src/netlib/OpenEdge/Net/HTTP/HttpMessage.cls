@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2014-2016, 2018, 2021 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014-2016, 2018, 2021-2022 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : HttpMessage
@@ -107,18 +107,18 @@ class OpenEdge.Net.HTTP.HttpMessage
     define public property Entity as Object no-undo get. set.
     
     /**  The length (in bytes/characters) of the payload/entity. */    
-    define public property ContentLength as integer no-undo
+    define public property ContentLength as int64 no-undo
         get():
-            define variable iLength as integer no-undo.
+            define variable iLength as int64 no-undo.
             define variable cLength as character no-undo.
                         
             /* Content-Length */
             if HasHeader('Content-Length':u) then
             do:
                 assign cLength = GetHeader('Content-Length':u):Value.
-                Assert:IsInteger(cLength, 'Content-Length').
+                Assert:IsInt64(cLength, 'Content-Length').
                 
-                assign iLength = integer(cLength).
+                assign iLength = int64(cLength).
                 Assert:IsZeroOrPositive(iLength, 'Content-Length').
             end.
             else
@@ -126,7 +126,7 @@ class OpenEdge.Net.HTTP.HttpMessage
             
             return iLength.
         end get.
-        set (input piContentlength as integer):
+        set (input piContentlength as int64):
             Assert:IsZeroOrPositive(piContentlength, 'Content Length').
             
             define variable oHeader as HttpHeader no-undo.

@@ -16,13 +16,18 @@ block-level on error undo, throw.
 using Ccs.Common.Support.IMemptrHolder.
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.HashAlgorithmEnum.
-using OpenEdge.Core.Memptr.
-using OpenEdge.Core.StringConstant.
-using Progress.Lang.AppError.
 using OpenEdge.Core.IMemoryPointer.
+using OpenEdge.Core.Memptr.
+using OpenEdge.Core.Session.
+using OpenEdge.Core.StringConstant.
+using Progress.Collections.IComparable.
+using Progress.Lang.AppError.
 
 class OpenEdge.Core.Memptr
-implements IMemptrHolder, IMemoryPointer:
+implements IMemptrHolder, IMemoryPointer,
+           // Compare to the interface so that other implementations of IMemptrHolder can be sorted with this one
+           IComparable<IMemptrHolder>:
+    
     /**  the actual memptr under management here */
     define private variable mmValue as memptr no-undo.
     
@@ -34,13 +39,13 @@ implements IMemptrHolder, IMemoryPointer:
     define public property ExternalAllocation as logical no-undo get. private set.
     
     /** A public representation of the memptr. */
-    define public property Value as memptr no-undo
+    define final public property Value as memptr no-undo
         get():
             return mmValue.
         end get.
     
     /** The size of the current memptr */
-    define public property Size as int64 no-undo
+    define final public property Size as int64 no-undo
         get():
             return get-size(mmValue). 
         end get.
@@ -50,7 +55,7 @@ implements IMemptrHolder, IMemoryPointer:
         end set.
     
     /* A pointer to the underlying/wrapped memptr */
-    define public property PointerValue as int64 no-undo
+    define final public property PointerValue as int64 no-undo
         get():
             return get-pointer-value(mmValue).
         end get.
@@ -364,6 +369,45 @@ implements IMemptrHolder, IMemoryPointer:
     
     method override public character ToString():
         return substitute('&1_&2':u, this-object:GetClass():TypeName, get-pointer-value(mmValue)).
+    end method.
+
+    /* Comparison method, used by SortedSet's default comparer
+        
+        - If the returned value is less than 0 (zero), then the current object sorts before the object passed in.
+        - If the returned value equals 0 (zero) , then the current object occupies the same position in the sort order.
+        - If the returned value is greater than 0(zero), then the current object sorts after the object passed in.
+        - If either object's Value is the unknown value (?), then that sorts high/early/before
+        
+        @param IMemptrHolder The object to compare to.
+        @return integer  0 = same object
+                        +1 = sorts after
+                        -1 = sorts before   */
+    method public integer CompareTo(input pOther as IMemptrHolder):
+        var raw toraw, poraw.
+
+        Assert:NotNull(pOther, 'CompareTo object').
+        // use SHA-256 to get the hash code and put it in a raw value to compare
+        toraw = message-digest("SHA-256", this-object:Value).
+        poraw = message-digest("SHA-256", pOther:Value).
+         
+        if toraw eq poraw then
+            return 0.
+        else
+        // unknown values sort first/lower
+        //  Compare the string representation of the raw hash code
+        if string(toraw) gt string(poraw)
+        or poraw eq ?
+        then
+            return +1.
+        else
+        if string(toraw) lt string(poraw)
+        or toraw eq ?
+        then
+            return -1.
+        
+        // this will raise an error in the Comparer; we should never get here though.
+        return ?.
+            
     end method.
     
 end class.

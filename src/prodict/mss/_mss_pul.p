@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006,2012 by Progress Software Corporation. All      *
+* Copyright (C) 2006,2012,2022 by Progress Software Corporation. All *
 * rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -65,6 +65,7 @@ History:
     09/16/10 knavneet  CR - OE00198360
     06/21/11 kmayur    added support for constraint pull - OE00195067    
     02/27/13 sdash     Implementation of independent Batch Pull.
+    06/20/22 vmaganti  Making always generated fields part of unupdatable list 
 */
 
 &SCOPED-DEFINE xxDS_DEBUG                   DEBUG /**/
@@ -219,6 +220,7 @@ DEFINE VARIABLE mssrecidCompat   AS LOGICAL    NO-UNDO INITIAL FALSE.
 DEFINE VARIABLE mapmssdatetime   AS LOGICAL    NO-UNDO INITIAL FALSE.
 DEFINE VARIABLE callerid         AS INTEGER    NO-UNDO INITIAL 2.
 DEFINE VARIABLE Coninfosql       AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE isGeneratedCol AS LOGICAL    NO-UNDO INITIAL FALSE.
 
 
 define TEMP-TABLE column-id
@@ -250,21 +252,11 @@ FORM
 
 
 /*------------------------------------------------------------------*/
-FUNCTION isComputed RETURNS LOGICAL (INPUT t1 AS CHAR, INPUT c1 AS CHAR):
+FUNCTION isComputed RETURNS LOGICAL (INPUT t1 AS CHAR, INPUT c1 AS CHAR, OUTPUT isGeneratedCol as LOGICAL):
 DEFINE VARIABLE isComputeCol     AS LOGICAL   NO-UNDO.
 
-/* OE00198360  - For MSS 7 and below, computed column is not supported
-    For MSS 2000 - computed column info is got from 'syscolumns' table
-    For MSS 2005 and above - computed column info is got from 'sys.columns' table */
-
-          IF (foreign_dbms_version < 8) THEN  
-              RETURN FALSE. 
-          ELSE IF (foreign_dbms_version = 8) THEN
-              assign sqlstate = "SELECT iscomputed FROM syscolumns where name = '" + c1 +
-                            "' and id = (OBJECT_ID('" + t1 + "'))".
-          ELSE
-              assign sqlstate = "SELECT is_computed FROM sys.columns where name = '" + c1 +
-                            "' and object_id = (OBJECT_ID('" + t1 + "'))".
+          assign sqlstate = "SELECT is_computed,generated_always_type FROM sys.columns where name = '" + c1 +
+                        "' and object_id = (OBJECT_ID('" + t1 + "'))".
 
           RUN STORED-PROC DICTDBG.send-sql-statement dfth1 = PROC-HANDLE NO-ERROR ( sqlstate ).
 
@@ -277,7 +269,8 @@ DEFINE VARIABLE isComputeCol     AS LOGICAL   NO-UNDO.
           END.
           ELSE DO:
             FOR EACH DICTDBG.proc-text-buffer WHERE PROC-HANDLE = dfth1:
-                ASSIGN isComputeCol = LOGICAL(INTEGER(proc-text)). /* convert to atoi to logical */
+                ASSIGN isComputeCol = LOGICAL(INTEGER(ENTRY(1,proc-text," "))) 
+                       isGeneratedCol = LOGICAL(INTEGER(ENTRY(2,proc-text," "))). /* convert to atoi to logical */
             END.
             CLOSE STORED-PROC DICTDBG.send-sql-statement WHERE PROC-HANDLE = dfth1.
           END.
@@ -798,7 +791,7 @@ for each gate-work
          IF (NOT DICTDBG.GetFieldIds_buffer.field-name BEGINS 'PROGRESS_RECID_UNIQUE') OR
              mssrecidCompat THEN s_ttb_tbl.ds_recid = i.
            ASSIGN s_ttb_tbl.ds_msc23 = DICTDBG.GetFieldIds_buffer.field-name.
-           IF isComputed(full_table_name, DICTDBG.GetFieldIds_buffer.field-name) THEN DO:
+           IF isComputed(full_table_name, DICTDBG.GetFieldIds_buffer.field-name, isGeneratedCol) THEN DO:
              IF s_ttb_tbl.ds_msc22 = ? THEN 
                ASSIGN s_ttb_tbl.ds_msc22 = "".
              ASSIGN s_ttb_tbl.ds_msc22 = s_ttb_tbl.ds_msc22 + string(i) + ",".
@@ -1065,14 +1058,17 @@ for each gate-work
       /* OE00162531: adding identity fields to non-updatable list */
       /* OE00181255: adding timestamp fields to non-updatable list */
       /* OE00183878: adding ROWGUID fields to non-updatable list */
+      /* OCTA-46221: adding always generated fields to non-updatable list */
       if DICTDBG.SQLColumns_buffer.column-name BEGINS "PROGRESS_RECID"
       then .
       else if ((s_ttb_fld.ds_msc24 EQ "identity") OR 
                (s_ttb_fld.ds_msc24 EQ "timestamp") OR
                (s_ttb_fld.ds_type = "ROWGUID") OR 
-               isComputed(full_table_name, DICTDBG.SQLColumns_buffer.column-name)) THEN DO:
+               isComputed(full_table_name, DICTDBG.SQLColumns_buffer.column-name, isGeneratedCol) OR
+               isGeneratedCol) THEN DO:
         if s_ttb_tbl.ds_msc22 = ? then 
            assign s_ttb_tbl.ds_msc22 = "".
+        s_ttb_fld.pro_mand = false.
         s_ttb_tbl.ds_msc22 = s_ttb_tbl.ds_msc22 + string(s_ttb_fld.ds_stoff) + ",".
       end.
 

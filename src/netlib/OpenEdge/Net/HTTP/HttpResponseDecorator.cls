@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2015-2016, 2018 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2016, 2018-2022 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : HttpResponseDecorator
@@ -88,11 +88,11 @@ class OpenEdge.Net.HTTP.HttpResponseDecorator implements IHttpResponse, IAdaptab
             DecoratedHttpResponse:Entity = poEntity.
         end set.
     
-    define public property ContentLength as integer no-undo 
+    define public property ContentLength as int64 no-undo 
         get():
             return DecoratedHttpResponse:ContentLength.
         end get.
-        set(input piContentLength as integer):
+        set(input piContentLength as int64):
             DecoratedHttpResponse:ContentLength = piContentLength.
         end set.
 

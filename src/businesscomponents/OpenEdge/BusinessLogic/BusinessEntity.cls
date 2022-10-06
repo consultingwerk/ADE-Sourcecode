@@ -1,6 +1,6 @@
 /**********************************************************************************************
-*    Copyright (C) 2014-2019, 2021 by Progress Software Corporation. All rights reserved.           *
-*    Prior versions of this work may contain portions contributed by participants of Possenet.*
+*   Copyright (C) 2014-2019, 2021-2022 by Progress Software Corporation. All rights reserved. *
+*   Prior versions of this work may contain portions contributed by participants of Possenet. *
 ***********************************************************************************************/
 /*---------------------------------------------------------------------------------------------
     File        : BusinessEntity.cls
@@ -54,7 +54,22 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
                 ELSE
                     SkipList[idx] = cSkip.
             END SET.
-      
+    
+    /* Contains the field mappings between the temp-table and database table fields, used when
+       attaching the datasource.
+       Each entry in the array is a comma-separated list of field names. The index must match the
+       index of the buffer in the dataset (GET-BUFFER-HANDLE(idx)).
+       See the https://docs.progress.com/bundle/abl-reference/page/ATTACH-DATA-SOURCE-method.html
+       doc for details. */
+    define protected property FieldMapping as character extent no-undo
+        get.
+        set (input pMapping as character, input pIdx as integer):
+            if pIdx gt this-object:ProDataSet:num-buffers then
+                undo, throw new Progress.Lang.AppError("FieldMapping's EXTENT value must equal number of buffers in DataSet.", 0).
+            else
+                assign this-object:FieldMapping[pIdx] = pMapping.
+        end set.
+    
     /* BusinessEntity now supports 4 modes on how updates are performed:
      * TransactionalSubmit - where entire changeset is processed as single transaction.
      * BulkSubmit - where each row change is processed as a separate transaction.
@@ -82,7 +97,10 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
     METHOD PROTECTED VOID ReadData(INPUT cFilter AS CHARACTER):
         DEFINE VARIABLE cWhere AS CHARACTER NO-UNDO.
         
-        THIS-OBJECT:AttachDataSources().
+        if extent(this-object:FieldMapping) eq ? then
+            THIS-OBJECT:AttachDataSources().
+        else
+            THIS-OBJECT:AttachDataSources(this-object:FieldMapping).
         
         /* Get rid of any existing data in DataSet */
         EmptyDataSet().
@@ -115,7 +133,10 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
     METHOD PROTECTED VOID ReadData(INPUT cFilter AS CHARACTER EXTENT):
         DEFINE VARIABLE cWhere AS CHARACTER NO-UNDO EXTENT .
          
-        THIS-OBJECT:AttachDataSources().
+        if extent(this-object:FieldMapping) eq ? then
+            THIS-OBJECT:AttachDataSources().
+        else
+            THIS-OBJECT:AttachDataSources(this-object:FieldMapping).
         
         /* Get rid of any existing data in DataSet */
         EmptyDataSet().
@@ -143,7 +164,10 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
     METHOD PROTECTED VOID ReadData(INPUT cFilter AS CHARACTER, INPUT hBuffer AS HANDLE):
         DEFINE VARIABLE cWhere AS CHARACTER NO-UNDO.
         
-        THIS-OBJECT:AttachDataSources().
+        if extent(this-object:FieldMapping) eq ? then
+            THIS-OBJECT:AttachDataSources().
+        else
+            THIS-OBJECT:AttachDataSources(this-object:FieldMapping).
         
         /* Get rid of any existing data in table */
         hBuffer:EMPTY-TEMP-TABLE().
@@ -206,7 +230,10 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
          // UNDO attrs needs to be false to preserve ERROR and REJECTED
          SetUndos(saveUndos, FALSE).
          
-        THIS-OBJECT:AttachDataSources().
+        if extent(this-object:FieldMapping) eq ? then
+            THIS-OBJECT:AttachDataSources().
+        else
+            THIS-OBJECT:AttachDataSources(this-object:FieldMapping).
          
         DO TRANSACTION ON ERROR UNDO, THROW:
             // ProcessBIData() determines if BI data was sent as part of request.
@@ -254,7 +281,10 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
          // UNDO attrs needs to be false to preserve ERROR and REJECTED
          SetUndos(saveUndos, FALSE).
 
-         THIS-OBJECT:AttachDataSources().
+        if extent(this-object:FieldMapping) eq ? then
+            THIS-OBJECT:AttachDataSources().
+        else
+            THIS-OBJECT:AttachDataSources(this-object:FieldMapping).
          
          DO TRANSACTION ON ERROR UNDO, THROW:
             // ProcessBIData() determines if BI data was sent as part of request.
@@ -303,7 +333,10 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
          // UNDO attrs needs to be false to preserve ERROR and REJECTED
          SetUndos(saveUndos, FALSE).
          
-        THIS-OBJECT:AttachDataSources().
+        if extent(this-object:FieldMapping) eq ? then
+            THIS-OBJECT:AttachDataSources().
+        else
+            THIS-OBJECT:AttachDataSources(this-object:FieldMapping).
         
         DO TRANSACTION ON ERROR UNDO, THROW:
             // ProcessBIData() determines if BI data was sent as part of request.
@@ -439,7 +472,10 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
           ASSIGN hPDS = THIS-OBJECT:ProDataSet
                  THIS-OBJECT:ProDataSet = hDataSet:HANDLE.
     
-       THIS-OBJECT:AttachDataSources().
+        if extent(this-object:FieldMapping) eq ? then
+            THIS-OBJECT:AttachDataSources().
+        else
+            THIS-OBJECT:AttachDataSources(this-object:FieldMapping).
       
        UpdateMode = UpdateModeEnum:BULK_SUBMIT.
          
@@ -464,23 +500,26 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
             Notes:
     ------------------------------------------------------------------------------*/
     METHOD PROTECTED VOID Submit(INPUT-OUTPUT DATASET-HANDLE hDataSet):
-         DEFINE VARIABLE hPDS AS HANDLE NO-UNDO.
-         {&_proparse_ prolint-nowarn(varusage)}
-         DEFINE VARIABLE saveUndos AS LOGICAL EXTENT NO-UNDO.
+        DEFINE VARIABLE hPDS AS HANDLE NO-UNDO.
+        {&_proparse_ prolint-nowarn(varusage)}
+        DEFINE VARIABLE saveUndos AS LOGICAL EXTENT NO-UNDO.
 
-       /* If the Create-, Update- or DeleteData operation was called BY-REFERENCE
+        /* If the Create-, Update- or DeleteData operation was called BY-REFERENCE
           we will have a different dataset than the one in the property. We want to work
           on the one was sent, not the one that's there :) */
-       IF THIS-OBJECT:ProDataSet NE hDataSet THEN
-          ASSIGN hPDS = THIS-OBJECT:ProDataSet
-                 THIS-OBJECT:ProDataSet = hDataSet:HANDLE.
+        IF THIS-OBJECT:ProDataSet NE hDataSet THEN
+            ASSIGN hPDS = THIS-OBJECT:ProDataSet
+                   THIS-OBJECT:ProDataSet = hDataSet:HANDLE.
          
-       // UNDO attrs needs to be false to preserve ERROR and REJECTED
-       SetUndos(saveUndos, FALSE).
+        // UNDO attrs needs to be false to preserve ERROR and REJECTED
+        SetUndos(saveUndos, FALSE).
          
-       THIS-OBJECT:AttachDataSources().
+        if extent(this-object:FieldMapping) eq ? then
+            THIS-OBJECT:AttachDataSources().
+        else
+            THIS-OBJECT:AttachDataSources(this-object:FieldMapping).
        
-       UpdateMode = UpdateModeEnum:TRANSACTIONAL_SUBMIT.
+        UpdateMode = UpdateModeEnum:TRANSACTIONAL_SUBMIT.
   
        DO TRANSACTION ON ERROR UNDO, THROW:
            /* Do deletes first, next creates, and finally modifies */
@@ -1046,7 +1085,10 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
         
         /* Get rid of any existing data in DataSet */
         EmptyDataSet().
-        AttachDataSources().
+        if extent(this-object:FieldMapping) eq ? then
+            this-object:AttachDataSources().
+        else
+            this-object:AttachDataSources(this-object:FieldMapping).
         
         assign cnt        = ProDataSet:num-buffers
                gdr        = new GetDataResponse(cnt)

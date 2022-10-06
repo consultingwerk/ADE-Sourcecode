@@ -120,17 +120,20 @@ class OpenEdge.BusinessRules.PayloadBuilder use-widget-pool:
         
         do while not phQuery:query-off-end:
             mhSaxWriter:start-element(cElementName).
+            // Assumed that use of recid here is desired over rowid.
+            {&_proparse_ prolint-nowarn(recidkeyword)}
             mhSaxWriter:insert-attribute('id', substitute('&1_id_&2', phBuffer:xml-node-name, string(phBuffer:recid))).
             mhSaxWriter:insert-attribute('tt', phBuffer:name).
             
             /* write fields inline for a (small) perf boost */
             iNumFields = phBuffer:num-fields.
+            FIELDBLK:
             do iFieldLoop= 1 to iNumFields:
                 hField = phBuffer:buffer-field(iFieldLoop).
                 
                 /* skip the field, if it's marked as such */
                 if hField:serialize-hidden then
-                    next.
+                    next FIELDBLK.
                 
                 mhSaxWriter:start-element(hField:xml-node-name).
                           

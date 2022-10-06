@@ -140,6 +140,7 @@ final:
                                   input pTargetCodepage as character):
         // Form encoded values use + characters for spaces
         assign pData = replace(pData, '+':u, StringConstant:SPACE)
+               {&_proparse_ prolint-nowarn(overflow)}
                pData = encoder:Decode(pData, pTargetCodepage)
                // deal with %2B-encodings
                pData = replace(pData, '+':u, StringConstant:SPACE)

@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2021 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2021-2022 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : TraceConfigLoader
@@ -89,22 +89,37 @@ class OpenEdge.Net.HTTP.Trace.TraceConfigLoader:
             assign FileCheckInterval = pInterval.
         end set.
     
-    // so we only need create these once
-    var static private ParameterList mParamListShort, mParamListLong.
+    // so we only need create these once. these are properties in case the procedure editor comes along and deletes the objects
+    define static private property mParamListShort as ParameterList no-undo
+        get():
+            if not valid-object(mParamListShort) then
+            do:
+                // Single-parameter constructor will only take a PolicyTypeEnum
+                mParamListShort = new ParameterList(1).
+                mParamListShort:SetParameter(1, substitute("class &1", get-class(PolicyTypeEnum):TypeName), "input", ?).
+            end.
+            return mParamListShort.
+        end get.
+        set.
+    
+    // so we only need create these once. these are properties in case the procedure editor comes along and deletes the objects
+    define static private property mParamListLong as ParameterList no-undo
+        get():
+            if not valid-object(mParamListLong) then
+            do:
+                // Create the parameter list objects in advance because we know what we're looking for;
+                // 'longer' constructor considered better, consisting of both Message and Policy Types.
+                mParamListLong = new ParameterList(2).
+                mParamListLong:SetParameter(1, substitute("class &1", get-class(MessageTypeEnum):TypeName), "input", ?).
+                mParamListLong:SetParameter(2, substitute("class &1", get-class(PolicyTypeEnum):TypeName), "input", ?).
+            end.
+            return mParamListLong.
+        end get.
+        set.
     
     /* Always start with an empty static config object. */
     constructor static TraceConfigLoader ( ):
         TraceConfigLoader:ClearConfig(). // Make sure we start an empty object.
-        
-        // Create the parameter list objects in advance because we know what we're looking for;
-        // 'longer' constructor considered better, consisting of both Message and Policy Types.
-        mParamListLong = new ParameterList(2).
-        mParamListLong:SetParameter(1, substitute("class &1", get-class(MessageTypeEnum):TypeName), "input", ?).
-        mParamListLong:SetParameter(2, substitute("class &1", get-class(PolicyTypeEnum):TypeName), "input", ?).
-
-        // Single-parameter constructor will only take a PolicyTypeEnum
-        mParamListShort = new ParameterList(1).
-        mParamListShort:SetParameter(1, substitute("class &1", get-class(PolicyTypeEnum):TypeName), "input", ?).
     end constructor.
 
     /* Default constructor. PRIVATE to prevent instantion of this class */

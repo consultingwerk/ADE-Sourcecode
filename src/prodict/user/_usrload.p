@@ -1,9 +1,9 @@
-/***************************************************************************
-* Copyright (C) 2005-2009,2014,2016,2020,2021 by Progress Software Corporation. *
-* All rights reserved.  Prior versions of this work may contain            *
-* portions contributed by participants of Possenet.                        *
-*                                                                          *
-****************************************************************************/
+/*************************************************************************************
+* Copyright (C) 2005-2009,2014,2016,2020,2021,2022 by Progress Software Corporation. *
+* All rights reserved.  Prior versions of this work may contain                      *
+* portions contributed by participants of Possenet.                                  *
+*                                                                                    *
+**************************************************************************************/
 
 /*
 
@@ -97,6 +97,7 @@ History:
     kberlia  11/25/20   Added the code to support new online schema change. 
     kberlia  12/07/20   Resized the rectangle of load by sections option.
     tmasood  02/22/21   Display message when inactive index add to an existing table
+	tmasood  05/27/22   Return false alarm when trailer PSC not found
 */
 /*h-*/
 
@@ -2317,6 +2318,12 @@ PROCEDURE find_psc:
          READKEY PAUSE 0.
          IF LASTKEY <> ASC("C") THEN NEXT.
          ELSE DO: /* found "PSC"! */
+		 /* The entire line must be equal to "PSC" which is a reserved 
+            keyword, but if it's part of a string we simply return to 
+            where we left off and continue searching for the trailer. 
+	     */
+		   READKEY PAUSE 0.
+           IF LASTKEY <> 13 THEN NEXT.
            RUN read_bits (INPUT p - 1).
            LEAVE.
          END. /* IF "C" */

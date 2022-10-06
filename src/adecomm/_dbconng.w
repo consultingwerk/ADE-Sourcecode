@@ -9,7 +9,7 @@ Use this template to create a new dialog-box. Alter this default template or cre
 &Scoped-define FRAME-NAME Connect
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Connect 
 /************************************************************************
-* Copyright (C) 2000,2009 by Progress Software Corporation.             *
+* Copyright (C) 2000,2009,2022 by Progress Software Corporation.        *
 * All rights reserved. Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                              *
 *                                                                       *
@@ -70,7 +70,8 @@ Modified:
                         (sometimes people just enter pf-file. In this
                         case we need to ignore the other parameters)
     rkamboj   08/08/11  fixed issue of login when special chracter in password 
-                        at the time of db connect. Applied set-db-client method.                   
+                        at the time of db connect. Applied set-db-client method.
+    tmasood   02/24/22  Added the support for -Pin argument                    
 
 ----------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress UIB.             */
@@ -162,10 +163,10 @@ btn_Options Btn_Help
 /* OPTIONAL-FIELDS,ENABLE-OPTIONAL,List-3,List-4,List-5,List-6          */
 &Scoped-define OPTIONAL-FIELDS Network Multi_User Pass_Phrase Host_Name ~
 Service_Name User_Id Pass_word Trig_Loc btn_filep Parm_File btn_filet ~
-Unix_Parms Unix_Label 
+Unix_Parms Unix_Label Pin 
 &Scoped-define ENABLE-OPTIONAL Network Multi_User Pass_Phrase Host_Name ~
 Service_Name User_Id Pass_word Trig_Loc btn_filep Parm_File btn_filet ~
-Unix_Parms Unix_Label 
+Unix_Parms Unix_Label Pin
 
 /* _UIB-PREPROCESSOR-BLOCK-END */
 &ANALYZE-RESUME
@@ -279,6 +280,11 @@ DEFINE VARIABLE Pass_Phrase AS LOGICAL INITIAL no
      VIEW-AS TOGGLE-BOX
      SIZE 17 BY .76 NO-UNDO.
 
+DEFINE VARIABLE Pin AS LOGICAL INITIAL no 
+     LABEL "Pin" 
+     VIEW-AS TOGGLE-BOX
+     SIZE 7.8 BY .81 NO-UNDO.
+
 
 /* ************************  Frame Definitions  *********************** */
 
@@ -293,7 +299,8 @@ DEFINE FRAME Connect
      DB_Type AT ROW 4.33 COL 18 COLON-ALIGNED
      Network AT ROW 5.86 COL 18.2 COLON-ALIGNED
      Multi_User AT ROW 5.86 COL 44
-     Pass_Phrase AT ROW 5.86 COL 64
+     Pass_Phrase AT ROW 5.86 COL 62.2
+     Pin AT ROW 5.91 COL 77.4 WIDGET-ID 2
      Host_Name AT ROW 7.19 COL 18 COLON-ALIGNED
      Service_Name AT ROW 7.19 COL 62 COLON-ALIGNED
      User_Id AT ROW 8.52 COL 18 COLON-ALIGNED
@@ -304,7 +311,7 @@ DEFINE FRAME Connect
      btn_filet AT ROW 12.67 COL 71
      Unix_Parms AT ROW 14.81 COL 4 NO-LABEL
      Unix_Label AT ROW 14 COL 1
-     SPACE(35.99) SKIP(3.23)
+     SPACE(36.40) SKIP(3.23)
     WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
          SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
          TITLE "Connect Database"
@@ -367,6 +374,11 @@ ASSIGN
 ASSIGN 
        Pass_Phrase:HIDDEN IN FRAME Connect           = TRUE.
        
+/* SETTINGS FOR TOGGLE-BOX Pin IN FRAME Connect
+   NO-DISPLAY NO-ENABLE 1 2                                             */
+ASSIGN 
+       Pin:HIDDEN IN FRAME Connect           = TRUE.       
+
 /* SETTINGS FOR FILL-IN Pass_word IN FRAME Connect
    NO-DISPLAY NO-ENABLE 1 2                                             */
 ASSIGN 
@@ -803,6 +815,7 @@ PROCEDURE Pressed_OK :
       input frame connect DB_Type
       input frame connect Multi_User
       input frame connect Pass_Phrase
+      INPUT FRAME connect Pin
       input frame connect Network
       input frame connect Host_Name
       input frame connect Service_Name
@@ -884,29 +897,43 @@ PROCEDURE Pressed_OK :
        return error.
        end.
       else do:
-       IF NOT Pass_Phrase THEN DO:
+       IF NOT Pass_Phrase AND NOT Pin THEN DO:
           run adecomm/_setcurs.p ("WAIT").
           connect VALUE(args) VALUE(p_Unix_Parms) NO-ERROR.
           run adecomm/_setcurs.p ("").
        END.
        
-       IF Pass_Phrase OR (ERROR-STATUS:ERROR AND ERROR-STATUS:GET-NUMBER(1) = 15271) THEN DO:
-          /* if missing or incorrect passphrase for a database
+       IF Pass_Phrase OR Pin OR
+          (ERROR-STATUS:ERROR AND 
+          (ERROR-STATUS:GET-NUMBER(1) = 15271 OR ERROR-STATUS:GET-NUMBER(1) = 20409)) THEN DO:
+          /* if missing or incorrect passphrase/pin for a database
              with encryption enabled and manual start, prompt
              for the passphrase now.
           */
           DEFINE VARIABLE cpassPhrase     AS CHARACTER NO-UNDO.
+          DEFINE VARIABLE cPin            AS CHARACTER NO-UNDO.
+          DEFINE VARIABLE cKeyStoreParams AS CHARACTER NO-UNDO INITIAL "".
 
-          RUN _passphrase.p (OUTPUT cpassPhrase).
+          RUN _passphrase.p (INPUT Pass_Phrase,
+                             INPUT Pin,
+                             OUTPUT cpassPhrase,
+                             OUTPUT cPin).
 
-          /* if they don't specify a passphrase when asked to, we will
+          /* if they don't specify a passphrase/pin when asked to, we will
              just display the errors we got above.
           */
           IF cpassPhrase <> ? AND length(cpassPhrase) > 0 THEN DO:
-              /* this will let them try once. If it fails, then they will
+               ASSIGN cKeyStoreParams = "-KeyStorePassPhrase " + QUOTER(cpassPhrase).
+          END.
+          IF cPin <> ? AND length(cPin) > 0 THEN DO:
+              ASSIGN cKeyStoreParams = cKeyStoreParams + " -KeyStorePin " + QUOTER(cPin).
+          END.
+          
+          IF cKeyStoreParams NE "" THEN DO:
+          /* this will let them try once. If it fails, then they will
                  need to try to connect again.
-              */
-              connect VALUE(args) VALUE("-KeyStorePassPhrase " + QUOTER(cpassPhrase)) VALUE(p_Unix_Parms) NO-ERROR.
+           */
+              connect VALUE(args) VALUE(cKeyStoreParams) VALUE(p_Unix_Parms) NO-ERROR.
           END.    
        END.
        if  NUM-DBS > num then ASSIGN currentdb = LDBNAME(num + 1).

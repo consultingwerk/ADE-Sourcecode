@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2015-2016, 2018 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2016, 2018-2022 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : HttpRequestDecorator
@@ -89,11 +89,11 @@ class OpenEdge.Net.HTTP.HttpRequestDecorator
             DecoratedHttpRequest:Entity = poEntity.
         end set.
     
-    define public property ContentLength as integer no-undo 
+    define public property ContentLength as int64 no-undo 
         get():
             return DecoratedHttpRequest:ContentLength.
         end get.
-        set(input piContentLength as integer):
+        set(input piContentLength as int64):
             DecoratedHttpRequest:ContentLength = piContentLength.
         end set.
 

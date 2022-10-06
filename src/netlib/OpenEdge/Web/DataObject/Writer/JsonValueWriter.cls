@@ -16,7 +16,6 @@ using OpenEdge.Core.Assert.
 using OpenEdge.Core.ByteBucket.
 using OpenEdge.Core.Collections.IMap.
 using OpenEdge.Core.Collections.IStringKeyedMap.
-using OpenEdge.Core.Collections.IStringStringMap.
 using OpenEdge.Core.DataTypeEnum.
 using OpenEdge.Core.DataTypeHelper.
 using OpenEdge.Core.Memptr.

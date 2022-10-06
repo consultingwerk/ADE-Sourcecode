@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2014-2018, 2021 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014-2018, 2021-2022 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : ByteBucket
@@ -20,11 +20,13 @@ using OpenEdge.Core.Memptr.
 using OpenEdge.Core.String.
 using Progress.IO.MemoryOutputStream.
 using OpenEdge.Core.IMemoryPointer.
+using Progress.Lang.AppError.
 
 class OpenEdge.Core.ByteBucket
 implements ISupportInitialize, IMemptrHolder, IMemoryPointer:
     // The storage of the memptr data - this is a dynamically-extensible primitive
     define private variable memoutStream as MemoryOutputStream no-undo.
+    define private variable twoGbSize as int64 no-undo init 2147483647.
     
     /** The current read position */
     define public property Position as int64 no-undo get. set.
@@ -36,14 +38,14 @@ implements ISupportInitialize, IMemptrHolder, IMemoryPointer:
     define public property DefaultCapacity as int64 no-undo get. private set.
     
     /** Returns the size of the data in the bucket */
-    define public property Size as int64 no-undo
+    define final public property Size as int64 no-undo
         get:
             return memoutStream:BytesWritten.
         end.
-    
+
     /** A memptr value with the complete contents of the ByteBucket (bytes actually written)
         The value SHOULD be assigned to another variable, since it is cleaned up in the getter */
-    define public property Value as memptr no-undo
+    define final public property Value as memptr no-undo
         get():
             var memptr bbData.
             if memoutStream:BytesWritten gt 0 then
@@ -60,7 +62,7 @@ implements ISupportInitialize, IMemptrHolder, IMemoryPointer:
         end get.
     
     /* A pointer to the underlying/wrapped memptr */
-    define public property PointerValue as int64 no-undo
+    define final public property PointerValue as int64 no-undo
         get():
             return get-pointer-value(memoutStream:Data).
         end get.
@@ -194,6 +196,9 @@ implements ISupportInitialize, IMemptrHolder, IMemoryPointer:
         
         Assert:IsPositive(piPointerValue, 'Pointer Value').
         
+        // Check to make sure file is less than 2 gb max, error if it is because memptr can't accept it
+        if (piSize + this-object:Size) > twoGbSize then
+            return error new AppError('Data is larger than space available in memptr (2 gb max).',0).
         /* jiggery-pokery so we can reuse code without deep-copying memptr's all over the show */
         set-size(mmTempBytes) = 1. /* allocate a new 1-byte memptr */
         set-size(mmTempBytes) = 0. /* free this 1-byte memptr, which also clears the size */
@@ -284,6 +289,11 @@ implements ISupportInitialize, IMemptrHolder, IMemoryPointer:
         @param ByteBucket The ByteBucket instance containing the data. */
     method public void PutBytes(input poData as class ByteBucket):
         Assert:NotNull(poData, 'Input data').
+        
+        // Check to make sure file is less than 2 gb max, error if it is because memptr can't accept it
+        if (poData:Size + this-object:Size) > twoGbSize then
+            return error new AppError('Data is larger than space available in memptr (2 gb max).',0).
+        
         // Nothing to do if there's no data
         if poData:Size eq 0 then
             return.

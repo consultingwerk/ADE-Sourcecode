@@ -3,12 +3,12 @@ Copyright (c) 2016-2018 by Progress Software Corporation and/or one of its subsi
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : StringConstant
-    Purpose     : Tilde-escaped string contstants 
-    Syntax      : 
-    Description : 
+    Purpose     : Tilde-escaped string contstants
+    Syntax      :
+    Description :
     Author(s)   : pjudge
     Created     : Wed Dec 07 10:25:16 EST 2016
-    Notes       :* Taken from the ~ Special character Help 
+    Notes       :* Taken from the ~ Special character Help
                  * abstract since it's a kinda-sort enum
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
@@ -41,6 +41,8 @@ class OpenEdge.Core.StringConstant abstract:
     define static public property BACKSLASH     as character no-undo initial '~\':u    get.
     define static public property CURLY_OPEN    as character no-undo initial '~{':u    get.
     define static public property CURLY_CLOSE   as character no-undo initial '~}':u    get.
+    define static public property PAREN_OPEN    as character no-undo initial '(':u    get.
+    define static public property PAREN_CLOSE   as character no-undo initial ')':u    get.
     // Escape for entering unicode characters
     define static public property UNICODE_ESC   as character no-undo get. private set.
     // An empty string (space)

@@ -23,7 +23,7 @@ using OpenEdge.Net.ISupportMultipartEntity.
 class OpenEdge.Net.HTTP.Filter.Writer.DefaultMessageWriterBuilder inherits MessageWriterBuilder:
     
     /** Each concrete builder will implement this differently */
-    define override public property Writer as MessageWriter no-undo 
+    define final override public property Writer as MessageWriter no-undo 
         get():
             return NewMessageWriter().
         end get.

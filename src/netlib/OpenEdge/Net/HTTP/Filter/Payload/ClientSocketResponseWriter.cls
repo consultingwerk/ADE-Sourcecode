@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2015-2021 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2022 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : ClientSocketResponseWriter
@@ -377,7 +377,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
                                 
                                 /* add to the main body */
                                 MessageBody:PutBytes(oTempData).
-                                Response:ContentLength = integer(MessageBody:Size).
+                                Response:ContentLength = int64(MessageBody:Size).
                             end.
                             
                             if miChunkBytesRemaining eq 0 then

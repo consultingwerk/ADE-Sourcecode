@@ -1,22 +1,18 @@
 &if false &then
 /* *************************************************************************************************************************
-Copyright (c) 2016-2017, 2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2017, 2021-2022 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : doh_execute_setargvalues.i
-    Purpose     : 
-    Author(s)   : pjudge 
+    Purpose     :
+    Author(s)   : pjudge
     Created     : 2016-05-27
     Notes       : Arguments
-                    &OPER-ARG = the operation argument for this param 
-                    &DATA-TYPE = the name of the ABL data type 
+                    &OPER-ARG = the operation argument for this param
+                    &DATA-TYPE = the name of the ABL data type
                     &VALUE-WRITER = a reference to the value holder/writer
                     &SWITCH-VALUE = the parameter data type
   ----------------------------------------------------------------------*/
-&endif
-
-&if defined(OPER-ARG) eq 0 &then
-&scoped-define OPER-ARG oOperArg
 &endif
 
 &if defined(VALUE-WRITER}) eq 0 &then
@@ -28,7 +24,7 @@ Copyright (c) 2016-2017, 2021 by Progress Software Corporation and/or one of its
 &endif
 
 when '{&SWITCH-VALUE}':u then
-    if {&OPER-ARG}:Parameter:IsArray then 
+    if {&OPER-ARG}:Parameter:IsArray then
     case {&OPER-ARG}:ArgumentIndex:
         when 01 then {&VALUE-WRITER}:Write(arg_arr_{&DATA-TYPE}_01).
         when 02 then {&VALUE-WRITER}:Write(arg_arr_{&DATA-TYPE}_02).

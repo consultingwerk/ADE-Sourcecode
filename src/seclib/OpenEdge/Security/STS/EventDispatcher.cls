@@ -1,12 +1,12 @@
 /************************************************
-Copyright (c) 2016, 2019 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2016, 2019, 2022 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : EventDispatcher
     Purpose     : Dispatches policy and other events from the STS to an ABL
-                  provider. 
-    Syntax      : 
-    Description : 
+                  provider.
+    Syntax      :
+    Description :
     Author(s)   : pjudge
     Created     : Thu Jan 28 11:44:45 EST 2016
     Notes       : *
@@ -14,12 +14,11 @@ Copyright (c) 2016, 2019 by Progress Software Corporation. All rights reserved.
 block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
-using OpenEdge.Logging.LogLevelEnum.
 using OpenEdge.Logging.ILogWriter.
 using OpenEdge.Logging.ISupportLogging.
+using OpenEdge.Logging.LoggerBuilder.
 using OpenEdge.Net.URI.
 using OpenEdge.Security.Principal.
-using OpenEdge.Security.STS.ClientValidator.
 using OpenEdge.Security.STS.IErrorProvider.
 using OpenEdge.Security.STS.IEventProvider.
 using OpenEdge.Security.STS.IPolicyProvider.
@@ -27,7 +26,6 @@ using Progress.Json.ObjectModel.JsonObject.
 using Progress.Json.ObjectModel.ObjectModelParser.
 using Progress.Lang.AppError.
 using OpenEdge.Security.STS.EventDispatcher.
-using OpenEdge.Logging.LoggerBuilder.
 
 class OpenEdge.Security.STS.EventDispatcher implements ISupportLogging:
     // A reference to the Logger in use by an implementer
@@ -39,21 +37,17 @@ class OpenEdge.Security.STS.EventDispatcher implements ISupportLogging:
         end get.
         set.
     
-    /* use to handle the validation of a STS's credentials */
-    define private variable moValidator as ClientValidator no-undo.
-    
     /* saves us getting a new instance every time */
     define private variable moJsonParser as ObjectModelParser no-undo.
     
     /* Default constructor */
     constructor public EventDispatcher():
         super().
-        assign moJsonParser = new ObjectModelParser()
-               moValidator  = new ClientValidator().
+        assign moJsonParser = new ObjectModelParser().
     end constructor.
     
     /* Emits a named event to the ABL provider. This is a one-way operation:
-       nothing is returned from provider to the STS. 
+       nothing is returned from provider to the STS.
      
        @param character (optional) The name of the STS sending this event
        @param character (mandatory) The ABL provider name used to process the event
@@ -72,24 +66,18 @@ class OpenEdge.Security.STS.EventDispatcher implements ISupportLogging:
         define variable oCtx as JsonObject no-undo.
         define variable cMessage as character no-undo.
         
-        /* validate the client */
-        if not moValidator:Validate(get-class(EventDispatcher):TypeName, 'EmitEvent':u) then
-            return error new AppError('Unable to validate client', 0). 
-        
         Assert:NotNullOrEmpty(pcEventProvider, 'Provider name').
         
         /* the specified type may not provide the policy provider; error out */
         if not Progress.Lang.Class:GetClass(pcEventProvider):IsA(get-class(IEventProvider)) then
         do:
-            assign cMessage = substitute('Provider &1 does not implement event API: &2',
-                                            quoter(pcEventProvider),
+            assign cMessage = substitute('Provider "&1" does not implement event API: &2',
+                                            pcEventProvider,
                                             get-class(IEventProvider):TypeName).
             Logger:Error(cMessage).
             
             undo, throw new AppError(cMessage, 0).
         end.
-        
-        ValidateProvider(pcEventProvider, pcProviderHash).
         
         /* instantiate the provider */
         oProvider = dynamic-new pcEventProvider ().
@@ -103,14 +91,14 @@ class OpenEdge.Security.STS.EventDispatcher implements ISupportLogging:
         oProvider:RecordEvent(pcSender, pcEventName, oCP, oCtx).
     end method.
     
-    /* Applies some by an ABL provider. 
+    /* Applies some by an ABL provider.
      
        @param character (optional) The name of the STS sending this event
        @param character (mandatory) The ABL provider name used to process the event
        @param character (optional) A hash used to verify the provider's authenticity
        @param character (optional) The name of the event to send.
        @param raw (mandatory) The token currently being processed in the STS
-       @param longchar (optional) The domain context from the STS 
+       @param longchar (optional) The domain context from the STS
        @return raw The token/client-principal after having policy applied. */
     method public raw ApplyPolicy(input  pcSender as character,
                                   input  pcPolicyProvider as character,
@@ -125,23 +113,16 @@ class OpenEdge.Security.STS.EventDispatcher implements ISupportLogging:
         define variable oCtx as JsonObject no-undo.
         define variable cMessage as character no-undo.
         
-        /* validate the client */
-        if not moValidator:Validate(get-class(EventDispatcher):TypeName, 'ApplyPolicy':u) then
-            return error new AppError('Unable to validate client', 0).
-        
         /* the specified type may not provide the policy provider; error out */
         if not Progress.Lang.Class:GetClass(pcPolicyProvider):IsA(get-class(IPolicyProvider)) then
         do:
-            assign cMessage = substitute('Provider &1 does not implement policy API: &2',
-                                            quoter(pcPolicyProvider),
+            assign cMessage = substitute('Provider "&1" does not implement policy API: &2',
+                                            pcPolicyProvider,
                                             get-class(IPolicyProvider):TypeName).
             Logger:Error(cMessage).
             
             undo, throw new AppError(cMessage, 0).
         end.
-        
-        /* instantiate the provider */        
-        ValidateProvider(pcPolicyProvider, pcProviderHash).
         
         oProvider = dynamic-new pcPolicyProvider ().
         /* load context. pass empty context if none is provided.
@@ -157,18 +138,18 @@ class OpenEdge.Security.STS.EventDispatcher implements ISupportLogging:
         return oCP:Token:export-principal().
     end method.
 
-    /* handles/customises an error 
+    /* handles/customises an error
        
        @param character (optional) The name of the STS sending this event
        @param character (mandatory) The ABL provider name used to process the event
        @param character (optional) A hash used to verify the provider's authenticity
        @param character (optional) The name of the event to send.
        @param raw (optional) The token currently being processed in the STS
-       @param character (optional) An error string indicating the error being handled. Could be a java exception or 
-                                   something from an auth proivider, or empty. One of the client-principal and error-string 
+       @param character (optional) An error string indicating the error being handled. Could be a java exception or
+                                   something from an auth proivider, or empty. One of the client-principal and error-string
                                    fields SHOULD be provided
-       @param longchar (optional) The domain context from the STS 
-       @param character out (optional) An error code per the OAuth2 and OpenId Connect specs. To return an 
+       @param longchar (optional) The domain context from the STS
+       @param character out (optional) An error code per the OAuth2 and OpenId Connect specs. To return an
                                        error number a string of custom:<error_code> must be returned. If not empty or null,
                                        this value will replace the auth process's error value.
        @param character out (optional) If blank or unknown the response will omit the error_description field.
@@ -190,21 +171,14 @@ class OpenEdge.Security.STS.EventDispatcher implements ISupportLogging:
         define variable oCtx as JsonObject no-undo.
         define variable oErrorURI as URI no-undo.
         
-        /* validate the client */
-        if not moValidator:Validate(get-class(EventDispatcher):TypeName, 'HandleError':u) then
-            return error new AppError('Unable to validate client', 0). 
-        
         /* the specified type may not provide the error policy */
         if not Progress.Lang.Class:GetClass(pcErrorProvider):IsA(get-class(IErrorProvider)) then
         do:
-            Logger:Warn(substitute('Provider &1 does not implement error API: &2',
-                            quoter(pcErrorProvider),
+            Logger:Warn(substitute('Provider "&1" does not implement error API: &2',
+                            pcErrorProvider,
                             get-class(IErrorProvider):TypeName)).
             return false.
         end.
-        
-        /* instantiate the provider */
-        ValidateProvider(pcErrorProvider, pcProviderHash).
         
         oProvider = dynamic-new pcErrorProvider ().
         
@@ -224,13 +198,16 @@ class OpenEdge.Security.STS.EventDispatcher implements ISupportLogging:
         if valid-object(oErrorURI) then
             assign pcErrorURI = oErrorURI:ToString().
         
+        if lIncludeToken eq ? then
+            return false.
+        
         return lIncludeToken.
     end method.
     
     /* Creates useful JSON from the input context string
        
        @param longchar (optional) The domain context from the STS
-       @return JsonObject The context in JSON form */ 
+       @return JsonObject The context in JSON form */
     method private JsonObject ParseContext (input pcDomainCtx as longchar):
         define variable oCtx as JsonObject no-undo.
         
@@ -249,33 +226,6 @@ class OpenEdge.Security.STS.EventDispatcher implements ISupportLogging:
             oCtx:Add('scope':u, '':u).
         
         return oCtx.
-    end method.
-    
-    /* Ensures that a provider type is the one we were expecting. 
-       
-       @param character (mandatory) The ABL provider name used to process the event
-       @param character (optional) A hash used to verify the provider's authenticity
-       @throws AppError If a hash is passed and the provider type's hash does not match */
-    method private void ValidateProvider(input pcProviderType as character,
-                                         input pcProviderHash as character ):
-        define variable err as Progress.Lang.Error no-undo.
-        
-        Assert:NotNullOrEmpty(pcProviderType, 'Provider type').
-        
-        if pcProviderHash eq '':u or pcProviderHash eq ? then
-        do:
-            Logger:Warn(substitute('Rcode hash for provider "&1" not specified', pcProviderType)).
-            return.
-        end.
-        
-        assign rcode-info:file-name = replace(pcProviderType, '.':u, '/':u).
-        // in 12.0.0+ the md5-value attribute _always_ returns ?
-        if not rcode-info:signature-value eq pcProviderHash then
-        do:
-            assign err = new AppError(substitute('Provider error: invalid signature for "&1"', pcProviderType), 0).
-            Logger:Error(err:GetMessage(1)).
-            undo, throw err. 
-        end.
     end method.
     
 end class.

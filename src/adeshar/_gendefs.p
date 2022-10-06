@@ -1,9 +1,9 @@
-/***********************************************************************
-* Copyright (C) 2005-2007 by Progress Software Corporation. All rights *
-* reserved.  Prior versions of this work may contain portions          *
-* contributed by participants of Possenet.                             *
-*                                                                      *
-***********************************************************************/
+/************************************************************************
+* Copyright (C) 2005-2007,2022 by Progress Software Corporation.        *
+* All rights reserved. Prior versions of this work may contain portions *
+* contributed by participants of Possenet.                              *
+*                                                                       *
+*************************************************************************/
 /*----------------------------------------------------------------------------
 
 File: _gendefs.p
@@ -64,6 +64,7 @@ Last Modifed:
     03/27/95 GFS  Removed Procedure Query and added "basic" query
     09/22/94 GFS  Added XFTR support
     12/29/93 RPR  Added new browser widget attributes
+	02/10/22 TM   Added full keywords to avoid error with strict compile option
 ---------------------------------------------------------------------------- */
 
 {adeuib/sharvars.i}    /* UIB shared variables                               */
@@ -687,7 +688,7 @@ IF layout-var ne ""
 THEN PUT STREAM P_4GL UNFORMATTED SKIP (1)
     "/* Define a variable to store the name of the active layout.            */"
     SKIP
-    "DEFINE VAR " + layout-var + " AS CHAR INITIAL ~"Master Layout~":U NO-UNDO."
+    "DEFINE VARIABLE " + layout-var + " AS CHAR INITIAL ~"Master Layout~":U NO-UNDO."
     SKIP.
 
 /* ************************************************************************* */
@@ -708,7 +709,7 @@ ELSE IF CAN-DO(_P._allow,"WINDOW") THEN
   PUT STREAM P_4GL UNFORMATTED
     "/* Define the widget handle for the window                              */"
     SKIP
-    "DEFINE VAR " + win_variable + " AS WIDGET-HANDLE NO-UNDO."
+    "DEFINE VARIABLE " + win_variable + " AS WIDGET-HANDLE NO-UNDO."
     SKIP.
 
 IF p_status = "EXPORT" THEN win_name = "".
@@ -1744,7 +1745,7 @@ PROCEDURE put-frame-with-clause.
   IF _U._LAYOUT-UNIT THEN DO:
     IF _L._COL ne ?  AND _U._TYPE NE "DIALOG-BOX" THEN
       PUT STREAM P_4GL UNFORMATTED SKIP
-          "         AT COL "    /* Max is necessary only because of syntax */
+          "         AT COLUMN "    /* Max is necessary only because of syntax */
             MAX(ROUND(_L._COL,2),1) " ROW " MAX(ROUND(_L._ROW,2),1).
     /* Size for dialog-boxes is handled in the Frame (with skips & spaces).
        Size-to-fit frames are already handled, unless they are empty.) */

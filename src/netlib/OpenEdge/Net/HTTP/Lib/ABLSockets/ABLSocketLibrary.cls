@@ -665,7 +665,9 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
             
             // do not reuse the credentials - each request must provie its own
             if valid-object(moSocketConnectionParam) then
-                assign moSocketConnectionParam:ClientCredentials = ?.
+                assign moSocketConnectionParam:ClientCredentials = ?
+                       moSocketConnectionParam:URI               = ?
+                       .
         end finally.
     end method.
     

@@ -13,6 +13,7 @@ Copyright (c) 2021 by Progress Software Corporation. All rights reserved.
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
+using OpenEdge.Core.String.
 using OpenEdge.Net.HTTP.IHttpMessage.
 using OpenEdge.Net.HTTP.IHttpRequest.
 using OpenEdge.Net.HTTP.IHttpResponse.
@@ -21,6 +22,7 @@ using OpenEdge.Net.HTTP.Trace.MessageTypeEnum.
 using OpenEdge.Net.HTTP.Trace.PolicyTypeEnum.
 using OpenEdge.Net.HTTP.Trace.Rule.ITraceDataRule.
 using OpenEdge.Net.HTTP.Trace.Rule.TraceRule.
+using Progress.Collections.List.
 using Progress.Lang.Object.
 
 @since(rel='12.5.0').
@@ -83,9 +85,8 @@ implements ITraceDataRule:
             // skips any items that are NOT in the list (index = 0)
             or (Policy eq PolicyTypeEnum:Deny-All  and index(mExceptions, qryNames[loop]) gt 0)
             then
-                pTraceData:QueryString:Put(qryNames[loop],
-                                           // GetQueryValue() returns a decoded string
-                                           cast(pMessage, IHttpRequest):URI:GetQueryValue(qryNames[loop])).
+                // Create a new entry containing a List<String> for any values.
+                pTraceData:QueryString:Put(qryNames[loop], cast(pMessage, IHttpRequest):URI:GetQueryValueList(qryNames[loop])).     
         end.
     end method.
     

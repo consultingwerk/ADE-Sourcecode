@@ -27,7 +27,7 @@ using Progress.Reflect.Constructor.
 class OpenEdge.Web.DataObject.Writer.DefaultArgumentValueWriterBuilder inherits ArgumentValueWriterBuilder:
     
     /** Each concrete builder will implement this differently */
-    define override public property Writer as ArgumentValueWriter no-undo 
+    define final override public property Writer as ArgumentValueWriter no-undo 
         get():
             return NewArgumentValueWriter().
         end get.

@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2013, 2016-2019, 2021 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2013, 2016-2019, 2021-2022 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : List
@@ -9,7 +9,7 @@ Copyright (c) 2013, 2016-2019, 2021 by Progress Software Corporation. All rights
     @author hdaniels
     Created     : Wed Jan 09 10:45:45 EST 2008
     Notes       : * As of 12.5, this class acts as a wrapper around the built-in List<>
-                  * The List<> class should be used instead of this, since it supports
+                  * The List<T> class should be used instead of this, since it supports
                     generic types.
                   * Another major difference between this type and the built-in, is that
                     this List cannot have unknown values added - though they can be Set()
@@ -25,28 +25,20 @@ using OpenEdge.Core.AssertionFailedError.
 using Progress.Lang.AppError.
 using Progress.Lang.Object.
 
-@deprecated(from='12.5.0', reason='Use Progress.Collections.List').
+@deprecated(from='12.5.0', reason='Use Progress.Collections.List<T>').
 class OpenEdge.Core.Collections.List
 serializable
 implements OpenEdge.Core.Collections.IList:
     
-    // for ToTable() only
-    define private temp-table ttList no-undo
-      field sequence as int
-      field objectref as Object
-      index objidx objectref
-      index seq as unique primary sequence
-      .
-    
     /* The holder of the list data */
-    var private Progress.Collections.IList<Object> mBackingList.
+    var serializable private Progress.Collections.IList<Object> mBackingList.
     
     /** Returns the number of elements in this list. */
-    define public property Size as integer no-undo
+    define final non-serializable public property Size as integer no-undo
         get():
             return mBackingList:Count.
         end get.
-      
+    
     /* Default constructor */
     constructor public List():
         this-object(new Progress.Collections.List<Object>()).
@@ -192,7 +184,7 @@ implements OpenEdge.Core.Collections.IList:
         return true.
     end method.
 
-    /** Check whether the colleciton contains at least one object
+    /** Check whether the collection contains at least one object
         that matches the passed in object.
         
         @param Object The object
@@ -207,16 +199,29 @@ implements OpenEdge.Core.Collections.IList:
         @param output table-handle The collection as a temp-table */
     method public void ToTable( output table-handle tt):
         var integer loop, cnt = mBackingList:Count.
+        var handle buf.
         
-        empty temp-table ttList.
-        tt = temp-table ttList:handle.
+        create temp-table tt.
+        tt:add-new-field('sequence', 'integer').
+        tt:add-new-field('objectref', 'Progress.Lang.Object').
+        tt:add-new-index('objidx').
+        tt:add-index-field('objidx', 'objectref').
+        tt:add-new-index('seq', yes, yes).
+        tt:add-index-field('seq', 'sequence').
+        tt:temp-table-prepare('ttList').
+        
+        assign buf = tt:default-buffer-handle.
         
         do loop = 1 to cnt:
-            create ttList.
-            assign ttList.sequence  = loop
-                   ttList.objectref = mBackingList:Get(loop)
-                   .
+            buf:buffer-create().
+            buf::sequence  = loop.
+            buf::objectref = mBackingList:Get(loop).
+            buf:buffer-release().
         end.
+        finally:
+            delete object tt.
+        end finally.
+
     end method.
     
     /** Removes from this list all the elements that are contained in the

@@ -1,14 +1,14 @@
 &if false &then
 /* *************************************************************************************************************************
-Copyright (c) 2016-2017, 2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2017, 2021-2022 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : doh_execute_invoke.i
     Purpose     : Calls the method, and sets the return value into the Arg
-    Author(s)   : pjudge 
+    Author(s)   : pjudge
     Created     : 2016-05-27
     Notes       : Arguments
-                    &RETURN-TYPE = the name of the Progress.Reflect.DataType enum 
+                    &RETURN-TYPE = the name of the Progress.Reflect.DataType enum
                                       of the return type. Defaults to &VAR-DATA-TYPE
                     &METHOD = instance of Progress.Reflect.Method
                     &VAR-DATA-TYPE = the name of the ABL data type
@@ -18,12 +18,8 @@ Copyright (c) 2016-2017, 2021 by Progress Software Corporation and/or one of its
   ----------------------------------------------------------------------*/
 &endif
 
-&if defined(OPER-ARG) eq 0 &then
-&scoped-define OPER-ARG oOperArg
-&endif
-
 &if defined(METHOD) eq 0 &then
-&scoped-define METHOD oMethod 
+&scoped-define METHOD oMethod
 &endif
 
 &if defined(ENTITY-INSTANCE) eq 0 &then
@@ -42,7 +38,7 @@ Copyright (c) 2016-2017, 2021 by Progress Software Corporation and/or one of its
 &scoped-define VALUE-WRITER oValueWriter
 &endif
 
-when Progress.Reflect.DataType:{&RETURN-TYPE} then 
+when Progress.Reflect.DataType:{&RETURN-TYPE} then
 case {&METHOD}:ReturnExtent:
     when 0 then
     do:
@@ -55,7 +51,7 @@ case {&METHOD}:ReturnExtent:
     otherwise
     do:
         if {&METHOD}:ReturnExtent eq ? then
-            assign execTime[1] = now 
+            assign execTime[1] = now
                    retval_arr_{&VAR-DATA-TYPE} = {&METHOD}:Invoke({&ENTITY-INSTANCE}, {&PARAM-LIST})
                    execTime[2] = now.
         else

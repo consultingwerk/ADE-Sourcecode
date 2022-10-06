@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2016, 2021 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2016, 2021-2022 by Progress Software Corporation. All rights reserved.
 *************************************************/
  /*------------------------------------------------------------------------
     File        : DateTimeHolder
@@ -13,9 +13,14 @@ Copyright (c) 2016, 2021 by Progress Software Corporation. All rights reserved.
 block-level on error undo, throw.
 
 using Ccs.Common.Support.IDateTimeHolder.
+using OpenEdge.Core.Assert.
 using OpenEdge.Core.TimeStamp.
+using Progress.Collections.IComparable.
 
-class OpenEdge.Core.DateTimeHolder implements IDateTimeHolder:
+class OpenEdge.Core.DateTimeHolder implements IDateTimeHolder,
+           // Compare to the interface so that other implementations of IDateTimeHolder can be sorted with this one
+           IComparable<IDateTimeHolder>:
+               
     /* The holder of this datetime value */
     define variable moTimeStamp as TimeStamp no-undo.
     
@@ -48,4 +53,36 @@ class OpenEdge.Core.DateTimeHolder implements IDateTimeHolder:
         assign moTimeStamp = new OpenEdge.Core.TimeStamp(ptDateTime).
     end constructor.
 
+    /* Comparison method, used by SortedSet's default comparer
+        
+        - If the returned value is less than 0 (zero), then the current object sorts before the object passed in.
+        - If the returned value equals 0 (zero) , then the current object occupies the same position in the sort order.
+        - If the returned value is greater than 0(zero), then the current object sorts after the object passed in.
+        - If either object's Value is the unknown value (?), then that sorts high/early/before
+        
+        @param IDateTimeHolder The object to compare to.
+        @return integer  0 = same object
+                        +1 = sorts after
+                        -1 = sorts before   */
+    method public integer CompareTo(input pOther as IDateTimeHolder):
+        Assert:NotNull(pOther, 'CompareTo object').
+        
+        if this-object:Value eq pOther:Value then
+            return 0.
+        else
+        // unknown values sort first/lower
+        if this-object:Value gt pOther:Value
+        or pOther:Value eq ?
+        then
+            return +1.
+        else
+        if this-object:Value lt pOther:Value
+        or this-object:Value eq ?
+        then
+            return -1.
+        
+        // this will raise an error in the Comparer; we should never get here though.
+        return ?.
+    end method.
+    
 end class.

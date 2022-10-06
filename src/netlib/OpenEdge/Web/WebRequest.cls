@@ -15,9 +15,9 @@ block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.Collections.IStringKeyedMap.
-using OpenEdge.Core.Collections.IStringStringMap.
 using OpenEdge.Core.Collections.StringKeyedMap.
-using OpenEdge.Core.Collections.StringStringMap.
+using OpenEdge.Core.HashAlgorithmEnum.
+using OpenEdge.Core.String.
 using OpenEdge.Core.Memptr.
 using OpenEdge.Core.WidgetHandle.
 using OpenEdge.Net.HTTP.Cookie.
@@ -27,6 +27,7 @@ using OpenEdge.Net.HTTP.HttpHeader.
 using OpenEdge.Net.HTTP.HttpHeaderBuilder.
 using OpenEdge.Net.URI.
 using OpenEdge.Web.IWebRequest.
+using Progress.Collections.List.
 using Progress.Json.ObjectModel.ObjectModelParser.
 using Progress.Lang.AppError.
 using Progress.Lang.Object.
@@ -78,8 +79,7 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
     define public property ContentMD5 as raw no-undo
         get():
             if length(this-object:ContentMD5) eq 0 then
-                {&_proparse_prolint-nowarn(digest)}
-                assign this-object:ContentMD5 = md5-digest(web-context:form-long-input).
+                assign this-object:ContentMD5 = GetRawEntity():GetHash(HashAlgorithmEnum:MD5).
             
             return this-object:ContentMD5.
         end.
@@ -107,19 +107,31 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
     {&_proparse_ prolint-nowarn(varusage)}
     define public property Entity as Object no-undo
         get():
+            var memptr body. // Just a primitive datatype, not a Memptr object.
+            
             if not valid-object(mEntity) then
             do:
                 if web-context:is-xml then
-                    assign mEntity = new WidgetHandle(web-context:x-document).
+                    // Do NOT clean up the X-DOC handle when this object goes out of scope. The AVM will take care of it at
+                    // the end of this request.
+                    //
+                    // Only one X-DOC handle is created ever by thw WEB-CONTEXT handle; we should not manually (ie 'auto')
+                    // delete it.
+                    assign mEntity = new WidgetHandle(web-context:x-document, no).
                 else
                 if web-context:is-json then
                     assign mEntity = new ObjectModelParser():Parse(web-context).
                 else
-                if get-size(web-context:form-long-input) ne ? then
-                    /* ideally this should use one of the content-type writers to get a real type */
-                    assign mEntity = new Memptr(web-context:form-long-input).
-                else
-                    assign mEntity = Memptr:Empty.
+                do on error undo, throw:
+                    assign body = web-context:form-long-input.
+                    if get-size(body) eq ? then
+                        assign mEntity = Memptr:Empty.
+                    else
+                        assign mEntity = new Memptr(body).
+                    finally:
+                        set-size(body) = 0.
+                    end finally.
+                end.
             end.
             return mEntity.
         end.
@@ -129,11 +141,11 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
         
     /**  The length (in bytes/characters) of the payload/entity. */
     {&_proparse_ prolint-nowarn(varusage)}
-    define public property ContentLength as integer no-undo
+    define public property ContentLength as int64 no-undo
         get():
-            return integer(web-context:get-cgi-value("ENV":U, "CONTENT_LENGTH":U)).
+            return int64(web-context:get-cgi-value("ENV":U, "CONTENT_LENGTH":U)).
         end get.
-        set(iProp as int):
+        set(iProp as int64):
             undo, throw new AppError(GetReadOnlyMessage(),?).
         end set.
 
@@ -181,7 +193,7 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
                                       /** PAS will always have a port number */
                                       integer(web-context:get-cgi-value("ENV":U, "SERVER_PORT":U)),
                                       web-context:get-cgi-value("ENV":U, "REQUEST_URI":U),
-                                      createQueryMapFromContext(),
+                                      createQueryParamsFromContext(),
                                       ?)
                        .
             return mURI.
@@ -347,20 +359,16 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
     end method.
     
     /** creates a query map from the quesry string to pass to URI constructor*/
-    method private IStringStringMap createQueryMapFromContext ():
-        define variable cQueryString as character no-undo.
-        define variable stringMap as IStringStringMap no-undo.
-        define variable i as integer no-undo.
-        define variable cProp as character no-undo.
-        define variable cQuery as character no-undo.
-        define variable cValue as character no-undo.
-        define variable iPos as integer no-undo.
+    method private IStringKeyedMap createQueryParamsFromContext ():
+        var IStringKeyedMap keyedMap.
+        var character cQueryString, cProp, cPropName, cQuery, cValue.
+        var integer iLoop, iPos.
         
-        assign stringMap = new StringStringMap()
+        assign keyedMap = new StringKeyedMap()
                cQueryString = web-context:get-cgi-value("ENV":U, "QUERY_STRING":U).
          
-        do i = 1 to num-entries(cQueryString,"&":U):
-            cQuery = entry(i,cQueryString,"&":U).
+        do iLoop = 1 to num-entries(cQueryString,"&":U):
+            cQuery = entry(iLoop, cQueryString,"&":U).
             assign iPos  = index(cQuery, '=':u).
             if iPos eq 0 then
                 assign iPos = index(cQuery, ';':u).
@@ -376,10 +384,16 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
                 if cValue eq ? then
                     assign cValue = '':u.
             end.
-            stringMap:Put(OpenEdge.Net.URI:Decode(cProp),
-                          OpenEdge.Net.URI:Decode(cValue)).
+
+            // Create a new List<String> for values for this key name.
+            assign cPropName = OpenEdge.Net.URI:Decode(cProp).
+            if not keyedMap:ContainsKey(cPropName) then
+                keyedMap:Put(cPropName, new List<String>()).
+
+            cast(keyedMap:Get(cPropName), List<String>):Add(new String(OpenEdge.Net.URI:Decode(cValue))).
         end.
-        return stringMap.
+
+        return keyedMap.
     end method.
     
     /** Removes headers is not implemented .
@@ -625,18 +639,26 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
         @return Object An object of an appropriate type for the request's ContentType. */
     @since(rel='12.5.0').
     method public Object GetTypedEntity():
+        var memptr body. // Just a primitive datatype, not a Memptr object.
         var MessageWriter mw = EntityWriterBuilder:Build(this-object):Writer.
         
+        // If we can't find a writer, return the best-guess (ie the Entity property)
         if not valid-object(mw) then
-            return Memptr:Empty.
+            return this-object:Entity.
         
         mw:Open().
         
         if web-context:is-xml then
             mw:Write(web-context:x-document).
         else
-        if get-size(web-context:form-long-input) ne ? then
-            mw:Write(web-context:form-long-input).
+        do on error undo, throw:
+            assign body = web-context:form-long-input.
+            if get-size(body) gt 0 then
+                mw:Write(body).
+            finally:
+                set-size(body) = 0.
+            end finally.
+        end.
         // if there's no body, an appropriate object will be returned from the message writer
         // so no need for an "else" here
         
@@ -652,15 +674,20 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
         @return Memptr The entity/body as bytes, uncoverted even for XML or JSON. */
     @since(rel='12.5.0').
     method public class Memptr GetRawEntity():
+        var memptr body. // Just a primitive datatype, not a Memptr object.
         if not valid-object(mRawEntity) then
         do:
-            if get-size(web-context:form-long-input) eq ? then
+            assign body = web-context:form-long-input.
+            if get-size(body) eq ? then
                 assign mRawEntity = Memptr:Empty.
             else
-                assign mRawEntity = new Memptr(web-context:form-long-input).
+                assign mRawEntity = new Memptr(body).
         end.
         
         return mRawEntity.
+        finally:
+            set-size(body) = 0.
+        end finally.
     end method.
     
 end class.

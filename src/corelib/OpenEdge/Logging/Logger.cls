@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2017, 2019, 2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2017, 2019, 2021-2022 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : Logger
@@ -100,7 +100,7 @@ class OpenEdge.Logging.Logger final implements ILogWriter, ISupportFormatting:
             assign poLevel = LogLevelEnum:DEFAULT.
         
         assign this-object:Name       = pcName
-               this-object:Format     = '1C':u
+               this-object:Format     = '1K':u
                this-object:LogFilters = poLogFilters
                this-object:LogLevel   = poLevel
                .
@@ -623,10 +623,15 @@ class OpenEdge.Logging.Logger final implements ILogWriter, ISupportFormatting:
                oEvent:ShortNameFormat = this-object:Format
                oEvent:LoggerShortName = this-object:ShortName
                
+               // The LogEvent destructor deletes this handle, preventing leaks
                oEvent:LoggedBy = security-policy:get-client()
                .
-        // Use the LogEvent's Message since we know it exists (the input poMessage may be ?)
-        ExtractMessageTokens(oEvent:Message).
+        // if not asserted in the AVM, then use the passed-down user in PASOE
+        if not valid-handle(oEvent:LoggedBy)
+        and session:client-type eq 'MULTI-SESSION-AGENT'
+        then
+            assign oEvent:LoggedBy = session:current-request-info:GetClientPrincipal().
+        
         // process the message with the filter chain
         assign cnt = extent(LogFilters).
         do loop = 1 to cnt:
@@ -665,36 +670,6 @@ class OpenEdge.Logging.Logger final implements ILogWriter, ISupportFormatting:
             // Write the error to the loggerbuilder's log
             LoggerBuilder:LogMessage(pError:GetMessage(1), LogLevelEnum:ERROR).
         
-    end method.
-    
-    /* Extracts tokens from the message text and adds them to the message's context.
-       
-       @param LogMessage The current message to parse */
-    method private void ExtractMessageTokens(input pMessage as LogMessage):
-        define variable msgTokens as Token extent no-undo.
-        define variable ctxTokens as Progress.Lang.Object no-undo.
-        
-        if not valid-object(pMessage) then
-            return.
-        
-        // extract all the tokens from the message
-        assign msgTokens = TokenResolver:Parse(pMessage:Message).
-        if extent(msgTokens) eq ? then
-            return.
-        
-        assign ctxTokens = pMessage:GetContext('tokens':u).
-        if    not valid-object(ctxTokens)
-           or not type-of(ctxTokens, IList)
-        then
-        do:
-            assign ctxTokens = new List().
-            pMessage:AddContext('tokens':u, ctxTokens).
-        end.
-        
-        // if there's a list in the event context already, add the message tokens to it, even if the context
-        // list is empty
-        if type-of(ctxTokens, IList) then
-            cast(ctxTokens, IList):AddArray(msgTokens).
     end method.
     
     /* Compares two instances

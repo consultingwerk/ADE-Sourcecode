@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2018-2019, 2021 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2018-2019, 2021-2022 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : MDCTokenFormat
@@ -28,37 +28,24 @@ class OpenEdge.Logging.Format.MDCTokenFormat implements ILoggerFilter:
         
         @param LogEvent The current log event to filter */
     method public void ExecuteFilter(input pEvent as LogEvent):
-        define variable ctx as Progress.Lang.Object no-undo.
-        define variable val as Progress.Lang.Object no-undo.
-        define variable iter as IIterator no-undo.
-        define variable token as Token no-undo.
+        var Progress.Collections.IIterator<Token> iter.
         
         // No context? No work!
-        if MDC:IsEmpty() then
-            return.
-        
-        assign ctx = pEvent:Message:GetContext('tokens':u).
-        if    not valid-object(ctx)
-           or not type-of(ctx, IList)
-           or cast(ctx, IList):Size eq 0
+        if MDC:IsEmpty()
+        // no tokens? no work!
+        or not valid-object(pEvent:Message:Tokens)
         then
             return.
         
-        assign iter = cast(ctx, IList):Iterator().
+        assign iter = pEvent:Message:Tokens:GetIterator().
         TOKEN-LOOP:
-        do while iter:HasNext():
-            assign val = iter:Next().
-            
-            if    not valid-object(val)
-               or not type-of(val, Token)
+        do while iter:MoveNext():
+            // In case of unknown values. The LogMessage's Tokens property is a Set, but this code (ie compiler) does not guarantee that.
+            if valid-object(iter:Current)
+            and not iter:Current:Arg eq '':u
+            and OpenEdge.Logging.MDC:Has(iter:Current:Arg)
             then
-                next TOKEN-LOOP.
-            
-            assign token = cast(val, Token).
-            if     not token:Arg eq '':u
-               and OpenEdge.Logging.MDC:Has(token:Arg)
-            then
-                assign token:Value = OpenEdge.Logging.MDC:Get(token:Arg).
+                assign iter:Current:Value = OpenEdge.Logging.MDC:Get(iter:Current:Arg).
         end.
     end method.
     

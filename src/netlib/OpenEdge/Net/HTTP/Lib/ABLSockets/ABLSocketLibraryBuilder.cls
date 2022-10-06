@@ -30,7 +30,7 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibraryBuilder inherits ClientLi
     define private property LIB_VERSION as character init '0.6.0':u no-undo get.
     
     /* A useable, built instance of a IHttpClientLibrary */
-    define override public property Library as IHttpClientLibrary no-undo
+    define final override public property Library as IHttpClientLibrary no-undo
         get():
             return NewLib().
         end get.

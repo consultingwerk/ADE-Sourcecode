@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2015, 2018 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015, 2018-2022 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : IHttpMessage
@@ -39,7 +39,7 @@ interface OpenEdge.Net.HTTP.IHttpMessage:
     define public property Entity as Object no-undo get. set.
     
     /**  The length (in bytes/characters) of the payload/entity. */    
-    define public property ContentLength as integer no-undo get. set.
+    define public property ContentLength as int64 no-undo get. set.
     
     /** The message's Transfer-Encoding. For more detail, see
         http://www.w3.org/Protocols/rfc2616/rfc2616-sec3.html#sec3.6 */  

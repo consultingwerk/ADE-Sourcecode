@@ -99,14 +99,14 @@ FUNCTION fHeader     RETURNS CHARACTER () IN hPlus.
 FUNCTION fFooter     RETURNS CHARACTER () IN hPlus.
 
 /**** Webspeed integration ******/
-/* Developing add below line to allow changes otherwise enhance speed 
+/* Developing add below line to allow changes otherwise enhance speed */
 IF VALID-HANDLE(hPLUS)     THEN DELETE PROCEDURE hPlus.
 IF VALID-HANDLE(hHTML)     THEN DELETE PROCEDURE hHTML.
 IF VALID-HANDLE(hCode   )  THEN DELETE PROCEDURE hCode.
 IF VALID-HANDLE(hConfig )  THEN DELETE PROCEDURE hConfig.
 IF VALID-HANDLE(hProutil)  THEN DELETE PROCEDURE hProutil.
 IF VALID-HANDLE(hDatabase) THEN DELETE PROCEDURE hDatabase.
-*/
+
 
 IF NOT VALID-HANDLE(hPLUS) THEN
   RUN webtools/plus.p PERSISTENT SET hPlus.

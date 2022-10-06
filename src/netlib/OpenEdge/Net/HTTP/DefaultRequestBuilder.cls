@@ -31,7 +31,7 @@ using Progress.Lang.Object.
 
 class OpenEdge.Net.HTTP.DefaultRequestBuilder inherits RequestBuilder:
 
-    define override public property Request as IHttpRequest no-undo
+    define final override public property Request as IHttpRequest no-undo
         get():
             return NewRequest().
         end get.

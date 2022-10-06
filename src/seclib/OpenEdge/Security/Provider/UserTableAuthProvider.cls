@@ -1,11 +1,11 @@
 /************************************************
-  Copyright (c) 2016 by Progress Software Corporation. All rights reserved.
+  Copyright (c) 2016, 2022 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : UserTableAuthProvider
-    Purpose     : STS authentication provider for built-in _User table 
-    Syntax      : 
-    Description : 
+    Purpose     : STS authentication provider for built-in _User table
+    Syntax      :
+    Description :
     Author(s)   : pjudge
     Created     : Tue Feb 23 11:11:25 EST 2016
     Notes       : * Requires an STSDB alias for the db whose _User records we
@@ -14,34 +14,36 @@
 block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
+using OpenEdge.Core.Json.JsonPropertyHelper.
 using OpenEdge.Core.System.UnsupportedOperationError.
+using OpenEdge.Core.TimeStamp.
 using OpenEdge.Logging.ILogWriter.
 using OpenEdge.Logging.ISupportLogging.
 using OpenEdge.Logging.LoggerBuilder.
 using OpenEdge.Security.Provider.IAuthProvider.
 using OpenEdge.Security.Provider.IPasswordPolicyProvider.
+using OpenEdge.Security.Provider.ProviderConfig.
 using OpenEdge.Security.Provider.UserTablePasswordProvider.
-using OpenEdge.Security.STS.ClientValidator.
+using Progress.Json.ObjectModel.JsonDataType.
 using Progress.Json.ObjectModel.JsonObject.
 using Progress.Lang.AppError.
 using Progress.Reflect.Flags.
 using OpenEdge.Security.Provider.UserTableAuthProvider.
-using Progress.Json.ObjectModel.ObjectModelParser.
 
 class OpenEdge.Security.Provider.UserTableAuthProvider implements IAuthProvider, ISupportLogging:
     
     // A reference to the Logger in use by an implementer
     define public property Logger as ILogWriter no-undo
         get():
-            if not valid-object(this-object:Logger) then
-                assign this-object:Logger = LoggerBuilder:GetLogger(get-class(UserTableAuthProvider)).
-                
-            return this-object:Logger. 
+            // if someone has specifically set this logger, use that, otherwise ask for a new/cached instance
+            // each time
+            if valid-object(this-object:Logger) then
+                return this-object:Logger.
+            else
+                // The LoggerBuilder deals handles caching of logwriter instances
+                return LoggerBuilder:GetLogger(get-class(UserTableAuthProvider)).
         end get.
         set.
-
-    /* use to handle the validation of a STS's credentials */
-    define private variable moValidator as ClientValidator no-undo.
     
     /* Provides an extension point for overriding the password hashing for _User */
     define protected property PasswordProvider as IPasswordPolicyProvider no-undo
@@ -54,7 +56,7 @@ class OpenEdge.Security.Provider.UserTableAuthProvider implements IAuthProvider,
     define public static property REALM_ATTR_EXPIRED    as character initial 'ATTR_EXPIRED':u no-undo get.
     define public static property REALM_ATTR_LOCKED     as character initial 'ATTR_LOCKED':u no-undo get.
     define public static property REALM_ATTR_PASSWD     as character initial 'ATTR_PASSWORD':u no-undo get.
-    define public static property REALM_ATTR_DOMAIN     as character initial 'ATTR_DOMAIN':u no-undo get. 
+    define public static property REALM_ATTR_DOMAIN     as character initial 'ATTR_DOMAIN':u no-undo get.
     define public static property REALM_ATTR_SQL_ONLY   as character initial 'ATTR_SQL_ONLY':u no-undo get.
     define public static property REALM_ATTR_PROPERTIES     as character initial "ATTR_PROPERTIES" no-undo get.
     define public static property REALM_ATTR_LAST_LOGIN     as character initial "ATTR_LAST_LOGIN" no-undo get.
@@ -69,56 +71,50 @@ class OpenEdge.Security.Provider.UserTableAuthProvider implements IAuthProvider,
     define public static property REALM_ATTR_EMAIL         as character initial 'email':u no-undo get.
     define public static property REALM_ATTR_DESCRIPTION   as character initial 'description':u no-undo get.
     
-	/* Default constructor */
-	constructor public UserTableAuthProvider():
-		super().
-		
-		assign moValidator = new ClientValidator().
-		       
-		LoadConfig().
-		
-		/* default values */
-		if not valid-object(this-object:PasswordProvider) then
-            assign this-object:PasswordProvider = new UserTablePasswordProvider().
+    /* Default constructor */
+    constructor public UserTableAuthProvider():
+        super().
+        
+        Initialize().
     end constructor.
     
-    /* Constructor
+    /* Constructor.
+       
+       This constructor largely used for testing IPasswordPolicyProvider implementations; in the
+       OEAG instance, the PasswordProvider will either be the default, or a value provided by config.
        
        @param IPasswordPolicyProvider The provider used to provide password hashing etc */
     constructor public UserTableAuthProvider(input poPasswordProvider as IPasswordPolicyProvider):
-        super().
+        this-object().
         
         Assert:NotNull(poPasswordProvider, 'Password provider').
         
-		assign PasswordProvider = poPasswordProvider
-		       moValidator      = new ClientValidator().
+        assign this-object:PasswordProvider = poPasswordProvider.
     end constructor.
     
     /* Loads configuration for this provider */
-    method private void LoadConfig():
-        define variable oConfig as JsonObject no-undo.
-        define variable oProviderType as class Progress.Lang.Class no-undo.
+    method private void Initialize():
+        var Progress.Lang.Class providerType.
+        var JsonObject cfg = ProviderConfig:GetConfig(get-class(UserTableAuthProvider):TypeName).
+        var character providerName.
         
-        file-info:file-name = 'providers.cfg'.
-        if file-info:full-pathname eq ? then
-            file-info:file-name = os-getenv('PROVIDER_CONFIG':u).
+        // deals with unknown values too
+        if JsonPropertyHelper:HasTypedProperty(cfg, 'passwordProvider', JsonDataType:STRING) then
+        do on error undo, throw:
+            assign providerName = cfg:GetCharacter('passwordProvider')
+                   providerType = Progress.Lang.Class:GetClass(providerName)
+                   .
+            Assert:IsType(providerType, get-class(IPasswordPolicyProvider)).
             
-        if file-info:full-pathname ne ? then
-            assign oConfig = cast(new ObjectModelParser():ParseFile(file-info:full-pathname), JsonObject).        
-        
-        if not valid-object(oConfig) or 
-           not oConfig:Has(get-class(UserTableAuthProvider):TypeName) then   
-            return.
-        
-        assign oConfig = oConfig:GetJsonObject(get-class(UserTableAuthProvider):TypeName).
-        if oConfig:Has('passwordProvider':u) and 
-           not oConfig:IsNull('passwordProvider':u) then
-        do:
-            assign oProviderType = Progress.Lang.Class:GetClass(oConfig:GetCharacter('passwordProvider':u)).
-            Assert:IsType(oProviderType, get-class(IPasswordPolicyProvider)).
-            
-            this-object:PasswordProvider = cast(oProviderType:New(), IPasswordPolicyProvider).            
+            assign this-object:PasswordProvider = cast(providerType:New(), IPasswordPolicyProvider).
+            catch uncaught as Progress.Lang.Error:
+                Logger:Error(substitute('Unable to create password provider &1', providerName), uncaught).
+            end catch.
         end.
+        
+        /* default values */
+        if not valid-object(this-object:PasswordProvider) then
+            assign this-object:PasswordProvider = new UserTablePasswordProvider().
     end method.
     
     /* Stringifies an attribute value for return to the caller.
@@ -136,6 +132,7 @@ class OpenEdge.Security.Provider.UserTableAuthProvider implements IAuthProvider,
        @param longchar The value to format
        @return character An appropriately-formatted character value */
     method private character Stringify(input pcValue as longchar):
+        {&_proparse_ prolint-nowarn(overflow)}
         return string(pcValue).
     end method.
     
@@ -179,41 +176,37 @@ class OpenEdge.Security.Provider.UserTableAuthProvider implements IAuthProvider,
        @return character An appropriately-formatted character value */
     method private character Stringify(input pdValue as decimal):
         return string(pdValue).
-    end method.        
+    end method.
     /* Retrieves a value for the a requested attribute, per user
        
        @param character A unique userid
        @param character The name of the attribute for which to return a value
        return character An attribute value for the given user. May be empty or unknown. */
-	method public character GetAttribute(input pcUserId as character, input pcAttributeName as character):
+    method public character GetAttribute(input pcUserId as character, input pcAttributeName as character):
         define variable cAttrVal as character no-undo.
         define variable cDelimiter as character no-undo.
         
         define buffer lbUser  for STSDB._User.
-        define buffer lbRoles for STSDB._sec-granted-role.
+        define buffer lbRoles for STSDB._Sec-granted-role.
         
-        Logger:Debug(substitute('Attempting to get attribute &1 for user &2',
+        Logger:Debug(substitute('Attempting to get attribute &1 for user: &2',
                                 pcAttributeName,
                                 pcUserId)).
         
-        /* validate the client */
-        if not moValidator:Validate(get-class(UserTableAuthProvider):TypeName, 'GetAttribute':u) then
-            return error new AppError('Unable to validate client', 0). 
-                   
         FindUserRecordForRead(pcUserId, buffer lbUser).
         /* not available will throw an error */
         
         case pcAttributeName:
-            when UserTableAuthProvider:REALM_ATTR_ROLES    then            
+            when UserTableAuthProvider:REALM_ATTR_ROLES    then
             do:
                 assign cDelimiter = '':u.
                 
-                for each lbRoles where 
-                         lbRoles._grantee eq pcUserId
+                for each lbRoles where
+                         lbRoles._Grantee eq pcUserId
                          no-lock:
-                    assign cAttrVal = cAttrVal + cDelimiter 
+                    assign cAttrVal = cAttrVal + cDelimiter
                                     + lbRoles._Role-name
-                           cDelimiter = ',':u. 
+                           cDelimiter = ',':u.
                 end.
             end.    //REALM_ATTR_ROLES
                 
@@ -222,18 +215,18 @@ class OpenEdge.Security.Provider.UserTableAuthProvider implements IAuthProvider,
             when UserTableAuthProvider:REALM_ATTR_LOGIN_FAILURES then
                 assign cAttrVal = Stringify(lbUser._Login_Failures).
             when UserTableAuthProvider:REALM_ATTR_ENABLED  then
-                assign cAttrVal = Stringify(lbUser._Disabled).            
+                assign cAttrVal = Stringify(lbUser._Disabled).
             when UserTableAuthProvider:REALM_ATTR_EXPIRED  then
                 assign cAttrVal = Stringify(not(lbUser._Account_expires eq ? or lbUser._Account_expires gt now)).
             when UserTableAuthProvider:REALM_ATTR_DOMAIN   then
                 assign cAttrVal = Stringify(lbUser._Domain-Name).
-            when UserTableAuthProvider:REALM_ATTR_SQL_ONLY then 
+            when UserTableAuthProvider:REALM_ATTR_SQL_ONLY then
                 assign cAttrVal = Stringify(lbUser._sql-only-user).
             when UserTableAuthProvider:REALM_ATTR_USERID then
                 assign cAttrVal = Stringify(pcUserId).
             when UserTableAuthProvider:REALM_ATTR_GIVENNAME then
                 assign cAttrVal = Stringify(lbUser._Given_name).
-            when UserTableAuthProvider:REALM_ATTR_MIDDLEINITIAL then 
+            when UserTableAuthProvider:REALM_ATTR_MIDDLEINITIAL then
                 assign cAttrVal = Stringify(lbUser._Middle_initial).
             when UserTableAuthProvider:REALM_ATTR_SURNAME then
                 assign cAttrVal = Stringify(lbUser._Surname).
@@ -260,9 +253,9 @@ class OpenEdge.Security.Provider.UserTableAuthProvider implements IAuthProvider,
             end.    //OTHERWISE
         end case.
         
-        Logger:Debug(substitute('Returning &2 for attribute value', cAttrVal)).
+        Logger:Debug(substitute('Attribute &1 value: &2', pcAttributeName, cAttrVal)).
         
-        return cAttrVal.	
+        return cAttrVal.
     end method.
 
     /* Returns an array of attributes for a given user.
@@ -270,21 +263,16 @@ class OpenEdge.Security.Provider.UserTableAuthProvider implements IAuthProvider,
     
        @param character A unique userid
        @return character[] An array of attribute names. */
-	method public character extent GetAttributeNames( input pcUserId as character ):
-	    define variable cNames as character extent no-undo.
-        define variable oType as class Progress.Lang.Class no-undo.
+    method public character extent GetAttributeNames( input pcUserId as character ):
+        define variable cNames as character extent no-undo.
         define variable oProps as class Progress.Reflect.Property extent no-undo.
         define variable iLoop as integer no-undo.
         
-        Logger:Debug(substitute('Attempting to get attribute names for user &1',
+        Logger:Debug(substitute('Attempting to get attribute names for user: &1',
                                 pcUserId)).
         
-        /* validate the client */
-        if not moValidator:Validate(get-class(UserTableAuthProvider):TypeName, 'GetAttributeNames':u) then
-            return error new AppError('Unable to validate client', 0). 
-                   
         assign oProps = get-class(OpenEdge.Security.Provider.UserTableAuthProvider)
-                            :GetProperties(Flags:Static)
+                            :GetProperties(Flags:Static or Flags:Public)
                extent(cNames) = extent(oProps)
                no-error.
         
@@ -293,81 +281,71 @@ class OpenEdge.Security.Provider.UserTableAuthProvider implements IAuthProvider,
             Logger:Debug(substitute('Supported attribute name &1', cNames[iLoop])).
         end.
         
-        return cNames.        
+        return cNames.
     end method.
 
     /* Simple, clear-text password validation for a user
               
        @param character A unique userid
-       @param character The user's (cleartext) password to verify 
+       @param character The user's (cleartext) password to verify
        @return logical TRUE if the provide credentials match the realm's values */
-	method public logical ValidatePassword(input pcUserId as character,
-	                                       input pcPassword as character ):
-		define variable lValid as logical no-undo.
-
+    method public logical ValidatePassword(input pcUserId as character,
+                                           input pcPassword as character ):
+        define variable lValid as logical no-undo.
+        
         define buffer lbUser for STSDB._User.
         
-        Logger:Debug(substitute('Attempting to validate clear-text password for user &1', pcUserId)).
-        
-        /* validate the client */
-        if not moValidator:Validate(get-class(UserTableAuthProvider):TypeName, 'ValidatePassword':u) then
-            return error new AppError('Unable to validate client', 0). 
+        Logger:Debug(substitute('Attempting to validate clear-text password for user: &1', pcUserId)).
         
         FindUserRecordForRead(pcUserId, buffer lbUser).
         /* not available will throw an error */
         
         assign lValid = lbUser._Password eq PasswordProvider:HashPassword(
-                                                    pcPassword, 
+                                                    pcPassword,
                                                     PasswordProvider:GetUserSalt(buffer lbUser:handle)).
-        Logger:Debug(substitute('Is valid password: &1', lValid)).
-        
+        Logger:Debug(substitute('Password for user &2 is &1',
+                                    // spaces after 'valid' for prettier formatting
+                                    string(lValid, 'valid  /invalid'),
+                                    pcUserId)).
         return lValid.
-	end method.
-
+    end method.
+    
     /* Digest-encoded password validation for a user
        
-       @param character A unique userid 
+       @param character A unique userid
        @param character The hashed digest of the password to verify
-       @param character The nonce value used to create the digest hash 
-       @param character The timestamp value used to create the digest hash 
+       @param character The nonce value used to create the digest hash
+       @param character The timestamp value used to create the digest hash
        @return logical TRUE if the provide credentials match the realm's values */
-    method public logical ValidatePassword(input pcUserId as character, 
+    method public logical ValidatePassword(input pcUserId as character,
                                            input pcDigest as character,
                                            input pcNonce as character,
                                            input pcTimestamp as character ):
-        Logger:Debug(substitute('Attempting to validate digest password for user &1', pcUserId)).
+        Logger:Debug(substitute('Attempting to validate digest password for user: &1', pcUserId)).
         
-        /* validate the client */
-        if not moValidator:Validate(get-class(UserTableAuthProvider):TypeName, 'ValidatePassword':u) then
-            return error new AppError('Unable to validate client', 0). 
-        
-        return error new UnsupportedOperationError('Operation':u, get-class(IAuthProvider):TypeName).                    
-	end method.
-	
-    /* Validates that the username is in the realm, and returns a unique identifier for 
+        return error new UnsupportedOperationError('Operation':u, get-class(IAuthProvider):TypeName).
+    end method.
+    
+    /* Validates that the username is in the realm, and returns a unique identifier for
        the user (which may be the username@domain).
        
        @param character The client-supplied username
        @return character A unique identifier for the user */
-	method public character ValidateUser( input pcUserName as character ):
-	    define buffer lbUser for STSDB._User.
-	    
-        Logger:Debug(substitute('Validating user &1', pcUserName)).
-
-        /* validate the client */
-        if not moValidator:Validate(get-class(UserTableAuthProvider):TypeName, 'ValidateUser':u) then
-            return error new AppError('Unable to validate client', 0). 
+    method public character ValidateUser( input pcUserName as character ):
+        define buffer lbUser for STSDB._User.
+        
+        Logger:Debug(substitute('Validating user: &1', pcUserName)).
         
         FindUserRecordForRead(pcUserName, buffer lbUser).
         
         return pcUserName.
-	end method.
-	
+    end method.
+    
     /* Sets an attribute's value for a user. May optionally create an attribute value.
        
        @param character A unique userid
        @param character The name of the attribute to remove
-       @param character The value to apply 
+       @param character The value to apply
        @return logical TRUE if the attribute value was successfully set; FALSE otherwise */
     method public logical SetAttribute(input pcUserId as character,
                                        input pcAttributeName as character,
@@ -375,14 +353,10 @@ class OpenEdge.Security.Provider.UserTableAuthProvider implements IAuthProvider,
         define variable lUpdated as logical no-undo.
         define buffer lbUser for STSDB._User.
         
-        Logger:Debug(substitute('Attempting to set attribute &1 for user &2',
+        Logger:Debug(substitute('Attempting to set attribute &1 for user: &2',
                                 pcAttributeName,
                                 pcUserId)).
         
-        /* validate the client */
-        if not moValidator:Validate(get-class(UserTableAuthProvider):TypeName, 'SetAttribute':u) then
-            return error new AppError('Unable to validate client', 0). 
-                   
         Assert:NotNullOrEmpty(pcAttributeName, 'Attribute name').
         
         do for lbUser transaction:
@@ -391,18 +365,19 @@ class OpenEdge.Security.Provider.UserTableAuthProvider implements IAuthProvider,
             
             case pcAttributeName:
                 when UserTableAuthProvider:REALM_ATTR_LAST_LOGIN then
-                    assign lbUser._Last_login = datetime-tz(pcAttributeValue)
+                    assign lbUser._Last_login = TimeStamp:ToABLDateTimeTzFromISO(pcAttributeValue)
                            lUpdated = true.
                 when UserTableAuthProvider:REALM_ATTR_LOGIN_FAILURES then
                     assign lbUser._Login_failures = lbUser._Login_failures + integer(pcAttributeValue)
                            lUpdated = true.
                 when UserTableAuthProvider:REALM_ATTR_ENABLED then
                     /* flip around 'cos the value stored is disabled */
-                    assign lbUser._Disabled = not logical(pcAttributeName)
-                           lUpdated = true.
-                otherwise 
+                    assign lbUser._Disabled = not logical(pcAttributeValue)
+                           lUpdated         = true
+                           .
+                otherwise
                 do:
-                    Logger:Warn(substitute('Cannot set attribute &1 for user &2',
+                    Logger:Warn(substitute('Cannot set attribute &1 for user: &2',
                                             pcAttributeName,
                                             pcUserId)).
                     assign lUpdated = false.
@@ -414,14 +389,14 @@ class OpenEdge.Security.Provider.UserTableAuthProvider implements IAuthProvider,
         end.    /* TRANSACTION BLOCK */
         
         return lUpdated.
-    end method.	
+    end method.
     
-    /* Helper method for finding a _User record for READ 
+    /* Helper method for finding a _User record for READ
        
        @param character The User@Domain user name/id
        @param buffer The _User buffer to use */
-	method private void FindUserRecordForRead(input  pcUserName as character,
-	                                          buffer pbUser for STSDB._User):
+    method private void FindUserRecordForRead(input  pcUserName as character,
+                                              buffer pbUser for STSDB._User):
         define variable cSplitUser as character extent 2 no-undo.
         assign cSplitUser = SplitUserId(pcUserName).
         
@@ -431,13 +406,13 @@ class OpenEdge.Security.Provider.UserTableAuthProvider implements IAuthProvider,
              no-lock no-error.
         if not available pbUser then
         do:
-            Logger:Debug(substitute('Unknown user &1', pcUserName)).
+            Logger:Debug(substitute('Unknown user: &1', pcUserName)).
             return error new AppError('User not found', 0).
         end.
-	end method. 
+    end method.
 
-    /* Helper method for finding a _User record for UPDATE 
-       
+    /* Helper method for finding a _User record for UPDATE
+        
        @param character The User@Domain user name/id
        @param buffer The _User buffer to use */
     method private void FindUserRecordForUpdate(input  pcUserName as character,
@@ -451,27 +426,42 @@ class OpenEdge.Security.Provider.UserTableAuthProvider implements IAuthProvider,
              exclusive-lock no-wait no-error.
         if not available pbUser then
         do:
-            Logger:Debug(substitute('Unknown user &1', pcUserName)).
+            Logger:Debug(substitute('Unknown user: &1', pcUserName)).
             return error new AppError('User not found', 0).
         end.
         if locked pbUser then
         do:
-            Logger:Warn(substitute('Unable to lock user &1 for update', pcUserName)).
+            Logger:Warn(substitute('Unable to lock user: &1 for update', pcUserName)).
             return error new AppError('Cannot update user', 0).
         end.
-    end method. 
+    end method.
     
     /* Splits a user@domain string into its component parts.
-    
+       A user name may be one of the following forms
+         i) user                (blank domain)
+        ii) user@oedomaim       (oe domain)
+       iii) user@email@oedomain (email address + domain)
+       
        @param character A user@domain string to split
-       @return character[2]  1=userid (not empty/null); 2=domain (not null) */
+       @return character[2]  1=userid (not empty/null). May contain the @email portion;
+                             2=domain (not null)    */
     method private character extent 2 SplitUserId(input pcUserName as character ):
         define variable cSplitUser as character extent 2 no-undo.
+        var integer pos = r-index(pcUserName, '@':u),
+                    cnt = num-entries(pcUserName, '@':u)
+                    .
+        if cnt gt 3 then
+        do:
+            Logger:Error(substitute('Userid "&1" has too many @s', pcUserName)).
+            return error new AppError('Userid incorrectly formatted', 0).
+        end.
         
-        assign cSplitUser[1] = entry(1, pcUserName, '@':u)
-               cSplitUser[2] = entry(2, pcUserName, '@':u)
-               no-error.
-               
+        if pos eq 0 then
+            assign cSplitUser[1] = pcUserName.
+        else
+            assign cSplitUser[1] = substring(pcUserName, 1, pos - 1)
+                   cSplitUser[2] = substring(pcUserName, pos + 1)
+                   .
         Assert:NotNullOrEmpty(cSplitUser[1], 'User id').
         Assert:NotNull(cSplitUser[2], 'User domain').
         

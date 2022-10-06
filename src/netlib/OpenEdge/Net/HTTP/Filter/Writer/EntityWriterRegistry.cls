@@ -1,20 +1,26 @@
 /************************************************
-Copyright (c) 2015, 2018 by Progress Software Corporation. All rights reserved.
-*************************************************/ 
+Copyright (c) 2015, 2018, 2022 by Progress Software Corporation. All rights reserved.
+*************************************************/
 /*------------------------------------------------------------------------
     File        : EntityWriterRegistry
-    Purpose     : Contains mappings for content-types and message writers used to 
-                  populate a message's (request/response/part) entity 
-    Syntax      : 
-    Description : 
+    Purpose     : Contains mappings for content-types and message writers used to
+                  populate a message's (request/response/part) entity
+    Syntax      :
+    Description :
     Author(s)   : pjudge
     Created     : Wed Jul 01 14:50:44 EDT 2015
-    Notes       : 
+    Notes       : - An EntityWriter is used by the ABL HTTP client to convert body data
+                    recieved from the remote server into an a 'strongly typed object',
+                    that will become the HttpResponse's Entity.
+                  - An EntityWriter can be used by a WebHandler to convert the request body
+                    data into a 'strongly typed object', used by the WebRequest.
+                    The WebRequest's GetTypedEntity() method will do this conversion.
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
 using OpenEdge.Net.HTTP.BuilderRegistry.
 using OpenEdge.Net.HTTP.Filter.Payload.BinaryEntityWriter.
+using OpenEdge.Net.HTTP.Filter.Payload.FormDataEntityWriter.
 using OpenEdge.Net.HTTP.Filter.Payload.JsonEntityWriter.
 using OpenEdge.Net.HTTP.Filter.Payload.MessageWriter.
 using OpenEdge.Net.HTTP.Filter.Payload.MultipartEntityWriter.
@@ -31,14 +37,14 @@ class OpenEdge.Net.HTTP.Filter.Writer.EntityWriterRegistry inherits BuilderRegis
             if not valid-object(EntityWriterRegistry:Registry) then
             do:
                 assign oRegistry = new BuilderRegistry(get-class(MessageWriter)).
-                EntityWriterRegistry:InitializeRegistry(oRegistry).                
+                EntityWriterRegistry:InitializeRegistry(oRegistry).
                 assign EntityWriterRegistry:Registry = oRegistry.
             end.
             return EntityWriterRegistry:Registry.
         end get.
         private set.
      
-    /** Adds initial values into the registry 
+    /** Adds initial values into the registry
         
         @param BuilderRegistry The registry to populate */
     method static private void InitializeRegistry(input poRegistry as BuilderRegistry):
@@ -50,9 +56,7 @@ class OpenEdge.Net.HTTP.Filter.Writer.EntityWriterRegistry inherits BuilderRegis
         poRegistry:Put('text/*':u,    get-class(StringEntityWriter)).
         
         /* FORM DATA */
-        /*
         poRegistry:Put('application/x-www-form-urlencoded':u, get-class(FormDataEntityWriter)).
-        */
         
         /* XML */
         poRegistry:Put('text/xml':u,                               get-class(XmlEntityWriter)).

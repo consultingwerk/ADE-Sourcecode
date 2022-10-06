@@ -1,14 +1,14 @@
 /************************************************
-Copyright (c) 2013, 2017, 2020 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2013, 2017, 2020, 2022 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
-    File        : BackedTTAbstractCollection
-    Purpose     : 
-    Syntax      : 
-    Description : 
+    File        : MapBackedCollection
+    Purpose     : This class acts as a helper for the Key and Value collections that comprise a temp-table-based Map
+    Syntax      :
+    Description :
     Author(s)   : pjudge
     Created     : Mon Dec 16 16:24:45 EST 2013
-    Notes       : 
+    Notes       :
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
@@ -16,12 +16,15 @@ using OpenEdge.Core.Collections.ICollection.
 using OpenEdge.Core.Collections.IIterator.
 using OpenEdge.Core.Collections.IMap.
 using OpenEdge.Core.Collections.Iterator.
+using OpenEdge.Core.Collections.StringKeyedMap.
 using OpenEdge.Core.Collections.StringStringMap.
 using OpenEdge.Core.System.UnsupportedOperationError.
 using Progress.Lang.Object.
 
-class OpenEdge.Core.Collections.MapBackedCollection abstract serializable 
-        implements ICollection:
+class OpenEdge.Core.Collections.MapBackedCollection
+abstract
+serializable
+implements ICollection:
     
     define protected property OwningMap  as IMap no-undo get. private set.
     define protected property OwningBuffer as handle no-undo get. private set.
@@ -32,10 +35,10 @@ class OpenEdge.Core.Collections.MapBackedCollection abstract serializable
         get.
         private set.
     
-    define public property Size as integer no-undo 
+    define public property Size as integer no-undo
     get():
         return OwningMap:Size.
-    end. 
+    end.
     
     constructor public MapBackedCollection(poMap as IMap,phTT as handle, pcValuefield as char):
         this-object(poMap, phTT, '':u, pcValuefield).
@@ -45,10 +48,10 @@ class OpenEdge.Core.Collections.MapBackedCollection abstract serializable
        
        @param IMap The owning map
        @param handle The underlying TT holding the data
-       @param character (optional) Query string 
+       @param character (optional) Query string
        @param character The field holding the data in the TT */
     constructor public MapBackedCollection(input pMap as IMap,
-                                           input pTT as handle, 
+                                           input pTT as handle,
                                            input pQueryString as character,
                                            input pValuefield as character):
         super ().
@@ -72,7 +75,7 @@ class OpenEdge.Core.Collections.MapBackedCollection abstract serializable
     end method.
     
     method public logical AddArray(o as Object extent ):
-        return error new UnsupportedOperationError('AddArray', this-object:GetClass():TypeName).    
+        return error new UnsupportedOperationError('AddArray', this-object:GetClass():TypeName).
     end method.
 
     method public void Clear():
@@ -104,7 +107,7 @@ class OpenEdge.Core.Collections.MapBackedCollection abstract serializable
     end method.
     
     /* ToArray should not be used with large collections
-       If there is too much data the ABL will throw:  
+       If there is too much data the ABL will throw:
        Attempt to update data exceeding 32000. (12371) */
     method public Object extent ToArray():
         define variable i as integer no-undo.
@@ -115,10 +118,10 @@ class OpenEdge.Core.Collections.MapBackedCollection abstract serializable
             return oObjArray.
             
         extent(oObjarray) = Size.
-        iterator = Iterator(). 
+        iterator = Iterator().
         do while iterator:hasNext():
            i = i + 1.
-           oObjArray[i] = iterator:Next().  
+           oObjArray[i] = iterator:Next().
         end.
         return oObjArray.
     end method.
@@ -147,16 +150,54 @@ class OpenEdge.Core.Collections.MapBackedCollection abstract serializable
             assign buf    = tt:default-buffer-handle
                    srcBuf = this-object:OwningBuffer:default-buffer-handle
                    .
-            create query qry. 
+            create query qry.
             qry:add-buffer(srcBuf).
-            qry:query-prepare(substitute('preselect each &1 where &2':u, 
+            qry:query-prepare(substitute('preselect each &1 where &2':u,
                                           srcBuf:name, (if QueryString eq '':u then 'true':u else QueryString))).
             qry:forward-only = true.
             qry:query-open().
             
             qry:get-first().
             do while not qry:query-off-end
-            // single tx for all, since we want the whole collection 
+            // single tx for all, since we want the whole collection
+            transaction:
+                buf:buffer-create().
+                buf:buffer-copy(srcBuf).
+                buf:buffer-release().
+                
+                qry:get-next().
+            end.
+            finally:
+                if valid-handle(qry) then
+                do:
+                    if qry:is-open then
+                        qry:query-close().
+                    delete object qry.
+                end.
+            end finally.
+        end.
+        else
+        // the StrKeyMap table is shared across all instances
+        if type-of(OwningMap, StringKeyedMap) then
+        do on error undo, throw:
+            tt:add-fields-from(this-object:OwningBuffer, 'ParentMap':u).
+            tt:add-new-index('idx1':u, true, true).
+            tt:add-index-field('idx1':u, 'Key':u).
+            tt:temp-table-prepare(this-object:OwningBuffer:name).
+            
+            assign buf    = tt:default-buffer-handle
+                   srcBuf = this-object:OwningBuffer:default-buffer-handle
+                   .
+            create query qry.
+            qry:add-buffer(srcBuf).
+            qry:query-prepare(substitute('preselect each &1 where &2':u,
+                                          srcBuf:name, (if QueryString eq '':u then 'true':u else QueryString))).
+            qry:forward-only = true.
+            qry:query-open().
+            
+            qry:get-first().
+            do while not qry:query-off-end
+            // single tx for all, since we want the whole collection
             transaction:
                 buf:buffer-create().
                 buf:buffer-copy(srcBuf).
@@ -183,4 +224,4 @@ class OpenEdge.Core.Collections.MapBackedCollection abstract serializable
         end.
     end method.
     
-end class. 
+end class.

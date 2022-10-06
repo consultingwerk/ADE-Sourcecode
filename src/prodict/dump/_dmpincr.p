@@ -1,9 +1,9 @@
-/***********************************************************************
-* Copyright (C) 2005-2014,2020,2021 by Progress Software Corporation.  *
-* All rights reserved. Prior versions of this work may contain         *
-* portions contributed by participants of Possenet.                    *
-*                                                                      *
-************************************************************************/
+/****************************************************************************
+* Copyright (C) 2005-2014,2020,2021,2022 by Progress Software Corporation.  *
+* All rights reserved. Prior versions of this work may contain              *
+* portions contributed by participants of Possenet.                         *
+*                                                                           *
+*****************************************************************************/
 
 /* _dmpincr.p - phase 2 of incremental .df maker 
 
@@ -101,6 +101,8 @@ History:
     tmasood     10/18/2021  DROP FIELD opearation goes under PostDeploy section 
 	tmasood     11/24/2021  Index field should not be dumped under PostDeploy section
 	tmasood     11/26/2021  Fixed error 138 while dumping LOB field
+	tmasood     04/14/2022  Changed the code to dump index mode as per the DUMP_INC_INDEXMODE value in case of Unique index only
+	tmasood     08/08/2022  Added the availability check to fix the error 91
 */
 
 using Progress.Lang.*.
@@ -1570,7 +1572,9 @@ DO ON STOP UNDO, LEAVE
                  drop-list.f2-name    = field-list.f2-name.
           /* Cannot drop an LOB field online 
             In one transaction, only one field can be dropped as online. PostDeploy will have one DROP FIELD operation  */         
-          IF NOT (DICTDB2._Field._Data-type = "CLOB" OR DICTDB2._Field._Data-type = "BLOB") AND NOT lDrpFldOnline 
+          IF AVAILABLE(DICTDB2._Field) 
+             AND NOT (DICTDB2._Field._Data-type = "CLOB" OR DICTDB2._Field._Data-type = "BLOB") 
+             AND NOT lDrpFldOnline 
              AND NOT inindex(INPUT RECID(DICTDB2._File), INPUT RECID(DICTDB2._Field)) THEN DO:
             PUT STREAM-HANDLE hPostDeployStream UNFORMATTED
               'DROP FIELD "' DICTDB._Field._Field-name
@@ -2421,21 +2425,11 @@ DO ON STOP UNDO, LEAVE
       IF DICTDB._Index._Unique THEN DO:        
         PUT STREAM-HANDLE hDumpToStream UNFORMATTED "  UNIQUE" SKIP.
         
-        IF cIndexMode NE ? AND cIndexMode NE '""' AND cIndexMode NE "" THEN DO:            
-            IF cIndexMode EQ "inactive" THEN                
-                PUT STREAM-HANDLE hDumpToStream UNFORMATTED "  INACTIVE" SKIP.
-        END.
-        ELSE IF NOT (DICTDB._Index._Active AND (IF iact = ? THEN TRUE ELSE iact)) THEN DO:  
+        IF NOT (DICTDB._Index._Active AND (IF iact = ? THEN TRUE ELSE iact)) THEN  
             PUT STREAM-HANDLE hDumpToStream UNFORMATTED "  INACTIVE" SKIP.
-        END.
       END. 
-      ELSE IF cIndexMode NE ? AND cIndexMode NE '""' AND cIndexMode NE "" THEN DO:              
-          IF cIndexMode EQ "inactive" THEN              
-              PUT STREAM-HANDLE hDumpToStream UNFORMATTED "  INACTIVE" SKIP.
-      END.
-      ELSE IF NOT DICTDB._Index._Active AND NOT DICTDB._Index._Unique THEN DO:
+      ELSE IF NOT DICTDB._Index._Active AND NOT DICTDB._Index._Unique THEN
           PUT STREAM-HANDLE hDumpToStream UNFORMATTED "  INACTIVE" SKIP.
-      END.
       
       IF DICTDB._Index._Wordidx = 1 THEN 
         PUT STREAM-HANDLE hDumpToStream UNFORMATTED "  WORD" SKIP.
@@ -2553,7 +2547,9 @@ DO ON STOP UNDO, LEAVE
       /* Cannot drop an LOB field online 
          In one transaction, only one field can be dropped as online. PostDeploy will have one DROP FIELD operation  */
       FIND FIRST DICTDB2._Field WHERE DICTDB2._Field._Field-Name = missing.name NO-LOCK NO-ERROR.
-      IF NOT (DICTDB2._Field._Data-type = "CLOB" OR DICTDB2._Field._Data-type = "BLOB")  AND NOT lDrpFldOnline
+      IF AVAILABLE(DICTDB2._Field) 
+         AND NOT (DICTDB2._Field._Data-type = "CLOB" OR DICTDB2._Field._Data-type = "BLOB")  
+         AND NOT lDrpFldOnline
          AND NOT inindex(INPUT RECID(DICTDB2._File), INPUT RECID(DICTDB2._Field)) THEN DO:
           PUT STREAM-HANDLE hPostDeployStream UNFORMATTED
             'DROP FIELD "' missing.name

@@ -1,8 +1,8 @@
-/*********************************************************************
-* Copyright (C) 2006-2017,2021 by Progress Software Corporation.     *
-* All contributed by participants of Possenet.                       *
-*                                                                    *
-**********************************************************************/
+/**********************************************************************
+* Copyright (C) 2006-2017,2021,2022 by Progress Software Corporation. *
+* All contributed by participants of Possenet.                        *
+*                                                                     *
+***********************************************************************/
 /*------------------------------------------------------------------------
     File        : _lodsddl
     Purpose     : 
@@ -60,7 +60,8 @@
    tmasood     10/30/20 Added default area support for loading df
    tmasood     01/15/21 Modified the logic to load new df file section
    tmasood     02/22/21 Display a message when inactive index added to an existing table
-   tmasood     03/03/21 Abort the load when selected section missing from df file 
+   tmasood     03/03/21 Abort the load when selected section missing from df file
+   tmasood     03/10/22 Fixed the error 16621 while loading encryption details of new Index   
 */
 
 { prodict/dump/loaddefs.i NEW }
@@ -1183,7 +1184,7 @@ PROCEDURE addEncryptionSetting.
         IF objType = "index" THEN DO:
             FIND b_File WHERE drec_file = RECID(b_File).
             ASSIGN cObjName = b_File._File-name + "." + widx._Index-name
-                   objNum = widx._Idx-num. /* may be 0 if new indexx */
+                   objNum = IF widx._Idx-num = ? THEN 0 ELSE widx._Idx-num. /* may be 0 if new indexx */
         END.
         ELSE DO: /* blob or clob */
             FIND b_File WHERE drec_file = RECID(b_File).

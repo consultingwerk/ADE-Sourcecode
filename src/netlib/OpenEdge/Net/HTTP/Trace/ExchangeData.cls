@@ -14,8 +14,9 @@ block-level on error undo, throw.
 
 using Ccs.Common.Support.IMemptrHolder.
 using OpenEdge.Core.Assert.
-using OpenEdge.Core.Collections.IStringStringMap.
-using OpenEdge.Core.Collections.StringStringMap.
+using OpenEdge.Core.String.
+using OpenEdge.Core.Collections.IStringKeyedMap.
+using OpenEdge.Core.Collections.StringKeyedMap.
 using OpenEdge.Core.Json.IJsonSerializer.
 using OpenEdge.Core.Json.JsonConverter.
 using OpenEdge.Core.Json.JsonPropertyHelper.
@@ -25,10 +26,14 @@ using OpenEdge.Net.HTTP.HttpHeader.
 using OpenEdge.Net.HTTP.IHttpRequest.
 using OpenEdge.Net.HTTP.IHttpResponse.
 using OpenEdge.Net.HTTP.NullHeader.
+using OpenEdge.Net.UriEncoder.
+using Progress.Collections.List.
 using Progress.Json.ObjectModel.JsonArray.
 using Progress.Json.ObjectModel.JsonConstruct.
 using Progress.Json.ObjectModel.JsonDataType.
 using Progress.Json.ObjectModel.JsonObject.
+using OpenEdge.Core.Collections.IIterator.
+using OpenEdge.Core.Collections.MapEntry.
 
 @since(rel='12.5.0').
 class OpenEdge.Net.HTTP.Trace.ExchangeData
@@ -107,7 +112,7 @@ class OpenEdge.Net.HTTP.Trace.ExchangeData
         private set.
     
     // The Request query string
-    define public property QueryString as IStringStringMap no-undo get. set.
+    define public property QueryString as IStringKeyedMap no-undo get. set.
     
     /* The byte representation of the request body, if any */
     define public property RequestBody  as class IMemptrHolder no-undo get. set.
@@ -171,7 +176,7 @@ class OpenEdge.Net.HTTP.Trace.ExchangeData
             this-object:RequestHttpVersion      = '':u
             extent(this-object:RequestCookies)  = ?
             extent(this-object:RequestHeaders)  = ?
-            this-object:QueryString             = new StringStringMap() // Default to an empty object to avoid need for checking if valid-object
+            this-object:QueryString             = new StringKeyedMap() // Default to an empty object to avoid need for checking if valid-object
             this-object:ServerAddress           = "":u
             this-object:ServerPath              = "":u
              
@@ -362,11 +367,11 @@ class OpenEdge.Net.HTTP.Trace.ExchangeData
     /* DESERIALIZATION METHOD: populates this object with data from the JSON representation.
        
        @param JsonConstruct A JSON representation of this object. May be unknown (JsonDataType:NULL). */
-    method public void FromJson(input pJson as JsonConstruct):
+    method public void FromJson (input pJson as JsonConstruct):
         var JsonObject data, jo, qs.
         var JsonArray ja.
         var character[] names.
-        var integer cnt, loop.
+        var integer cnt, cnt2, loop, loop2.
         
         if not type-of(pJson, JsonObject) then
             return.
@@ -410,10 +415,39 @@ class OpenEdge.Net.HTTP.Trace.ExchangeData
 
                 do loop = 1 to cnt:
                     // The value for each query string token should be considered a string, but we should make absolutely sure.
-                    if JsonPropertyHelper:HasTypedProperty(qs, names[loop], JsonDataType:STRING) then
-                        this-object:QueryString:Put(names[loop], qs:GetCharacter(names[loop])).
-                    else if JsonPropertyHelper:HasTypedProperty(qs, names[loop], JsonDataType:NULL) then
-                        this-object:QueryString:Put(names[loop], ?). // Use the unknown value.
+                    // We must handle the previous format (name:string or name:null) along with the new name:array of values.
+                    if JsonPropertyHelper:HasTypedProperty(qs, names[loop], JsonDataType:STRING) then do:
+                        // Create a new List<String> for values of key (name).
+                        if not this-object:QueryString:ContainsKey(names[loop]) then
+                            this-object:QueryString:Put(names[loop], new List<String>()).
+    
+                        cast(this-object:QueryString:Get(names[loop]), List<String>):Add(new String(qs:GetCharacter(names[loop]))).
+                    end.
+                    else if JsonPropertyHelper:HasTypedProperty(qs, names[loop], JsonDataType:NULL) then do:
+                        // Create a new List<String> for values of key (name).
+                        if not this-object:QueryString:ContainsKey(names[loop]) then
+                            this-object:QueryString:Put(names[loop], new List<String>()).
+    
+                        cast(this-object:QueryString:Get(names[loop]), List<String>):Add(?). // Use the unknown value.
+                    end.
+                    else if JsonPropertyHelper:HasTypedProperty(qs, names[loop], JsonDataType:ARRAY) then do:
+                        // The structure for query values should be an array of strings.
+
+                        // Create a new List<String> for values of key (name).
+                        if not this-object:QueryString:ContainsKey(names[loop]) then
+                            this-object:QueryString:Put(names[loop], new List<String>()).
+    
+                        // Add each element of the array to the List<String> of this QueryString object (map).
+                        assign ja = qs:GetJsonArray(names[loop]).
+                        assign cnt2 = ja:Length.
+                        do loop2 = 1 to cnt2:
+                            // The value for each query string token should be considered a string, but we should make absolutely sure.
+                            if ja:GetType(loop2) eq JsonDataType:STRING then
+                                cast(this-object:QueryString:Get(names[loop]), List<String>):Add(new String(ja:GetCharacter(loop2))).
+                            else
+                                cast(this-object:QueryString:Get(names[loop]), List<String>):Add(?).
+                        end.
+                    end.
                 end.
             end.
             
@@ -485,7 +519,13 @@ class OpenEdge.Net.HTTP.Trace.ExchangeData
        
        @return JsonConstruct A JSON representation of this object. May be unknown (JsonDataType:NULL). */
     method public JsonConstruct ToJsonConstruct():
-        var JsonObject data, jo.
+        var JsonObject data, jo, qs.
+        var JsonArray ja.
+        var IIterator iter.
+        var MapEntry me.
+        var List<String> sl.
+        var integer cnt, loop.
+        var UriEncoder encoder = new UriEncoder().
         
         data = new JsonObject().
         jo = new JsonObject().
@@ -494,7 +534,7 @@ class OpenEdge.Net.HTTP.Trace.ExchangeData
             jo:Add('clientPort':u, ClientPort).
             jo:Add('serverHost':u, ServerHost).
             jo:Add('serverPort':u, ServerPort).
-        
+
         jo = new JsonObject().
         data:Add('timings':u, jo).
             jo:Add('startedAt':u, StartedAt).
@@ -505,16 +545,49 @@ class OpenEdge.Net.HTTP.Trace.ExchangeData
             jo:Add('timeSend':u, TimeSend).
             jo:Add('timeWait':u, TimeWait).
             jo:Add('timeReceived':u, TimeReceived).
-                
+
+        assign qs = new JsonObject().
+        if QueryString:Size gt 0 then do:
+            assign iter = QueryString:EntrySet:Iterator().
+
+            do while iter:HasNext():
+                assign me = cast(iter:Next(), MapEntry).
+
+                // Add query parameters as name-value pairs.
+                if valid-object(me:Value) then do:
+                    assign sl = cast(me:Value, List<String>).
+                    assign cnt = sl:Count.
+                    case cnt:
+                        when 0 then
+                            qs:AddNull(string(me:Key)). // No count, no value.
+                        when 1 then
+                            // Add the value as just a decoded string.
+                            {&_proparse_ prolint-nowarn(overflow)}
+                            qs:Add(string(me:Key), encoder:Decode(string(sl:Get(1):Value))).
+                        otherwise do:
+                            assign ja = new JsonArray(). // Create an empty array for multiple values.
+                            do loop = 1 to cnt:
+                                {&_proparse_ prolint-nowarn(overflow)}
+                                ja:Add(encoder:Decode(string(sl:Get(loop):Value))). // Add the decoded value of the String object.
+                            end.
+                            qs:Add(string(me:Key), ja). // Add array of values to a property named for this parameter.
+                        end.
+                    end case.
+                end. // valid-object
+                else
+                    qs:AddNull(string(me:Key)). // Otherwise just add a null property.
+            end. // do while
+        end.
+
         jo = new JsonObject().
         data:Add('request':u, jo).
             jo:Add('serverAddress':u, ServerAddress).
             jo:Add('serverPath':u, ServerPath).
             jo:Add('method':u, RequestMethod).
             jo:Add('httpVersion':u, RequestHttpVersion).
-            jo:Add('queryString':u, JsonConverter:ToObject(QueryString)).
+            jo:Add('queryString':u, qs).
             jo:Add('contentType':u, RequestContentType).
-            
+
         if extent(RequestHeaders) eq ? then
             jo:AddNull('headers':u).
         else

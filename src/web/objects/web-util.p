@@ -298,6 +298,7 @@ PROCEDURE destroy :
   Parameters:  <none>
   Notes:
 ------------------------------------------------------------------------------*/
+  RUN delete-tagmap-utilities NO-ERROR.
   DELETE PROCEDURE THIS-PROCEDURE NO-ERROR.
 
 END PROCEDURE.
