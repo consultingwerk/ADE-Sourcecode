@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006-2017 by Progress Software Corporation.          *
+* Copyright (C) 2006-2017,2022 by Progress Software Corporation.     *
 * All contributed by participants of Possenet.                       *
 *                                                                    *
 **********************F***********************************************/
@@ -57,6 +57,7 @@
    rkamboj     09/30/11 Added logic for loading category field.
    rkamboj     09/23/13 Added support for load of partitioned table flag for _File. 
                         Added support for load of is-local index for _index.
+   tmasood     03/24/22 Fixed the error 16621 while loading encryption details of new Index
 */
 
 { prodict/dump/loaddefs.i NEW }
@@ -1102,7 +1103,7 @@ PROCEDURE addEncryptionSetting.
         IF objType = "index" THEN DO:
             FIND b_File WHERE drec_file = RECID(b_File).
             ASSIGN cObjName = b_File._File-name + "." + widx._Index-name
-                   objNum = widx._Idx-num. /* may be 0 if new indexx */
+                   objNum = IF widx._Idx-num = ? THEN 0 ELSE widx._Idx-num. /* may be 0 if new indexx */
         END.
         ELSE DO: /* blob or clob */
             FIND b_File WHERE drec_file = RECID(b_File).
