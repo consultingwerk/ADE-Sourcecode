@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2005-2018 by Progress Software Corporation. All rights *
+* Copyright (C) 2005-2018,2022 by Progress Software Corporation. All rights *
   reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -91,6 +91,7 @@ History:
     Rkamboj     09/30/11    Added CATEGORY field support for incremental dump.
     rkamboj     03/30/2012  Added check for sql-92 tables with unsupported ABL prop - OE00208080
     rkamboj     11/14/13    Added support to generate incremental for IS-PARTITIONED for _file and IS-LOCAL for _Index. For table partitioning feature.
+    tmasood     05/10/22    Changed the code to dump index mode as per the DUMP_INC_INDEXMODE value in case of Unique index only
 */
 
 using Progress.Lang.*.
@@ -2228,23 +2229,12 @@ DO ON STOP UNDO, LEAVE
       IF DICTDB._Index._Unique THEN DO:        
         PUT STREAM ddl UNFORMATTED "  UNIQUE" SKIP.
         
-        IF OS-GETENV ("DUMP_INC_INDEXMODE") NE ? AND OS-GETENV ("DUMP_INC_INDEXMODE") NE '""' THEN DO:            
-            IF OS-GETENV ("DUMP_INC_INDEXMODE") EQ "inactive" THEN                
-                PUT STREAM ddl UNFORMATTED "  INACTIVE" SKIP.            
-        END.
-        ELSE IF NOT (DICTDB._Index._Active AND (IF iact = ? THEN TRUE ELSE iact)) THEN DO:  
+        IF NOT (DICTDB._Index._Active AND (IF iact = ? THEN TRUE ELSE iact)) THEN  
             PUT STREAM ddl UNFORMATTED "  INACTIVE" SKIP.
-        END.
       END. 
-      ELSE IF OS-GETENV ("DUMP_INC_INDEXMODE") NE ? AND OS-GETENV ("DUMP_INC_INDEXMODE") NE '""' THEN DO:              
-          IF OS-GETENV ("DUMP_INC_INDEXMODE") EQ "inactive" THEN              
-              PUT STREAM ddl UNFORMATTED "  INACTIVE" SKIP.
-      END.
-      ELSE IF NOT DICTDB._Index._Active AND NOT DICTDB._Index._Unique THEN DO:
+      ELSE IF NOT DICTDB._Index._Active AND NOT DICTDB._Index._Unique THEN
           PUT STREAM ddl UNFORMATTED "  INACTIVE" SKIP.
-      END.
-      
-      
+           
       IF DICTDB._Index._Wordidx = 1 THEN 
         PUT STREAM ddl UNFORMATTED "  WORD" SKIP.
       IF DICTDB._Index._Desc <> ? AND DICTDB._Index._Desc <> '' THEN DO:
