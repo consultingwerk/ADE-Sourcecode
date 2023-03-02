@@ -1,8 +1,8 @@
-/**************************************************************************
-*Copyright (C) 2005,2010-2013,2014,2015,2017 by Progress Software Corporation. *
-*All rights reserved.  Prior versions of this work may contain portions   *
-*contributed by participants of Possenet.                                 *
-**************************************************************************/
+/************************************************************************************
+*Copyright (C) 2005,2010-2013,2014,2015,2017,2023 by Progress Software Corporation. *
+*All rights reserved.  Prior versions of this work may contain portions             *
+*contributed by participants of Possenet.                                           *
+*************************************************************************************/
 /*
 Procedure:    adecomm/_about.p
 Author:       R. Ryan
@@ -221,7 +221,7 @@ DO WITH FRAME {&FRAME-NAME}:
      THEN cCommercialVer + CHR(10) 
      ELSE ""
     ) +
-    cCopyright + " 1984-2017 Progress Software Corporation and/or one of its subsidiaries or affiliates. "
+    cCopyright + " 1984-" + STRING(YEAR(NOW)) + " Progress Software Corporation and/or one of its subsidiaries or affiliates. "
     + "All rights reserved.".
 
  IF NOT SESSION:WINDOW-SYSTEM BEGINS "TTY":u THEN
