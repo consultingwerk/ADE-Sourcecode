@@ -1,9 +1,9 @@
-/************************************************************************
-* Copyright (C) 2005-2014,2020,2022 by Progress Software Corporation.   *
-* All rights reserved. Prior versions of this work may contain portions *
-* contributed by participants of Possenet.                              *
-*                                                                       *
-*************************************************************************/
+/*****************************************************************************
+* Copyright (C) 2005-2014,2020,2022,2023 by Progress Software Corporation.   *
+* All rights reserved. Prior versions of this work may contain portions      *
+* contributed by participants of Possenet.                                   *
+*                                                                            *
+******************************************************************************/
 
 /* _dmpincr.p - phase 2 of incremental .df maker 
 
@@ -93,6 +93,7 @@ History:
     rkamboj     11/14/13    Added support to generate incremental for IS-PARTITIONED for _file and IS-LOCAL for _Index. For table partitioning feature.
     tmasood     12/11/20    Merge changes from 12.1 
     tmasood     05/10/22    Changed the code to dump index mode as per the DUMP_INC_INDEXMODE value in case of Unique index only
+    tmasood     02/02/23    Added check for blank & space comparison for CATEGORY field
 
 */
 
@@ -1095,7 +1096,7 @@ DO ON STOP UNDO, LEAVE
       j = j + 1
       ddl[j] = "  DUMP-NAME " + c.
     RUN dctquot IN h_dmputil (DICTDB._File._category,'"',OUTPUT c).
-    IF COMPARE(DICTDB._File._category,"NE",DICTDB2._File._category,"RAW") THEN ASSIGN
+    IF COMPARE(DICTDB._File._category,"NE",DICTDB2._File._category,"RAW") AND NOT(DICTDB._File._category EQ " " AND DICTDB2._File._category EQ "") THEN ASSIGN
       j = j + 1
       ddl[j] = "  CATEGORY " + c.
     RUN dctquot IN h_dmputil (DICTDB._File._Fil-misc2[6],'"',OUTPUT c).
