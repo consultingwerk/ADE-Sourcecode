@@ -21,16 +21,18 @@ class OpenEdge.Security.Provider.UserTablePasswordProvider implements IPasswordP
        
        @param handle The _User buffer to use
        @return raw A salt to use for hashing */
+    {&_proparse_ prolint-nowarn(varusage)}
     method public raw GetUserSalt(input phUserTableBuffer as handle):
+        {&_proparse_ prolint-nowarn(varusage)}
         define variable rSalt as raw no-undo.
         
-        /* Example      
-          assign cHashed = base64-encode(generate-pbe-key(pcPassword, prSalt)).
-                /* use a per-user salt */
-                  message-digest('sha-512', 
-                                 substitute('&1@&2', lc(ApplicationUser.LoginName), lc(ApplicationUser.LoginDomain))))). 
-                
-        */
+        /**
+            Example:      
+              assign cHashed = base64-encode(generate-pbe-key(pcPassword, prSalt)).
+              // use a per-user salt
+              message-digest('sha-512', 
+                             substitute('&1@&2', lc(ApplicationUser.LoginName), lc(ApplicationUser.LoginDomain))))). 
+         */
         return rSalt.
     end method.
     

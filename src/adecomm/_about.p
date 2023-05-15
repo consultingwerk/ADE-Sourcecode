@@ -1,8 +1,8 @@
-/****************************************************************************
-*Copyright (C) 2005,2010-2013,2014,2015,2017,2020,2021 by Progress Software *
-*Corporation. All rights reserved.  Prior versions of this work may         *
-*contain portions contributed by participants of Possenet.                  *
-*****************************************************************************/
+/*********************************************************************************
+*Copyright (C) 2005,2010-2013,2014,2015,2017,2020,2021,2023 by Progress Software *
+*Corporation. All rights reserved.  Prior versions of this work may              *
+*contain portions contributed by participants of Possenet.                       *
+**********************************************************************************/
 /*
 Procedure:    adecomm/_about.p
 Author:       R. Ryan
@@ -226,8 +226,8 @@ DO WITH FRAME {&FRAME-NAME}:
 
  IF NOT SESSION:WINDOW-SYSTEM BEGINS "TTY":u THEN
   AboutText2 = AboutText2 +
-        "OpenEdge includes Infragistics Ultimate UI for Windows Forms 2021 Vol. 1. " +  
-        cCopyright + " 2021 Infragistics, Inc. " +  
+        "OpenEdge includes Infragistics Ultimate UI for Windows Forms 2022 Vol. 2. " +  
+        cCopyright + " 2023 Infragistics, Inc. " +  
         "All rights reserved." +
         CHR(10) + CHR(10).
 

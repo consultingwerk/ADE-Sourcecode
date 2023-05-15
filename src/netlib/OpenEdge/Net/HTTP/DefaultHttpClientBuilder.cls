@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2015-2016, 2019, 2021 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2016, 2019, 2021, 2023 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : DefaultHttpClientBuilder
@@ -41,7 +41,7 @@ class OpenEdge.Net.HTTP.DefaultHttpClientBuilder inherits ClientBuilder
     end destructor.
 
     method public void Initialize():
-        Named('OpenEdge-HttpClient':u, '0.5.0':u).
+        Named('OpenEdge-HttpClient':u, '0.7.0':u).
     end method.
     
     method public void Destroy():

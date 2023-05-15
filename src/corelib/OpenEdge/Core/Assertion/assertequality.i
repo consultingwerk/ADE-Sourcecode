@@ -1,6 +1,6 @@
 &if 1=0 &then
 /************************************************
-Copyright (c) 2022 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2022,2023 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : OpenEdge/Core/Assertion/assertequality.i
@@ -53,7 +53,23 @@ Copyright (c) 2022 by Progress Software Corporation. All rights reserved.
 
         // If sizes are equals then compare contents by use of hashing
         if message-digest("SHA-256", a) ne message-digest("SHA-256", b) then
-            return error new AssertionFailedError("Hashes of memptr values are not equal", 0).
+            return error new AssertionFailedError("Hashes of memptr values are not equal":u, 0).
+    &elseif "{&Datatype}" eq "raw" &then
+        // Use a simpler error message as raw values cannot be output directly.
+        if not (a eq b) then
+            return error new AssertionFailedError("Raw values are not equal":u, 0).
+    &elseif "{&Datatype}" eq "character" &then
+        if not (a eq b) then do:
+            if (length(a) + length(b)) ge 30000 then
+                // Use a simpler error message to avoid errors from too-long substitutions.
+                return error new AssertionFailedError("Character values are not equal":u, 0).
+            else
+                return error new AssertionFailedError(substitute(subMessage, a, b), 0).
+        end.
+    &elseif "{&Datatype}" eq "longchar" &then
+        // Always use a simpler error message to avoid errors from too-long substitutions.
+        if not (a eq b) then
+            return error new AssertionFailedError("Longchar values are not equal":u, 0).
     &else
         if not (a eq b) then
             return error new AssertionFailedError(substitute(subMessage, a, b), 0).
@@ -75,7 +91,23 @@ Copyright (c) 2022 by Progress Software Corporation. All rights reserved.
     &elseif "{&Datatype}" eq "memptr" &then
         // If both size and contents (hashes) match then values are considered equal.
         if get-size(a) eq get-size(b) and message-digest("SHA-256", a) eq message-digest("SHA-256", b) then
-            return error new AssertionFailedError(substitute(subMessage, "Hash of 'a'", "hash of 'b'"), 0).
+            return error new AssertionFailedError(substitute(subMessage, "Hash of 'a'":u, "hash of 'b'":u), 0).
+    &elseif "{&Datatype}" eq "raw" &then
+        // Use a simpler error message as raw values cannot be output directly.
+        if a eq b then
+            return error new AssertionFailedError("Raw values are equal":u, 0).
+    &elseif "{&Datatype}" eq "character" &then
+        if a eq b then do:
+            if (length(a) + length(b)) ge 30000 then
+                // Use a simpler error message to avoid errors from too-long substitutions.
+                return error new AssertionFailedError("Character values are equal":u, 0).
+            else
+                return error new AssertionFailedError(substitute(subMessage, a, b), 0).
+        end.
+    &elseif "{&Datatype}" eq "longchar" &then
+        // Always use a simpler error message to avoid errors from too-long substitutions.
+        if a eq b then
+            return error new AssertionFailedError("Longchar values are equal":u, 0).
     &else
         if a eq b then
             return error new AssertionFailedError(substitute(subMessage, a, b), 0).

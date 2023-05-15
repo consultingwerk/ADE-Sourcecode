@@ -1,9 +1,9 @@
-/****************************************************************************
-* Copyright (C) 2005-2014,2020,2021,2022 by Progress Software Corporation.  *
-* All rights reserved. Prior versions of this work may contain              *
-* portions contributed by participants of Possenet.                         *
-*                                                                           *
-*****************************************************************************/
+/*********************************************************************************
+* Copyright (C) 2005-2014,2020,2021,2022,2023 by Progress Software Corporation.  *
+* All rights reserved. Prior versions of this work may contain                   *
+* portions contributed by participants of Possenet.                              *
+*                                                                                *
+**********************************************************************************/
 
 /* _dmpincr.p - phase 2 of incremental .df maker 
 
@@ -103,6 +103,7 @@ History:
 	tmasood     11/26/2021  Fixed error 138 while dumping LOB field
 	tmasood     04/14/2022  Changed the code to dump index mode as per the DUMP_INC_INDEXMODE value in case of Unique index only
 	tmasood     08/08/2022  Added the availability check to fix the error 91
+	tmasood     01/27/2023  Added check for blank & space comparison for CATEGORY field
 */
 
 using Progress.Lang.*.
@@ -1179,7 +1180,7 @@ DO ON STOP UNDO, LEAVE
       j = j + 1
       ddl[j] = "  DUMP-NAME " + c.
     RUN dctquot IN h_dmputil (DICTDB._File._category,'"',OUTPUT c).
-    IF COMPARE(DICTDB._File._category,"NE",DICTDB2._File._category,"RAW") THEN ASSIGN
+    IF COMPARE(DICTDB._File._category,"NE",DICTDB2._File._category,"RAW") AND NOT(DICTDB._File._category EQ " " AND DICTDB2._File._category EQ "") THEN ASSIGN
       j = j + 1
       ddl[j] = "  CATEGORY " + c.
     RUN dctquot IN h_dmputil (DICTDB._File._Fil-misc2[6],'"',OUTPUT c).
@@ -1293,8 +1294,9 @@ DO ON STOP UNDO, LEAVE
 
    /* don't write out ddl[1] if j = 1 (i.e., we only have table header), unless we have set lmt or ltp */
     IF j > 1 OR lmt OR ltp THEN DO:
-          /* Write the UPDATE TABLE if there is more than mt or tp*/
-          IF iDumpTrigger > 1 OR user_env[43] = "NO" THEN
+          /* Write the UPDATE TABLE if there is more than mt or tp. Make sure to not repeat the header
+             when we have TABLE-TRIGGER only along with UPDATE TABLE */
+          IF (iDumpTrigger > 1 OR user_env[43] = "NO") AND INDEX(ddl[2],"TABLE-TRIGGER") = 0 THEN
              PUT STREAM-HANDLE hDumpToStream UNFORMATTED ddl[1] SKIP.
 
           IF lmt or ltp THEN DO:

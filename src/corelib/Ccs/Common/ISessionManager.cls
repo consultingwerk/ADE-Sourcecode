@@ -37,17 +37,17 @@ INTERFACE Ccs.Common.ISessionManager INHERITS IManager:
     
     /* Establish the server session runtime.
        
-       @param handle The handle to the Client Principal object representing the client’s session identity 
+       @param handle The handle to the Client Principal object representing the client's session identity 
        @throws Progress.Lang.SysError, Progress.Lang.AppError */
     METHOD PUBLIC VOID establishRequestEnvironment( INPUT phClientPrincipal AS HANDLE ).
     
     /* Establish the server session runtime.
        
-       @param character A known string representing the client’s session identity 
+       @param character A known string representing the client's session identity 
        @throws Progress.Lang.SysError, Progress.Lang.AppError */
     METHOD PUBLIC VOID establishRequestEnvironment( INPUT pcSessionID AS CHARACTER ).
 
-    /* “End” the server session runtime and return it to a “safe” state.
+    /* "End" the server session runtime and return it to a "safe" state.
         
         @throws Progress.Lang.SysError, Progress.Lang.AppError */
     METHOD PUBLIC VOID endRequestEnvironment( ).

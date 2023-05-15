@@ -55,6 +55,7 @@ class OpenEdge.Security.STS.EventDispatcher implements ISupportLogging:
        @param character (optional) The name of the event to send.
        @param raw (optional) The token currently being processed in the STS
        @param longchar (optional) The domain context from the STS */
+    {&_proparse_ prolint-nowarn(varusage)}
     method public void EmitEvent (input pcSender as character,
                                   input pcEventProvider as character,
                                   input pcProviderHash as character,
@@ -100,6 +101,7 @@ class OpenEdge.Security.STS.EventDispatcher implements ISupportLogging:
        @param raw (mandatory) The token currently being processed in the STS
        @param longchar (optional) The domain context from the STS
        @return raw The token/client-principal after having policy applied. */
+    {&_proparse_ prolint-nowarn(varusage)}
     method public raw ApplyPolicy(input  pcSender as character,
                                   input  pcPolicyProvider as character,
                                   input  pcProviderHash as character,
@@ -155,6 +157,7 @@ class OpenEdge.Security.STS.EventDispatcher implements ISupportLogging:
        @param character out (optional) If blank or unknown the response will omit the error_description field.
        @param character out (optional) If null the response will omit the error_uri field.
        @return logical TRUE if the current token should be included in the error response */
+    {&_proparse_ prolint-nowarn(varusage)}
     method public logical HandleError (input  pcSender as character,
                                        input  pcErrorProvider as character,
                                        input  pcProviderHash as character,

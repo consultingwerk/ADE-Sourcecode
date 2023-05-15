@@ -49,7 +49,7 @@ implements ILoggerFilter:
             Assert:NotNullOrEmpty(pSalt, 'Salt value').
             
             assign this-object:Salt = pSalt.
-        end method.
+        end set.
     
     /* A comma-separated list of tokens to anonymize. These names should NOT include the ${} characters */
     define public property AnonymizeTokens as character no-undo

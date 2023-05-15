@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2015-2017 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2017, 2023 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : ClientLibraryBuilder
@@ -41,11 +41,12 @@ class OpenEdge.Net.HTTP.Lib.ClientLibraryBuilder abstract inherits ConfigBuilder
         private set.
     
     // 'magic names' for properties
-    define protected property PROP_SSL_PROTOCOLS  as character init 'sslprotocols':u no-undo get.
-    define protected property PROP_SSL_CIPHERS    as character init 'sslciphers':u   no-undo get.
-    define protected property PROP_SSL_HOSTVERIFY as character init 'sslhostverify':u no-undo get.
-    define protected property PROP_REUSESESSION   as character init 'reusesession':u no-undo get.
-    define protected property PROP_SERVERNAME     as character init 'servername':u no-undo get.
+    define protected property PROP_SSL_PROTOCOLS       as character init 'sslprotocols':u       no-undo get.
+    define protected property PROP_SSL_CIPHERS         as character init 'sslciphers':u         no-undo get.
+    define protected property PROP_SSL_HOSTVERIFY      as character init 'sslhostverify':u      no-undo get.
+    define protected property PROP_TLS_SUPPORTEDGROUPS as character init 'tlssupportedgroups':u no-undo get.
+    define protected property PROP_REUSESESSION        as character init 'reusesession':u       no-undo get.
+    define protected property PROP_SERVERNAME          as character init 'servername':u         no-undo get.
     
     /** Each concrete builder will implement this differently */
     define abstract public property Library as IHttpClientLibrary no-undo get.
@@ -53,7 +54,7 @@ class OpenEdge.Net.HTTP.Lib.ClientLibraryBuilder abstract inherits ConfigBuilder
     /** Adds initial values into the registry 
     
         @param BuilderRegistry The registry to populate */
-    method static private void InitializeRegistry(input poRegistry as BuilderRegistry):
+    method static private void InitializeRegistry (input poRegistry as BuilderRegistry):
         /* default builder */
         poRegistry:Put(get-class(ClientLibraryBuilder):TypeName,
                        get-class(ABLSocketLibraryBuilder)).
@@ -66,7 +67,7 @@ class OpenEdge.Net.HTTP.Lib.ClientLibraryBuilder abstract inherits ConfigBuilder
     /** Builder director method.
         
         @return ClientBuilder A builder for the requested type */
-    method static public ClientLibraryBuilder Build():
+    method static public ClientLibraryBuilder Build ( ):
         define variable oBuilderType as Progress.Lang.Class no-undo.
         define variable oCLB as ClientLibraryBuilder no-undo.
         
@@ -86,7 +87,7 @@ class OpenEdge.Net.HTTP.Lib.ClientLibraryBuilder abstract inherits ConfigBuilder
         
         @param  character The server name indicator
         @return ClientLibraryBuilder This builder object */
-    method public ClientLibraryBuilder ServerNameIndicator(input pServerName as character):
+    method public ClientLibraryBuilder ServerNameIndicator (input pServerName as character):
         Assert:NotNullOrEmpty(pServerName, 'Server name').
         
         SetOption(PROP_SERVERNAME, pServerName).
@@ -111,13 +112,12 @@ class OpenEdge.Net.HTTP.Lib.ClientLibraryBuilder abstract inherits ConfigBuilder
     method public ClientLibraryBuilder AddSslProtocol (input pcProtocol as character):
         define variable oList as JsonArray no-undo.
         
-        Assert:NotNullOrEmpty(pcProtocol, 'SSL protocols').
+        Assert:NotNullOrEmpty(pcProtocol, 'SSL protocol').
         
         if not HasOption(PROP_SSL_PROTOCOLS) then
             SetOption(PROP_SSL_PROTOCOLS, new JsonArray()).
             
         assign oList = cast(GetOptionObjectValue(PROP_SSL_PROTOCOLS), JsonArray).
-        
         oList:Add(pcProtocol).
         
         return this-object.
@@ -147,7 +147,6 @@ class OpenEdge.Net.HTTP.Lib.ClientLibraryBuilder abstract inherits ConfigBuilder
             SetOption(PROP_SSL_CIPHERS, new JsonArray()).
             
         assign oList = cast(GetOptionObjectValue(PROP_SSL_CIPHERS), JsonArray).
-        
         oList:Add(pcCipher).
         
         return this-object.
@@ -164,28 +163,58 @@ class OpenEdge.Net.HTTP.Lib.ClientLibraryBuilder abstract inherits ConfigBuilder
         
         return this-object.
     end method.
-    
+
+    /** Determines the TLS Supported Groups to be utilized for an HTTPS connection
+        
+        @param character[] A colon-separated list of group names in order of preference
+        @return ClientLibraryBuilder This builder object */
+    @since(rel='12.7.0').
+    method public ClientLibraryBuilder TlsSupportedGroups (input pcGroups as character extent):
+        SetOption(PROP_TLS_SUPPORTEDGROUPS, new JsonArray(pcGroups)).
+
+        return this-object.
+    end method.
+
+    /** Adds (appends) a single TLS supported group to the config.
+     
+        @param character A non-empty supported group.
+        @return ClientLibraryBuilder This builder object */
+    @since(rel='12.7.0').
+    method public ClientLibraryBuilder AddTlsSupportedGroup (input pcGroup as character):
+        define variable oList as JsonArray no-undo.
+        
+        Assert:NotNullOrEmpty(pcGroup, 'TLS supported group').
+
+        if not HasOption(PROP_TLS_SUPPORTEDGROUPS) then
+            SetOption(PROP_TLS_SUPPORTEDGROUPS, new JsonArray()).
+            
+        assign oList = cast(GetOptionObjectValue(PROP_TLS_SUPPORTEDGROUPS), JsonArray).
+        oList:Add(pcGroup).
+        
+        return this-object.
+    end method.
+
     /** Determines whether (SSL) sessions should be reused.
         
         @param logical TRUE if sessions should be reused
         @return ClientLibraryBuilder This builder object */
-    method public ClientLibraryBuilder ReuseSession(input pReuse as logical):
-        Assert:NotUnknown(pReuse, 'Session reuse flag').
-        
+    method public ClientLibraryBuilder ReuseSession (input pReuse as logical):
+        Assert:NotUnknown(pReuse, 'SSL session reuse flag').
+
         SetOption(PROP_REUSESESSION, pReuse).
-        
+
         return this-object.
     end method.
-    
+
     /** Adds or overwrites an option for the client library.
         
         @param  character The name of the option
         @param  character The value of the option (can be anything)
         @return ClientLibraryBuilder This builder object. */
-    method public ClientLibraryBuilder Option(input pcName as character,
-                                              input pcValue as character):
-        
+    method public ClientLibraryBuilder Option (input pcName  as character,
+                                               input pcValue as character):
         Assert:NotNullOrEmpty(pcName, 'Option name').
+
         SetOption(pcName, pcValue).
         
         return this-object.
@@ -196,8 +225,8 @@ class OpenEdge.Net.HTTP.Lib.ClientLibraryBuilder abstract inherits ConfigBuilder
         @param  character The name of the option
         @param  Object The value of the option (can be anything)
         @return ClientLibraryBuilder This builder object. */
-    method public ClientLibraryBuilder Option(input pcName as character,
-                                              input poValue as Object):
+    method public ClientLibraryBuilder Option (input pcName  as character,
+                                               input poValue as Object):
         
         Assert:NotNullOrEmpty(pcName, 'Option name').
         SetOption(pcName, poValue).
@@ -210,8 +239,8 @@ class OpenEdge.Net.HTTP.Lib.ClientLibraryBuilder abstract inherits ConfigBuilder
         @param  character The name of the option
         @param  int64 The value of the option (can be anything)
         @return ClientLibraryBuilder This builder object. */
-    method public ClientLibraryBuilder Option(input pcName as character,
-                                              input piValue as int64):
+    method public ClientLibraryBuilder Option (input pcName  as character,
+                                               input piValue as int64):
         Assert:NotNullOrEmpty(pcName, 'Option name').
         SetOption(pcName, piValue).
 
@@ -223,8 +252,8 @@ class OpenEdge.Net.HTTP.Lib.ClientLibraryBuilder abstract inherits ConfigBuilder
         @param  character The name of the option
         @param  decimal The value of the option (can be anything)
         @return ClientLibraryBuilder This builder object. */
-    method public ClientLibraryBuilder Option(input pcName as character,
-                                              input pdValue as decimal):
+    method public ClientLibraryBuilder Option (input pcName  as character,
+                                               input pdValue as decimal):
         
         Assert:NotNullOrEmpty(pcName, 'Option name').
         SetOption(pcName, pdValue).
@@ -237,8 +266,8 @@ class OpenEdge.Net.HTTP.Lib.ClientLibraryBuilder abstract inherits ConfigBuilder
         @param  character The name of the option
         @param  logical The value of the option (can be anything)
         @return ClientLibraryBuilder This builder object. */
-    method public ClientLibraryBuilder Option(input pcName as character,
-                                              input plValue as logical):
+    method public ClientLibraryBuilder Option (input pcName  as character,
+                                               input plValue as logical):
         
         Assert:NotNullOrEmpty(pcName, 'Option name').
         SetOption(pcName, plValue).
@@ -250,7 +279,7 @@ class OpenEdge.Net.HTTP.Lib.ClientLibraryBuilder abstract inherits ConfigBuilder
     
         @param Decimal A zero or positive value
         @return ClientLibraryBuilder This builder object. */
-    method public ClientLibraryBuilder SetRequestTimeout(input pdValue as decimal):
+    method public ClientLibraryBuilder SetRequestTimeout (input pdValue as decimal):
         Assert:IsZeroOrPositive(pdValue, 'Request Timeout').
         SetOption('requestTimeout':u, pdValue).
         
@@ -261,7 +290,7 @@ class OpenEdge.Net.HTTP.Lib.ClientLibraryBuilder abstract inherits ConfigBuilder
     
         @param ILogWriter The log writer to be used
         @return ClientLibraryBuilder This builder instance */
-    method public ClientLibraryBuilder UsingLogger(input poLogger as ILogWriter):
+    method public ClientLibraryBuilder UsingLogger (input poLogger as ILogWriter):
         Assert:NotNull(poLogger, 'Log writer').
         
         SetOption(get-class(ILogWriter):TypeName, poLogger).

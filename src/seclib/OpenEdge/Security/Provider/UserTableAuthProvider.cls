@@ -317,6 +317,7 @@ class OpenEdge.Security.Provider.UserTableAuthProvider implements IAuthProvider,
        @param character The nonce value used to create the digest hash
        @param character The timestamp value used to create the digest hash
        @return logical TRUE if the provide credentials match the realm's values */
+    {&_proparse_ prolint-nowarn(varusage)}
     method public logical ValidatePassword(input pcUserId as character,
                                            input pcDigest as character,
                                            input pcNonce as character,

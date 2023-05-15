@@ -73,7 +73,7 @@ INTERFACE Ccs.BusinessLogic.IGetDataTableRequest:
                  field names require mapping etc.
                  Query Strings must be provided in the following format
                  CustNum = 42
-                 CustNum = 42 AND OrderStatus = “Ordered”
+                 CustNum = 42 AND OrderStatus = "Ordered"
     ------------------------------------------------------------------------------*/
     DEFINE PUBLIC PROPERTY QueryString AS CHARACTER NO-UNDO
     GET.

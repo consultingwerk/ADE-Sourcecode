@@ -278,7 +278,6 @@ class OpenEdge.Core.Util.AnnotationWriter implements ISupportInitialize:
        @return JsonObject A JSON object containing the annotations. A valid object is always returned.   */
     method protected JsonObject ExtractAnnotations(buffer pSource for Source,
                                                    input  pUserMap as IStringStringMap):
-        define variable pos as integer no-undo.
         define variable groupData as JsonObject no-undo.
         define variable annotations as JsonObject no-undo.
         

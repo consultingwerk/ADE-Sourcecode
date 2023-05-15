@@ -366,7 +366,8 @@ class OpenEdge.Logging.LoggerBuilder inherits ConfigBuilder:
        @return logical TRUE if the any logger instance records were removed */
     method static protected logical RemoveGroupFromCache(input pLoggerName as character):
         var logical removed = false.
-        var integer pos, len.
+        var integer len.
+
         define buffer bLogger for Logger.
         
         if pLoggerName eq ?
@@ -378,7 +379,6 @@ class OpenEdge.Logging.LoggerBuilder inherits ConfigBuilder:
         // check if there are groups of loggers with this name
         assign pLoggerName = trim(pLoggerName)
                len         = length(pLoggerName)
-               pos         = r-index(pLoggerName, '.')
                .
         if not substring(pLoggerName, len, 1) eq '.' then
             assign pLoggerName += '.'.

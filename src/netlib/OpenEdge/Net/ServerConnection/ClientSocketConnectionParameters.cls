@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2014, 2017-2018, 2020-2022 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014, 2017-2018, 2020-2023 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : ClientSocketConnectionParameters
@@ -33,8 +33,8 @@ class OpenEdge.Net.ServerConnection.ClientSocketConnectionParameters
     define public property ConnectTimeout as integer no-undo        
         get.        
         set(input pTimeout as integer):            
-            Assert:IsZeroOrPositive(pTimeout, ' Connect timeout').
-            this-object:ConnectTimeout = pTimeout.        
+            Assert:IsZeroOrPositive(pTimeout, 'Connect timeout').
+            this-object:ConnectTimeout = pTimeout.
         end set.
 
     define public property FormatMask as FormatMaskEnum no-undo
@@ -71,6 +71,9 @@ class OpenEdge.Net.ServerConnection.ClientSocketConnectionParameters
 
     /** (optional) An array of SSL ciphers for this connection to use */
     define public property SslCiphers as character extent no-undo get. set.
+
+    /** (optional) An array of TLS supported groups for this connection to use */
+    define public property TlsSupportedGroups as character extent no-undo get. set.
 
     /** (optional) The Server name indicator for TLS. Server Name Indication (SNI)
         is an extension to the TLS computer networking protocol.
@@ -165,6 +168,24 @@ class OpenEdge.Net.ServerConnection.ClientSocketConnectionParameters
 
         if extent(this-object:SslCiphers) ne ? then
             assign cConnect = trim(substitute('&1 -sslciphers &2':u, cConnect, String:Join(this-object:SslCiphers, ',':u))).
+
+        /**
+         * The supported groups list (key exchange algorithms) that the client sends to the server in its Client Hello request message.
+         * List is a colon-separated list of group names in order of preference. For example: -tlssupportedgroups P-521:P-384:P-256.
+         *
+         * The following cases may apply when using the TLS Supported Groups (-tlssupportedgroups) connection option:
+         *
+         *   1. If no value supplied for TLS Supported Groups connection parameter, the default OpenSSL supported "supported groups"
+         *      list will be sent to the server. This may vary for different OpenSSL versions. As of the 12.7 OpenSSL version,
+         *      the default is x25519, secp256r1, x448, secp521r1, secp384r1.
+         *
+         *   2. When some specific value is supplied to configure the supported groups, as per the OpenSSL standards, the same value
+         *      will be sent by the client to the server. We don't have any utility to list down all the supported "supported groups"
+         *      for OpenSSL as of now. We can refer to OpenSSL manual for that:
+         *      https://www.openssl.org/docs/manmaster/man3/SSL_CTX_set1_groups.html
+         */
+        if extent(this-object:TlsSupportedGroups) ne ? then
+            assign cConnect = trim(substitute('&1 -tlssupportedgroups &2':u, cConnect, String:Join(this-object:TlsSupportedGroups, ':':u))).
 
         if not String:IsNullOrEmpty(ServerNameIndicator) then
             assign cConnect = trim(substitute('&1 -servername &2':u, cConnect, this-object:ServerNameIndicator)).

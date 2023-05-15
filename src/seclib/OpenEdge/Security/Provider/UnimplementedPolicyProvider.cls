@@ -29,6 +29,7 @@ class OpenEdge.Security.Provider.UnimplementedPolicyProvider implements IPolicyP
        @param JsonObject (optional) A collection of options and operations supported by the domain  
        @param character out (optional) Status detail text
        @return PAMStatusEnum (optional) A new status for the CP based on the policy */
+    {&_proparse_ prolint-nowarn(varusage)}
     method public PAMStatusEnum ApplyPolicy (input  pcSender as character,
                                              input  pcPolicyName as character,
                                              input  poPrincipal as Principal,
@@ -47,13 +48,14 @@ class OpenEdge.Security.Provider.UnimplementedPolicyProvider implements IPolicyP
 
             assign cOptions = poDomainCtx:GetCharacter('domainContext':u)
                    iMax = num-entries(cOptions).
+            CALLBLK:
             do iLoop = 1 to iMax:
                 if entry(iLoop, cOptions) begins 'PAMCallback=':u then
                 do:
                     log-manager:write-message(substitute('Unimplemented PAM Callback: &1', 
                                                     quoter(entry(iLoop, cOptions))),
                                     'STSPOLCY':u).    
-                    leave.
+                    leave CALLBLK.
                 end.
             end.
         end.

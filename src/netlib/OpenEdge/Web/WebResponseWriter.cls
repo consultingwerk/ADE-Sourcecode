@@ -200,9 +200,10 @@ class OpenEdge.Web.WebResponseWriter inherits OutputStream:
         
         if  not valid-object(Response:Entity) 
         and Response:HasHeader('Content-Length':u)
-        then
+        then do:
             /* response to a HEAD request, we assume */
-            . // no-op
+            // no-op
+        end.
         else
             // Per https://tools.ietf.org/html/rfc7230#section-3.3.2 , there MUST NOT be a Content-Length header
             // when there is transfer encoding

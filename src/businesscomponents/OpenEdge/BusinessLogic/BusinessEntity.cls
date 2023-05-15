@@ -1,5 +1,5 @@
 /**********************************************************************************************
-*   Copyright (C) 2014-2019, 2021-2022 by Progress Software Corporation. All rights reserved. *
+*   Copyright (C) 2014-2019, 2021-2023 by Progress Software Corporation. All rights reserved. *
 *   Prior versions of this work may contain portions contributed by participants of Possenet. *
 ***********************************************************************************************/
 /*---------------------------------------------------------------------------------------------
@@ -561,16 +561,18 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
         DEFINE VAR hBeforeBuffer AS HANDLE NO-UNDO.
         DEFINE VAR lAvailable AS LOGICAL NO-UNDO.
         DEFINE VAR hBeforeQuery AS HANDLE EXTENT NO-UNDO.
+        DEFINE VAR cMessage AS CHAR NO-UNDO.
         DEFINE VAR cErrMessage AS CHAR NO-UNDO.
         DEFINE VAR appError AS Progress.Lang.AppError NO-UNDO.
         
         EXTENT(hBeforeQuery) = ProDataSet:NUM-BUFFERS.
         
-        cErrMessage = err:GetMessage(1).
-        // Check to see if ReturnValue set
-        IF (cErrMessage EQ ? OR LENGTH(cErrMessage) EQ 0) AND TYPE-OF(err, Progress.Lang.AppError) THEN DO:
+        IF err:NumMessages > 0 THEN DO:
+            cMessage = err:GetMessage(1).
+        END.
+        ELSE IF TYPE-OF(err, Progress.Lang.AppError) THEN DO:
             appError = CAST(err, Progress.Lang.AppError).
-            cErrMessage = appError:ReturnValue.
+            cMessage = appError:ReturnValue.
         END.
 
         // If UpdateMode was never set, don't bother setting REJECTED attributes.
@@ -592,7 +594,7 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
                     DO WHILE lAvailable:
                         hBeforeBuffer:REJECTED = TRUE.
                         IF hBeforeBuffer:ERROR EQ TRUE THEN DO:
-                           hBeforeBuffer:ERROR-STRING = GetRowErrorMessage(hBeforeBuffer, cErrMessage).
+                           hBeforeBuffer:ERROR-STRING = GetRowErrorMessage(hBeforeBuffer, cMessage).
                         END.
                         lAvailable = hBeforeQuery[iIndex]:GET-NEXT().
                     END.
@@ -600,11 +602,16 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
             END.
         END.
         ELSE DO:
-          cErrMessage = "Unable to call SAVE-ROW-CHANGES(). " + cErrMessage.
+          cErrMessage = SUBSTITUTE("Unable to call SAVE-ROW-CHANGES(). &1", cMessage).
         END.
         
         IF UpdateMode EQ UpdateModeEnum:CUD_NOBI OR UpdateMode EQ UpdateModeEnum:UNDEFINED THEN DO:
-            UNDO, THROW NEW Progress.Lang.AppError(cErrMessage, 0).
+            IF cErrMessage > "" THEN
+                UNDO, THROW NEW Progress.Lang.AppError(cErrMessage, 0).
+            ELSE IF err:NumMessages > 0 THEN
+                UNDO, THROW err.
+            ELSE
+                UNDO, THROW NEW Progress.Lang.AppError(cMessage, 0).
         END.
         
         FINALLY:

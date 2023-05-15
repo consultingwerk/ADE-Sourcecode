@@ -60,6 +60,7 @@ class OpenEdge.Web.Logging.WebRequestTokenResolver:
         The constructor is PRIVATE to prevent any instantiation of this class - it is intended
         to only have static members .*/
     constructor private WebRequestTokenResolver():
+        // no-op
     end constructor.
     
     /* Event published after a token is resolved by this resolver. Allows a listener to override the value */
@@ -68,9 +69,7 @@ class OpenEdge.Web.Logging.WebRequestTokenResolver:
         define variable args as character extent 2 no-undo.
         define variable idx as integer no-undo.
         define variable req as IWebRequest no-undo.
-        define variable path as character extent no-undo.
         define variable pathParams as character no-undo.
-        define variable cookie as Cookie no-undo.
         define variable cgiVars as character no-undo initial '':u.
         define variable qryVals as character extent no-undo.
         define variable iCount as integer no-undo.

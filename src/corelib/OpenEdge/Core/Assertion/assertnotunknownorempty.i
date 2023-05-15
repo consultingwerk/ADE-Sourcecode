@@ -117,6 +117,7 @@ Copyright (c) 2022 by Progress Software Corporation. All rights reserved.
     end method. // NotUnknownOrEmpty
 
     {&CommentShortArray}
+    {&_proparse_ prolint-nowarn(varusage)}
     method public static void NotNullOrEmpty (input pArgument as {&DataType} extent):
     &if "{&Datatype}" eq "Object" &then
         NotUnknown(pArgument, "argument":u).
@@ -129,6 +130,7 @@ Copyright (c) 2022 by Progress Software Corporation. All rights reserved.
     end method. // NotNullOrEmpty
 
     {&CommentLongArray}
+    {&_proparse_ prolint-nowarn(varusage)}
     method public static void NotNullOrEmpty (input pArgument as {&DataType} extent, input pcName as char):
     &if "{&Datatype}" eq "Object" &then
         NotUnknown(pArgument, "argument":u).
@@ -152,6 +154,7 @@ Copyright (c) 2022 by Progress Software Corporation. All rights reserved.
     end method. // NotUnknownOrEmpty
 
     {&CommentLongArray}
+    {&_proparse_ prolint-nowarn(varusage)}
     method public static void NotUnknownOrEmpty (input pArgument as {&DataType} extent, input pcName as char):
     &if "{&Datatype}" eq "Object" &then
         NotUnknown(pArgument, "argument":u).

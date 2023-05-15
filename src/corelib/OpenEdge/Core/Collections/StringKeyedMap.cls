@@ -114,11 +114,12 @@ class OpenEdge.Core.Collections.StringKeyedMap implements IStringKeyedMap:
        @return logical TRUE if a record exists with the given key; FALSE if there are no matching entries */
     method private logical FindMapRecord(input pKey as character, buffer pMap for StrKeyMap):
         release pMap.
-        
+
         if can-find(pMap
               where pMap.ParentMap eq int64(this-object)
                 and pMap.Key eq pKey                    )
         then
+            {&_proparse_ prolint-nowarn(findnoerror)}
             find pMap
            where pMap.ParentMap eq int64(this-object)
              and pMap.Key eq pKey.
@@ -241,7 +242,7 @@ class OpenEdge.Core.Collections.StringKeyedMap implements IStringKeyedMap:
         end.
         
         return true.
-    end.
+    end method.
     
     /* Returns true if this map contains all of the values in a collection.
        
@@ -268,7 +269,7 @@ class OpenEdge.Core.Collections.StringKeyedMap implements IStringKeyedMap:
         end.
         
         return false.
-    end.
+    end method.
     
     /* Returns true if this map maps one or more keys to the specified value.
        
@@ -315,7 +316,7 @@ class OpenEdge.Core.Collections.StringKeyedMap implements IStringKeyedMap:
     method public Progress.Lang.Object Get(input pKey as Progress.Lang.Object):
         Assert:IsType(pKey, get-class(String)).
         
-        return Get(cast(pKey, String)).
+        return get(cast(pKey, String)).
     end method.
     
     /** Retrieves the value for a particular key

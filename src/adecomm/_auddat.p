@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 1984-2006,2008-2010,2015-2016 by Progress Software Corporation  */
+/* Copyright (c) 1984-2006,2008-2010,2015-2016,2023 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -50,6 +50,7 @@
       fernando Dec  23, 2008 Support for encryption events
       fernando Jun  18, 2009 Support for encryption events
       fernando 01/05/2010    Expanding transaction id format
+      kberlia  02/07/2023    Corrected field name.
 ------------------------------------------------------------------------*/
 DEFINE INPUT  PARAMETER piReport   AS INTEGER     NO-UNDO.
 DEFINE INPUT  PARAMETER pcFileName AS CHARACTER   NO-UNDO.
@@ -652,9 +653,9 @@ PROCEDURE createDataSet:
         cTopFilter = (IF pcFilter EQ "All" THEN 
                         "" 
                       ELSE
-                        " WHERE (DATE(_client-session._auth-date-time) >= " +
+                        " WHERE (DATE(_client-session._Authentication-date-time) >= " +
                         ENTRY(1,pcFilter)                                   + 
-                        " AND DATE(_client-session._auth-date-time) <= "  +
+                        " AND DATE(_client-session._Authentication-date-time) <= "  +
                         ENTRY(2,pcFilter) + ") ").
 
         IF iTable > 1 THEN DO:

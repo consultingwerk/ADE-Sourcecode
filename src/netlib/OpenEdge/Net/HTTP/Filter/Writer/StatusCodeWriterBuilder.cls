@@ -1,14 +1,14 @@
 /************************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
-*************************************************/ 
+Copyright (c)  2015, 2022 by Progress Software Corporation. All rights reserved.
+*************************************************/
 /*------------------------------------------------------------------------
     File        : StatusCodeWriterBuilder
-    Purpose     : 
-    Syntax      : 
-    Description : 
+    Purpose     :
+    Syntax      :
+    Description :
     Author(s)   : pjudge
     Created     : Fri Jan 30 09:57:53 EST 2015
-    Notes       : 
+    Notes       :
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
@@ -25,7 +25,7 @@ using Progress.Lang.Object.
 using OpenEdge.Net.HTTP.BuilderRegistry.
 
 class OpenEdge.Net.HTTP.Filter.Writer.StatusCodeWriterBuilder:
-    
+
     /** Registry for mapping build types to their implementations */
     define static public property Registry as BuilderRegistry no-undo
         get():
@@ -33,54 +33,62 @@ class OpenEdge.Net.HTTP.Filter.Writer.StatusCodeWriterBuilder:
             if not valid-object(StatusCodeWriterBuilder:Registry) then
             do:
                 assign oRegistry = new BuilderRegistry(get-class(IHttpMessageWriter)).
-                StatusCodeWriterBuilder:InitializeRegistry(oRegistry).                
+                StatusCodeWriterBuilder:InitializeRegistry(oRegistry).
                 assign StatusCodeWriterBuilder:Registry = oRegistry.
             end.
             return StatusCodeWriterBuilder:Registry.
         end get.
         private set.
-    
-    /** Adds initial values into the registry 
-    
+
+    /** Adds initial values into the registry
+
         @param BuilderRegistry The registry to populate */
-    method static private void InitializeRegistry(input poRegistry as BuilderRegistry):        /* redirects */
+    method static private void InitializeRegistry(input poRegistry as BuilderRegistry):
         /* redirects */
-        poRegistry:Put(string(integer(StatusCodeEnum:Found)),
-                       get-class(RedirectStatusFilter)).
+        // 301 - permanent redirect -- clients should use the newly-given URL for future requests.
         poRegistry:Put(string(integer(StatusCodeEnum:MovedPermanently)),
                        get-class(RedirectStatusFilter)).
 
+        // 302 - temporary redirect -- clients should check back at the original URL in future requests.
+        poRegistry:Put(string(integer(StatusCodeEnum:Found)),
+                       get-class(RedirectStatusFilter)).
+
+        // 303 - redirect a POST request to a GET resource (as a standard page request)
+        poRegistry:Put(string(integer(StatusCodeEnum:SeeOther)),
+                       get-class(RedirectStatusFilter)).
+
         /* authorization */
+        // 401
         poRegistry:Put(string(integer(StatusCodeEnum:Unauthorized)),
                        get-class(AuthorizationStatusFilter)).
-    end method.        
-    
+    end method.
+
     /** Returns a response writer for a given content-type.
-        
+
         @param IHttpResponse The response being processed.
         @return IHttpMessageWriter The message writer to use */
     method static public IHttpMessageWriter Build(input poRequest as IHttpRequest,
                                                   input poResponse as IHttpResponse):
         define variable oWriter as IHttpMessageWriter no-undo.
         define variable oWriterType as class Progress.Lang.Class no-undo.
-        
+
         Assert:NotNull(poResponse, 'Response').
-        
+
         assign oWriterType = StatusCodeWriterBuilder:Registry:Get(string(poResponse:StatusCode)).
-        
+
         /* no handler for this type */
         if not valid-object(oWriterType) then
             return oWriter.
-        
+
         /* double-check we have the correct type */
         Assert:IsType(oWriterType, get-class(IHttpMessageWriter)).
-        
+
         oWriter = dynamic-new string(oWriterType:TypeName) (input poRequest).
-                
+
         if type-of(oWriter, ISupportInitialize) then
             cast(oWriter, ISupportInitialize):Initialize().
-        
+
         return oWriter.
     end method.
-    
+
 end class.

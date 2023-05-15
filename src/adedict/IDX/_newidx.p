@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2008-2014,2020 by Progress Software Corporation. All *
+* Copyright (C) 2008-2014,2020,2022 by Progress Software Corporation. All *
 * rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -47,6 +47,7 @@ History:
     fernando 10/03/07   Handle comma on the area name - OE00135682
     fernando 06/26/08 Removed encryption area from list 
     Kberlia  10/29/20 Added Argument in _pro_area_list.p to support default area. 
+    tmasood  10/14/22 Removed reference of _isdata.i
 ----------------------------------------------------------------------------*/
 
 
@@ -71,6 +72,7 @@ Define var curr_type  as CHARACTER NO-UNDO.
 define variable lNoArea as logical no-undo.
 define variable LastArea as character no-undo.
 define variable lAreaOk as logical no-undo.
+define variable hTable  as handle  no-undo.
 
 Define buffer x_File for dictdb._File.
 
@@ -507,21 +509,17 @@ do:
       do:   
                /* Before putting up this horrible message, check to see if
                   there's data in the table.  If there's no data the user 
-                  shouldn't need to worry.  _isdata.i won't compile unless 
-                  table is committed and in that case, we know there's no data
-                  either.  There's no way to suppress compile errors from showing
-                  up on the screen (e.g., NO-ERROR won't do it) so do output to 
-                  file to redirect them so the user won't see anything.
+                  shouldn't need to worry.
                */
-               run adecomm/_tmpfile.p (INPUT "", INPUT ".dct", OUTPUT tmpfile).
-               output to VALUE(tmpfile).
-               do ON STOP UNDO, LEAVE:
-                  run adedict/_isdata.i (OUTPUT is_data) VALUE(s_CurrTbl).
+               create buffer hTable for table s_CurrTbl no-error.
+               assign is_data = false.
+               if valid-handle(hTable) then do ON STOP UNDO, LEAVE:
+                  hTable:FIND-FIRST() no-error.
+                  if hTable:AVAILABLE then
+                    assign is_data = true. /* table is committed */
                end.
-               output close.
-               os-delete VALUE(tmpfile).
-               if compiler:error then
-                  is_data = false.  /* table isn't committed yet */
+               /* don't need the dynamic buffer anymore */
+               delete object hTable no-error.
                if is_data then
                do:
                   answer = yes.   /* set's yes as default button */
