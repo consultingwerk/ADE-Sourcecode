@@ -1,5 +1,5 @@
 /************************************************************************
-* Copyright (C) 2000,2014,2021 by Progress Software Corporation.        *
+* Copyright (C) 2000,2014,2021,2023 by Progress Software Corporation.   *
 * All rights reserved. Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                              *
 *                                                                       *
@@ -18,7 +18,8 @@
 *       None
 *
 *   REVISION HISTORY:
-    06/08/21 tmasood Disable dictionary button for 32-bit
+*   06/08/23 tmasood Enable dictionary button for 32-bit
+*   06/08/21 tmasood Disable dictionary button for 32-bit
 *   08/19/01 jep   Added output parameter to _ablic.p call. ICF support. jep-icf.
 *   10/15/99 gfs   Changed "Report Designer" to "e.Report Designer"
 *   05/07/99 gfs   Added Actuate WB and RD
@@ -506,7 +507,7 @@ DO: /* desktop.p */
         MENU-ITEM mnu_Hide:CHECKED IN MENU mnu_Pref = initial_hide_setting.
 
     ENABLE 
-        btn_dict   WHEN dict_licensed AND PROCESS-ARCHITECTURE = 64 
+        btn_dict   WHEN dict_licensed 
         btn_edit   WHEN edit_licensed 
         btn_uib    WHEN uib_licensed  
         btn_rpt    WHEN rpt_licensed  
@@ -683,7 +684,7 @@ PROCEDURE enable_widgets.
 &ENDIF
     DO:
         ENABLE 
-            btn_dict   WHEN dict_licensed AND PROCESS-ARCHITECTURE = 64
+            btn_dict   WHEN dict_licensed
             btn_edit   WHEN edit_licensed 
             btn_uib    WHEN uib_licensed 
             btn_rpt    WHEN rpt_licensed 
