@@ -1,9 +1,9 @@
-/****************************************************************************
-* Copyright (C) 2000,2004-2011,2020 by Progress Software Corporation.       *
-* All rights reserved. Prior versions of this work may contain portions     *
-* contributed by participants of Possenet.                                  *
-*                                                                           *
-*****************************************************************************/
+/*********************************************************************************
+* Copyright (C) 2000,2004-2011,2020,2023 by Progress Software Corporation.       *
+* All rights reserved. Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                                       *
+*                                                                                *
+**********************************************************************************/
 /* _dmpdefs.p - Dump Data Definitions for *all* DBTYPEs */
 /*
 
@@ -43,7 +43,10 @@ history:
     rkamboj     09/23/13    Added support for load of partitioned table flag for _File. 
                             Added support for load of is-local index for _index.
     tmasood     11/11/20    Include four new sections to support online schema change feature.
+    kberlia     06/06/23    Supporting dump of _field DDM Schema.
 */
+
+USING Progress.Database.*.
 
 { prodict/user/uservar.i }
 
@@ -67,8 +70,9 @@ DEFINE VARIABLE lcLongLine  AS LONGCHAR   NO-UNDO.
 DEFINE VARIABLE lpMemRules  AS MEMPTR     NO-UNDO.
 DEFINE VARIABLE lpMemLine   AS MEMPTR     NO-UNDO.
 DEFINE VARIABLE lError      AS LOGICAL    NO-UNDO.
-define variable lNoArea     as logical no-undo.
+DEFINE VARIABLE lNoArea     AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE hWriteToStream AS HANDLE  NO-UNDO.
+DEFINE VARIABLE rConfig     AS DBConfig.
 DEFINE SHARED STREAM ddl.
 DEFINE BUFFER   CON_DICTDB          FOR DICTDB._Constraint.
 DEFINE BUFFER   FILE_DICTDB         FOR DICTDB._File.
@@ -87,7 +91,11 @@ ASSIGN
                   &direction = "ODBC"
                   &from-type = "cODBType"
                   }.
-         
+
+/* Dump only DDM schema when DumpDDM is Yes */
+  IF DumpDDM = "Yes" AND pi_method <> "t" THEN      
+     RETURN.
+           
 IF pi_method BEGINS "d" OR pi_method BEGINS "a" THEN DO: /* auto-conn records */
   /* Only output auto-connect records if current db is */
   /* Progress.  The auto-conn records themselves have a */
@@ -413,6 +421,18 @@ IF pi_method BEGINS "t" THEN DO: /*----------------------*/ /* table_record */
     IF AVAILABLE _Index THEN FIND _File OF _Index NO-LOCK.
   END.
   FIND _Db OF _File NO-LOCK NO-ERROR.
+    
+  /* DDM-only related settings */
+  IF DumpDDM = "Yes" THEN 
+  DO:      
+     FOR EACH _Field OF _File NO-LOCK BY _Field-rpos:
+        IF RECID(_File) <> pi_recid AND RECID(_Field) <> pi_recid THEN NEXT.    
+    
+        RUN ip_getDDMValues(INPUT _File._File-name, 
+                            INPUT _Field._Field-name).
+     END.
+     RETURN.
+  END. /* IF DumpDDM = "Yes" THEN */
   IF RECID(_File) = pi_recid THEN DO:
     FIND  _StorageObject
       WHERE _StorageObject._Db-recid = RECID(_Db)
@@ -859,7 +879,10 @@ IF pi_method BEGINS "t" THEN DO: /*----------------------*/ /* table_record */
     IF _Field._Fld-misc2[8] <> ? THEN DO:
       PUT STREAM-HANDLE hPreDeployStream CONTROL "  FIELD-MISC28 ".
       EXPORT STREAM-HANDLE hPreDeployStream _Field._Fld-misc2[8].
-    END.
+    END. 
+    IF DumpDDM = "Both" THEN /* DDM-only related settings */
+       RUN ip_getDDMValues(INPUT _File._File-name, 
+                           INPUT _Field._Field-name).
     FOR EACH _Field-trig OF _Field NO-LOCK BY _Event:
       PUT STREAM-HANDLE hPreDeployStream UNFORMATTED
         "  FIELD-TRIGGER """ _Field-Trig._Event """ "
@@ -1063,3 +1086,35 @@ ELSE IF pi_method BEGINS "o" THEN DO: /*----------------------*/
 END.
 
 RETURN.
+
+/* DDM-only related settings */
+PROCEDURE ip_getDDMValues:
+   DEFINE INPUT PARAMETER ip_TableName     AS CHARACTER NO-UNDO.
+   DEFINE INPUT PARAMETER ip_FieldName     AS CHARACTER NO-UNDO.   
+         
+   DEFINE VARIABLE cMask   AS CHARACTER NO-UNDO.
+   DEFINE VARIABLE cTag    AS CHARACTER NO-UNDO.
+   
+   IF rConfig = ? THEN 
+      ASSIGN rConfig = NEW DBConfig(LDBNAME("DICTDB")).
+   
+   /* Get mask and tag value for Table.Field */
+   rConfig:GetFieldDDMConfig(INPUT ip_TableName, INPUT ip_FieldName, OUTPUT cMask, OUTPUT cTag).
+   
+   IF cMask <> ? OR cTag <> ? THEN 
+   DO:  
+      PUT STREAM-HANDLE hDDMStream UNFORMATTED SKIP(1)
+      "UPDATE FIELD """ ip_FieldName """ "
+      "OF """ ip_TableName """ " SKIP.           
+      
+      IF cMask <> ? THEN 
+      DO:          
+         PUT STREAM-HANDLE hDDMStream CONTROL "  MASK ".
+         EXPORT STREAM-HANDLE hDDMStream cMask. 
+      END.
+           
+      PUT STREAM-HANDLE hDDMStream CONTROL "  AUTHTAG ".
+      EXPORT STREAM-HANDLE hDDMStream cTag.    
+   END. /* IF cMask <> ? AND cTag <> ? THEN */      
+   
+END PROCEDURE.    

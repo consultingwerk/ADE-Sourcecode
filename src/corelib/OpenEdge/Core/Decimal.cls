@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2016, 2019, 2022 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2016, 2019, 2022-2023 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : Decimal
@@ -13,18 +13,21 @@ Copyright (c) 2016, 2019, 2022 by Progress Software Corporation. All rights rese
 block-level on error undo, throw.
 
 using Ccs.Common.Support.IDecimalHolder.
-using Progress.Collections.IComparable.
 using OpenEdge.Core.Assert.
+using Progress.Collections.IComparable.
+using Progress.Collections.IHashable.
 
 class OpenEdge.Core.Decimal
-implements IDecimalHolder,
+implements IDecimalHolder
            // Compare to the interface so that other implementations of IDecimalHolder can be sorted with this one
-           IComparable<IDecimalHolder>:
-    
+         , IComparable<IDecimalHolder>
+         , IHashable
+:
+
     /* The primitive ABL value */
-    define public property Value as decimal  no-undo get.
-        private set.
-        
+    define public property Value as decimal no-undo get.
+        private set. // The wrapped value is immutable
+
     /* Constructor.
        
        @param decimal The wrapped value. */
@@ -32,28 +35,30 @@ implements IDecimalHolder,
         assign this-object:Value = pdVal.
     end constructor.
     
-    method override public character ToString():
+    method override public character ToString ():
         return string(this-object:Value).
     end method.
     
-    method override public logical Equals(INPUT PO AS Progress.Lang.Object):
-         define variable ocDec as OpenEdge.Core.Decimal no-undo.
-         define variable valCompare as decimal no-undo.
-         if super:Equals(PO) then
-             return true.
-         if type-of(PO, OpenEdge.Core.Decimal) then
-         do:
-             ocDec = cast(PO, OpenEdge.Core.Decimal).
-             return this-object:Value = ocDec:Value.
-         end.
-         else
-         if type-of(PO, IDecimalHolder) then
-         do:
-           valCompare = dynamic-property(PO, 'Value').
-           If this-object:Value eq valCompare then
-             return true.
-         end.
-         return false.
+    method override public logical Equals (input PO as Progress.Lang.Object):
+        define variable ocDec as OpenEdge.Core.Decimal no-undo.
+        define variable valCompare as decimal no-undo.
+
+        if super:Equals(PO) then
+            return true.
+
+        if type-of(PO, OpenEdge.Core.Decimal) then
+        do:
+            ocDec = cast(PO, OpenEdge.Core.Decimal).
+            return this-object:Value eq ocDec:Value.
+        end.
+        else if type-of(PO, IDecimalHolder) then
+        do:
+            valCompare = dynamic-property(PO, 'Value').
+            If this-object:Value eq valCompare then
+                return true.
+        end.
+
+        return false.
     end method.
     
     /* Comparison method, used by SortedSet's default comparer
@@ -67,12 +72,12 @@ implements IDecimalHolder,
         @return integer  0 = same object
                         +1 = sorts after
                         -1 = sorts before   */
-    method public integer CompareTo(input pOther as IDecimalHolder):
+    method public integer CompareTo (input pOther as IDecimalHolder):
         Assert:NotNull(pOther, 'CompareTo object').
         
         if this-object:Value eq pOther:Value then
             return 0.
-        else
+
         // unknown values sort first/lower
         if this-object:Value gt pOther:Value
         or pOther:Value eq ?
@@ -87,6 +92,16 @@ implements IDecimalHolder,
         // this will raise an error in the Comparer; we should never get here though.
         return ?.
     end method.
-    
-end class.
 
+    /* Hashing method for creating a proper index for use with Progress.Collections.HashMap
+
+        @return integer Result of the hash-code method using this object's comparable value(s) */
+    method public integer HashCode ( ):
+        // In order to create a meaningful hash for an object instance,
+        // we should follow suite with how the Equals() logic works.
+        // By using the full class name plus the object's comparable value(s)
+        // this should be consistent for any instance of this object type.
+        return hash-code(this-object:GetClass():TypeName, this-object:Value).
+    end method.
+
+end class.

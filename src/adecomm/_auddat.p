@@ -51,6 +51,7 @@
       fernando Jun  18, 2009 Support for encryption events
       fernando 01/05/2010    Expanding transaction id format
       kberlia  02/07/2023    Corrected field name.
+      fernando 06/22/2023    Support for DDM events
 ------------------------------------------------------------------------*/
 DEFINE INPUT  PARAMETER piReport   AS INTEGER     NO-UNDO.
 DEFINE INPUT  PARAMETER pcFileName AS CHARACTER   NO-UNDO.
@@ -1263,7 +1264,7 @@ PROCEDURE audDataAfterRowFill:
       hADBuff::_formatted-event-context = cContext + cUserId.
     END. /* Delete _sec-authentication-domain */
     WHEN "510" THEN DO: /* Create security role record 
-                           (_sec-role) Not Implemented */
+                           (_sec-role) */
       IF (ENTRY(1,cContext,CHR(7)) > "?") = TRUE THEN DO:
         cContext = ENTRY(1,cContext,CHR(7)) NO-ERROR.
 
@@ -1278,7 +1279,7 @@ PROCEDURE audDataAfterRowFill:
       hADBuff::_formatted-event-context = cContext + cUserId.
     END. /* Create security role record */
     WHEN "511" THEN DO: /* Update security role record 
-                           (_sec-role) Not Implemented */
+                           (_sec-role) */
       cRole = cContext NO-ERROR.
              
       ghSRoleBuff:FIND-FIRST("WHERE _role-name = ~"" +
@@ -1293,7 +1294,17 @@ PROCEDURE audDataAfterRowFill:
           "Role " + cRoleDesc + " modified" + cUserId.
     END. /* Update security role record */
     WHEN "512" THEN DO: /* Delete security role record 
-                           (_sec-role) Not Implemented */
+                           (_sec-role) */
+      cRole = cContext NO-ERROR.
+             
+      ghSRoleBuff:FIND-FIRST("WHERE _role-name = ~"" +
+                             cRole + "~"",NO-LOCK) NO-ERROR.
+      IF ghSRoleBuff:AVAILABLE THEN
+        cRoleDesc = "~"" + ghSRoleBuff::_role-description + 
+                    "~" (" + cRole + ") ".
+      ELSE 
+        cRoleDesc = "~"" + cRole + "~"".
+        
       hADBuff::_formatted-event-context = 
         "Role ~"" + cRole + "~" " + "deleted" + cUserId.
     END. /* Delete security role record */
@@ -1355,6 +1366,43 @@ PROCEDURE audDataAfterRowFill:
           " permission (Granted by: " + cGrantor + 
           ") has been revoked" + cUserId.
     END. /* Delete security permissions record */
+    
+    WHEN "520" THEN DO: /* Create security auth tag record
+                           (_sec-auth-tag) */
+      hADBuff::_formatted-event-context = 
+          "New authentication tag record created" + cUserId.
+
+    END. /* Create security auth tag record */
+    WHEN "521" THEN DO: /* Update security auth tag record
+                           (_sec-auth-tag) */
+      cRole = cContext NO-ERROR.
+             
+      ghSRoleBuff:FIND-FIRST("WHERE _role-name = ~"" +
+                             cRole + "~"",NO-LOCK) NO-ERROR.
+      IF ghSRoleBuff:AVAILABLE THEN
+        cRoleDesc = "~"" + ghSRoleBuff::_role-description + 
+                    "~" (" + cRole + ") ".
+      ELSE 
+        cRoleDesc = "~"" + cRole + "~"".
+        
+      hADBuff::_formatted-event-context = 
+          "Authentication tag for role " + cRoleDesc + " modified" + cUserId.
+    END. /* Update security auth tag record */
+    WHEN "522" THEN DO: /* Delete security auth tag record
+                           (_sec-auth-tag) */
+      cRole = cContext NO-ERROR.
+             
+      ghSRoleBuff:FIND-FIRST("WHERE _role-name = ~"" +
+                             cRole + "~"",NO-LOCK) NO-ERROR.
+      IF ghSRoleBuff:AVAILABLE THEN
+        cRoleDesc = "~"" + ghSRoleBuff::_role-description + 
+                    "~" (" + cRole + ") ".
+      ELSE 
+        cRoleDesc = "~"" + cRole + "~"".
+        
+      hADBuff::_formatted-event-context = 
+        "Authentication tag for role ~"" + cRole + "~" " + "deleted" + cUserId.
+    END. /* Delete security auth tag record */    
     WHEN "5000" THEN DO: /* Schema - Create DB Table */
       cOwner   = ENTRY(2,cContext,CHR(7)) NO-ERROR.
       IF (ENTRY(1,cContext,CHR(7)) > "?") = TRUE THEN DO:
@@ -2441,6 +2489,26 @@ PROCEDURE audDataAfterRowFill:
     END.
     WHEN "11902" THEN DO:
         hADBuff::_formatted-event-context = "Disable Authentication Gateway utility executed for "
+                                             + TRIM(hADBuff::_event-context) /* db-name */
+                                             + cUserId.
+    END.
+    WHEN "11925" THEN DO:
+        hADBuff::_formatted-event-context = "Enable Dynamic Data Masking utility executed for "
+                                             + TRIM(hADBuff::_event-context) /* db-name */
+                                             + cUserId.
+    END.
+    WHEN "11926" THEN DO:
+        hADBuff::_formatted-event-context = "Activate Dynamic Data Masking utility executed for "
+                                             + TRIM(hADBuff::_event-context) /* db-name */
+                                             + cUserId.
+    END.
+    WHEN "11927" THEN DO:
+        hADBuff::_formatted-event-context = "Deactivate Dynamic Data Masking utility executed for "
+                                             + TRIM(hADBuff::_event-context) /* db-name */
+                                             + cUserId.
+    END.
+    WHEN "11928" THEN DO:
+        hADBuff::_formatted-event-context = "Disable Dynamic Data Masking utility executed for "
                                              + TRIM(hADBuff::_event-context) /* db-name */
                                              + cUserId.
     END.

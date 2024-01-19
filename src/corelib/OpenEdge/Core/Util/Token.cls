@@ -17,11 +17,13 @@ using OpenEdge.Core.Assert.
 using OpenEdge.Core.Util.Token.
 using OpenEdge.Core.StringConstant.
 using Progress.Collections.IComparable.
+using Progress.Collections.IHashable.
 using Progress.Lang.Object.
 
 class OpenEdge.Core.Util.Token
 serializable
 implements IComparable<Token>
+         , IHashable
 :
 
     /* (mandatory) The token group being resolved */
@@ -48,8 +50,8 @@ implements IComparable<Token>
        
        @param character (mandatory) The Token group (not null or empty)
        @param character (mandatory) The Token argument  (not null) */
-    constructor public Token(input pGroup as character,
-                             input pArg as character):
+    constructor public Token (input pGroup as character,
+                              input pArg   as character):
         this-object(pGroup, pArg, no /*allow unknown*/).
     end constructor.
     
@@ -58,9 +60,9 @@ implements IComparable<Token>
        @param character (mandatory) The Token group (not null or empty)
        @param character (mandatory) The Token argument  (not null)
        @param logical   (mandatory) Whether the unknown value is a valid value */
-    constructor public Token(input pGroup as character,
-                             input pArg as character,
-                             input pUnknownValAllowed as logical):
+    constructor public Token (input pGroup as character,
+                              input pArg   as character,
+                              input pUnknownValAllowed as logical):
         Assert:NotNullOrEmpty(pGroup, 'Token group').
         Assert:NotNull(pArg, 'Token argument').
         Assert:NotUnknown(pUnknownValAllowed, 'Unknown value allowed').
@@ -81,7 +83,7 @@ implements IComparable<Token>
        
        @param character A complete string token
        @return Token A token instance */
-    method static public Token Parse(input pToken as character):
+    method static public Token Parse (input pToken as character):
         var integer chrPos.
         var character grp, localArg.
         var logical nullAllowed.
@@ -99,7 +101,7 @@ implements IComparable<Token>
         return new Token(grp, localArg, nullAllowed).
     end method.
     
-    method override public character ToString():
+    method override public character ToString ( ):
         define variable stringToken as character no-undo.
         
         if this-object:AllowUnknownValue then
@@ -112,7 +114,7 @@ implements IComparable<Token>
         return stringToken.
     end method.
     
-    method override public logical Equals(input pCompare as Object):
+    method override public logical Equals (input pCompare as Object):
         var Token other.
         
         if super:Equals(pCompare) then
@@ -140,7 +142,7 @@ implements IComparable<Token>
         @return integer  0 = same object
                         +1 = sorts after
                         -1 = sorts before   */
-    method public integer CompareTo(input pOther as Token):
+    method public integer CompareTo (input pOther as Token):
         Assert:NotNull(pOther, 'CompareTo object').
         
         // direct property comparisons are cheaper than string concat
@@ -157,4 +159,15 @@ implements IComparable<Token>
             return -1.
     end method.
     
+    /* Hashing method for creating a proper index for use with Progress.Collections.HashMap
+
+        @return integer Result of the hash-code method using this object's comparable value(s) */
+    method public integer HashCode ( ):
+        // In order to create a meaningful hash for an object instance,
+        // we should follow suite with how the Equals() logic works.
+        // By using the full class name plus the object's comparable value(s)
+        // this should be consistent for any instance of this object type.
+        return hash-code(this-object:GetClass():TypeName, this-object:Group, this-object:Arg, this-object:AllowUnknownValue).
+    end method.
+
 end class.

@@ -18,6 +18,7 @@ routine-level on error undo, throw.
 using OpenEdge.DataAdmin.DataAccess.AllFieldData from propath.
 using OpenEdge.DataAdmin.DataAccess.AllFileData from propath.
 using OpenEdge.DataAdmin.DataAccess.AreaData from propath.
+using OpenEdge.DataAdmin.DataAccess.AuthTagData from propath.
 using OpenEdge.DataAdmin.DataAccess.AuthenticationSystemData from propath.
 using OpenEdge.DataAdmin.DataAccess.CdcTablePolicyData from propath.
 using OpenEdge.DataAdmin.DataAccess.DatabaseOptionData from propath.
@@ -34,16 +35,14 @@ using OpenEdge.DataAdmin.DataAccess.TenantGroupMemberData from propath.
 using OpenEdge.DataAdmin.DataAccess.UserData from propath.
 using OpenEdge.DataAdmin.DataSource.AreaDataSource from propath.
 using OpenEdge.DataAdmin.DataSource.IDataSource from propath.
-using OpenEdge.DataAdmin.DataSource.PartitionPolicyDataSource from propath.
 using OpenEdge.DataAdmin.DataSource.TableDataSource from propath.
+using OpenEdge.DataAdmin.DataSource.TablePermissionDataSource from propath.
 using OpenEdge.DataAdmin.DataSource.TenantDataSource from propath.
 using OpenEdge.DataAdmin.DataSource.TenantGroupDataSource from propath.
 using OpenEdge.DataAdmin.DataSource.UserDataSource from propath.
 using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
 using Progress.Lang.Error from propath.
 using Progress.Lang.Object from propath.
-USING OpenEdge.DataAdmin.DataSource.CdcTablePolicyDataSource FROM PROPATH.
-using OpenEdge.DataAdmin.DataSource.TablePermissionDataSource from propath.
 
 class OpenEdge.DataAdmin.DataAccess.DataAccessFactory: 
     define variable ServiceName as character no-undo.
@@ -173,6 +172,8 @@ class OpenEdge.DataAdmin.DataAccess.DataAccessFactory:
                 da = new SequenceValueData().            
             else if name eq 'DatabaseOption':u then
                 da = new DatabaseOptionData().
+            else if name eq 'AuthTag':u then
+                da = new AuthTagData().
             else if name eq 'Role':u then
                 da = new RoleData().
             else if name eq 'GrantedRole':u then

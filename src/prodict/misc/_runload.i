@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2011 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2011,2023 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+************************************************************************/
 
 /*
 NOTE:
@@ -35,6 +35,7 @@ History:
   fernando   11/09/05  Added code for _db-option 20051109-033 
   fernando   06/16/06  Assign _db-recid in _db-option when loading db options - 20060612-001
   fernando   06/20/07  Support for large files
+  tmasood    07/28/23  Load _sec-role._role-type required for DDM roles
 */
    
 /* Will be "y" or "n" to indicate whether to disable triggers or not */
@@ -236,6 +237,17 @@ DO WHILE TRUE TRANSACTION:
           end.
       END.
       delete ttSec.
+    &ELSEIF "{1}" = "_sec-role" &THEN
+      define temp-table ttSecR like {1}. 
+      
+      create ttSecR.
+      IMPORT STREAM loadread ttSecR {7} {6} NO-ERROR.
+      IF NOT ERROR-STATUS:ERROR THEN
+      DO:  
+          create {1}.
+          buffer-copy ttSecR {7} to {1} NO-ERROR.
+      END.
+      delete ttSecR.
     &ELSEIF "{4}" = "<collection>" &THEN
        iRead =  collection:deserialize(STREAM loadread:handle,1) no-error.
        /* 0 = endkey */

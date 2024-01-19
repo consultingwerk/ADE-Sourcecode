@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2014-2018, 2021 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014-2018, 2021, 2023 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : Memptr
@@ -21,12 +21,17 @@ using OpenEdge.Core.Memptr.
 using OpenEdge.Core.Session.
 using OpenEdge.Core.StringConstant.
 using Progress.Collections.IComparable.
+using Progress.Collections.IHashable.
 using Progress.Lang.AppError.
+using Progress.Lang.Object.
 
 class OpenEdge.Core.Memptr
-implements IMemptrHolder, IMemoryPointer,
+implements IMemptrHolder
+         , IMemoryPointer
            // Compare to the interface so that other implementations of IMemptrHolder can be sorted with this one
-           IComparable<IMemptrHolder>:
+         , IComparable<IMemptrHolder>
+         , IHashable
+:
     
     /**  the actual memptr under management here */
     define private variable mmValue as memptr no-undo.
@@ -75,7 +80,7 @@ implements IMemptrHolder, IMemoryPointer,
     
         @param int64 The pointer to memory represented by a memptr (via get-pointer-value). 
         @param int64 The size of the memptr represented by the pointer value. */
-    constructor public Memptr(input piPtr as int64, input piSize as int64):
+    constructor public Memptr (input piPtr as int64, input piSize as int64):
         /* this-object(piSize). - don't use this constructor, it calls set-size() */
         this-object().
         /* copy of code from this-object(size) constructor */
@@ -90,7 +95,7 @@ implements IMemptrHolder, IMemoryPointer,
     /** Constructor.
     
         @param int64 The size of the memptr to be created. */
-    constructor public Memptr(input piSize as int64):
+    constructor public Memptr (input piSize as int64):
         this-object().
         
         Assert:IsZeroOrPositive(piSize, 'Size').
@@ -98,7 +103,7 @@ implements IMemptrHolder, IMemoryPointer,
     end constructor.
     
     /** Deep copy/clone of the input memptr. Caller is responsible for cleanup. */
-    constructor public Memptr(input pmValue as memptr):
+    constructor public Memptr (input pmValue as memptr):
         this-object(get-size(pmValue)).
         
         if get-size(pmValue) gt 0 then 
@@ -106,14 +111,14 @@ implements IMemptrHolder, IMemoryPointer,
     end constructor.
     
     /** Deep copy/clone of the input memptr. */
-    constructor public Memptr(input prValue as raw):
+    constructor public Memptr (input prValue as raw):
         this-object(length(prValue)).
         
         if length(prValue) gt 0 then
             put-bytes(mmValue, 1) = prValue.
     end constructor.
     
-    destructor public Memptr():
+    destructor public Memptr ():
         if this-object:AutoDestroy then
         do:
             /* externally-allocated memptrs must let go of the pointer and THEN
@@ -128,13 +133,13 @@ implements IMemptrHolder, IMemoryPointer,
     /** Returns the pointer value of the current memptr.
     
         @param int64 The pointer to memory represented by this memptr */ 
-    method public int64 GetPointerValue():
+    method public int64 GetPointerValue ():
         return this-object:PointerValue.
     end method.
     
     /** Clears/resets the current memptr. Clears the memory and resets it to
         its former size. */
-    method public void Clear():
+    method public void Clear ():
         define variable iOldSize as int64 no-undo.
         if not this-object:ExternalAllocation then
         do:
@@ -149,7 +154,7 @@ implements IMemptrHolder, IMemoryPointer,
         for comparing memptr values quickly.  
         
         @return raw The hashed value of the memptr. */
-    method public raw GetHash():
+    method public raw GetHash ():
         return GetHash(HashAlgorithmEnum:MD5).
     end method.
 
@@ -158,7 +163,7 @@ implements IMemptrHolder, IMemoryPointer,
         
         @param HashAlgorithmEnum The algorithm to use for the message
         @return raw The hashed value of the memptr. */
-    method public raw GetHash(input poAlgorithm as HashAlgorithmEnum):
+    method public raw GetHash (input poAlgorithm as HashAlgorithmEnum):
         Assert:NotNull(poAlgorithm, 'Algorithm').
         return message-digest(string(poAlgorithm), mmValue).
     end method.
@@ -167,7 +172,7 @@ implements IMemptrHolder, IMemoryPointer,
         
         @param int64 The position at which to return the byte.
         @return integer The byte value at the current position */
-    method public integer GetByte(input piPos as int64):        
+    method public integer GetByte (input piPos as int64):        
         Assert:IsPositive(piPos, 'Position').
         
         return get-byte(mmValue, piPos).        
@@ -178,7 +183,7 @@ implements IMemptrHolder, IMemoryPointer,
     
         @param  int64 The start potision
         @return longchar The character/string data requested     */
-    method public longchar GetString(input piStartPos as int64):
+    method public longchar GetString (input piStartPos as int64):
         return GetString(piStartPos, this-object:Size - piStartPos + 1).
     end method.
 
@@ -188,8 +193,8 @@ implements IMemptrHolder, IMemoryPointer,
         @param  int64 The start potision
         @param  int64 The size of the data (in bytes) to return 
         @return longchar The character/string data requested     */
-    method public longchar GetString(input piStartPos as int64,
-                                     input piSliceSize as int64):
+    method public longchar GetString (input piStartPos as int64,
+                                      input piSliceSize as int64):
         return GetString(piStartPos, piSliceSize, session:cpinternal, 'UTF-8':u).
     end method.
         
@@ -200,9 +205,9 @@ implements IMemptrHolder, IMemoryPointer,
         @param  int64 The size of the data (in bytes) to return 
         @param  character The target codepage for the character data
         @return longchar The character/string data requested     */
-    method public longchar GetString(input piStartPos as int64,
-                                     input piSliceSize as int64,
-                                     input pcTargetCodepage as character):
+    method public longchar GetString (input piStartPos as int64,
+                                      input piSliceSize as int64,
+                                      input pcTargetCodepage as character):
         return GetString(piStartPos, piSliceSize, session:cpinternal, pcTargetCodepage).                                         
     end method.
     
@@ -214,10 +219,10 @@ implements IMemptrHolder, IMemoryPointer,
         @param  character The source codepage for the character data
         @param  character The target codepage for the character data
         @return longchar The character/string data requested     */
-    method public longchar GetString(input piStartPos as int64,
-                                     input piSliceSize as int64,
-                                     input pcSourceCodepage as character,
-                                     input pcTargetCodepage as character):
+    method public longchar GetString (input piStartPos as int64,
+                                      input piSliceSize as int64,
+                                      input pcSourceCodepage as character,
+                                      input pcTargetCodepage as character):
         define variable lcData as longchar no-undo.
 
         Assert:IsPositive(piStartPos, 'Start position').
@@ -242,7 +247,7 @@ implements IMemptrHolder, IMemoryPointer,
         
         @param int64 The number of bytes to return
         @return Memptr The complete data */
-    method public class Memptr GetBytes(input piStartPos as int64):
+    method public class Memptr GetBytes (input piStartPos as int64):
         Assert:IsPositive(piStartPos, 'Start position').
         
         return GetBytes(piStartPos, this-object:Size - piStartPos).
@@ -254,8 +259,8 @@ implements IMemptrHolder, IMemoryPointer,
         @param int64 The starting position
         @param int64 The number of bytes to return
         @return Memptr The complete bucket data */
-    method public class Memptr GetBytes(input piStartPos as int64,
-                                        input piSliceSize as int64):
+    method public class Memptr GetBytes (input piStartPos as int64,
+                                         input piSliceSize as int64):
         define variable mSlice as memptr no-undo.
         define variable oSlice as class Memptr no-undo.
         
@@ -286,8 +291,8 @@ implements IMemptrHolder, IMemoryPointer,
     
         @param int64 The pointer to memory represented by a memptr (via get-pointer-value). 
         @param int64 The size of the memptr represented by the pointer value. */
-    method public void PutBytes(input piPointerValue as int64,
-                                input piSize as int64):
+    method public void PutBytes (input piPointerValue as int64,
+                                 input piSize as int64):
         define variable mTemp as memptr no-undo.
         
         Assert:IsZeroOrPositive(piPointerValue, 'Pointer').
@@ -317,7 +322,7 @@ implements IMemptrHolder, IMemoryPointer,
         caller is responsible for cleaning up the memptr. 
     
         @param memptr The memptr containing the data. */
-    method public void PutBytes(input pmData as memptr):
+    method public void PutBytes (input pmData as memptr):
         /* jiggery-pokery so we can reuse code without deep-copying 
            memptr's all over the show */
         PutBytes(get-pointer-value(pmData), get-size(pmData)).
@@ -326,7 +331,7 @@ implements IMemptrHolder, IMemoryPointer,
     /** Copies all of the bytes from a raw into this memptr. 
         
         @param raw The raw variable containing the source data */
-    method public void PutBytes(input prData as raw):
+    method public void PutBytes (input prData as raw):
         define variable mData as memptr no-undo.
         
         set-size(mData) = length(prData).
@@ -366,8 +371,20 @@ implements IMemptrHolder, IMemoryPointer,
         end.
         output close.
     end method.
-    
-    method override public character ToString():
+
+    method override public logical Equals (input p0 as Object):
+        if type-of(p0, Memptr) then do:
+            if (this-object:Size eq cast(p0, Memptr):Size) then
+                // If the same size, we need to confirm the contents.
+                return (this-object:GetHash() eq cast(p0, Memptr):GetHash()) eq true.
+            else
+                return false. // If not the same size then we're done.
+        end.
+        else
+            return super:Equals(p0).
+    end method.
+
+    method override public character ToString ():
         return substitute('&1_&2':u, this-object:GetClass():TypeName, get-pointer-value(mmValue)).
     end method.
 
@@ -382,7 +399,7 @@ implements IMemptrHolder, IMemoryPointer,
         @return integer  0 = same object
                         +1 = sorts after
                         -1 = sorts before   */
-    method public integer CompareTo(input pOther as IMemptrHolder):
+    method public integer CompareTo (input pOther as IMemptrHolder):
         var raw toraw, poraw.
 
         Assert:NotNull(pOther, 'CompareTo object').
@@ -407,7 +424,17 @@ implements IMemptrHolder, IMemoryPointer,
         
         // this will raise an error in the Comparer; we should never get here though.
         return ?.
-            
     end method.
-    
+
+    /* Hashing method for creating a proper index for use with Progress.Collections.HashMap
+
+        @return integer Result of the hash-code method using this object's comparable value(s) */
+    method public integer HashCode ( ):
+        // In order to create a meaningful hash for an object instance,
+        // we should follow suite with how the Equals() logic works.
+        // By using the full class name plus the object's comparable value(s)
+        // this should be consistent for any instance of this object type.
+        return hash-code(this-object:GetClass():TypeName, this-object:Value).
+    end method.
+
 end class.

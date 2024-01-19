@@ -1,9 +1,9 @@
-/************************************************************************
-* Copyright (C) 2006-2011,2013,2016,2020 by Progress Software Corporation. * 
-* All rights reserved. Prior versions of this work may contain portions *
-* contributed by participants of Possenet.                              *
-*                                                                       *
-*************************************************************************/
+/********************************************************************************
+* Copyright (C) 2006-2011,2013,2016,2020,2023 by Progress Software Corporation. * 
+* All rights reserved. Prior versions of this work may contain portions         *
+* contributed by participants of Possenet.                                      *
+*                                                                               *
+*********************************************************************************/
 
 
 /* _dmpsddl.p - dump data definitions */
@@ -57,7 +57,8 @@ History:
     fernando    07/18/08    Support for encryption
     fernando    04/08/09    Support for alternate buffer pool
     tmasood     08/17/20    Report warning message while dumping SQL-92 tables
-    tmasood     12/15/20    Fix the code to work with online schema feature    
+    tmasood     12/15/20    Fix the code to work with online schema feature   
+    kberlia     06/06/23    Supporting dump of _field DDM Schema. 
 */
 /*h-*/
 
@@ -72,20 +73,25 @@ DEFINE VARIABLE Seqs        AS CHARACTER    NO-UNDO.
 DEFINE VARIABLE stopped     AS LOGICAL      NO-UNDO init true.
 DEFINE VARIABLE hBuffer2 AS HANDLE NO-UNDO.
 
-DEFINE VARIABLE numCount  AS INTEGER      NO-UNDO.
-DEFINE VARIABLE ix        AS INTEGER      NO-UNDO.
-DEFINE VARIABLE ilast     AS INTEGER      NO-UNDO.
-DEFINE VARIABLE has_lchar AS LOGICAL      NO-UNDO.
-DEFINE VARIABLE c         AS CHARACTER.
-DEFINE VARIABLE dumpPol   AS LOGICAL      NO-UNDO.
-DEFINE VARIABLE dumpAltBuf AS LOGICAL     NO-UNDO.
-DEFINE VARIABLE cMsg       AS CHARACTER   NO-UNDO.
-DEFINE VARIABLE fil-e      AS CHARACTER   NO-UNDO.
-DEFINE VARIABLE cSkipTables AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE myEPolicy  AS prodict.sec._sec-pol-util    NO-UNDO.
-DEFINE VARIABLE myObjAttrs AS prodict.pro._obj-attrib-util NO-UNDO.
-DEFINE VARIABLE brk        AS LOGICAL INITIAL NO NO-UNDO.
+DEFINE VARIABLE numCount    AS INTEGER      NO-UNDO.
+DEFINE VARIABLE ix          AS INTEGER      NO-UNDO.
+DEFINE VARIABLE ilast       AS INTEGER      NO-UNDO.
+DEFINE VARIABLE has_lchar   AS LOGICAL      NO-UNDO.
+DEFINE VARIABLE c           AS CHARACTER.
+DEFINE VARIABLE dumpPol     AS LOGICAL      NO-UNDO.
+DEFINE VARIABLE dumpAltBuf  AS LOGICAL      NO-UNDO.
+DEFINE VARIABLE cMsg        AS CHARACTER    NO-UNDO.
+DEFINE VARIABLE fil-e       AS CHARACTER    NO-UNDO.
+DEFINE VARIABLE cSkipTables AS CHARACTER    NO-UNDO.
+DEFINE VARIABLE tmpfile1    AS CHARACTER    NO-UNDO. /* DDM */
+DEFINE VARIABLE cDDM        AS CHARACTER    NO-UNDO. /* DDM */ 
+DEFINE VARIABLE hBuffer     AS HANDLE       NO-UNDO. /* DDM */
+DEFINE VARIABLE ddmEnabled  AS LOGICAL      NO-UNDO. /* DDM */ 
+DEFINE VARIABLE myEPolicy   AS prodict.sec._sec-pol-util    NO-UNDO.
+DEFINE VARIABLE myObjAttrs  AS prodict.pro._obj-attrib-util NO-UNDO.
+DEFINE VARIABLE brk         AS LOGICAL INITIAL NO NO-UNDO.
 DEFINE STREAM errstr.
+DEFINE STREAM in-str. /* DDM */
 DEFINE NEW SHARED STREAM ddl.
 DEFINE NEW SHARED VARIABLE df-con  AS CHARACTER EXTENT 7    NO-UNDO.
 DEFINE NEW SHARED VARIABLE dfseq  AS INTEGER INITIAL 1 NO-UNDO.
@@ -94,7 +100,21 @@ DEFINE NEW SHARED TEMP-TABLE df-info NO-UNDO
     FIELD df-line AS CHARACTER
     FIELD df-tbl  AS CHARACTER
     FIELD df-fld  AS CHARACTER
-    INDEX rt-line IS PRIMARY df-seq.
+    INDEX rt-line IS PRIMARY df-seq.  
+    
+/* function prototypes ****************************************************/
+FUNCTION getEnvironment RETURNS CHARACTER (
+  INPUT pcVariableName AS CHARACTER) FORWARD.    
+    
+/* functions **************************************************************/
+
+FUNCTION getEnvironment RETURNS CHARACTER (INPUT pcVariableName AS CHARACTER).
+  DEFINE VARIABLE cReturnValue AS CHARACTER NO-UNDO.
+  ASSIGN cReturnValue = OS-GETENV(pcVariableName)
+         cReturnValue = IF cReturnValue EQ ? THEN "":U
+                        ELSE cReturnValue.
+  RETURN cReturnValue.
+END FUNCTION.  /* getEnvironment() */             
     
 /* LANGUAGE DEPENDENCIES START */ /*----------------------------------------*/
 
@@ -129,7 +149,26 @@ if TERMINAL <> ""
 ASSIGN hPreDeployStream  = STREAM ddl:HANDLE
        hTriggersStream   = STREAM ddl:HANDLE
        hPostDeployStream = STREAM ddl:HANDLE
-       hOfflineStream    = STREAM ddl:HANDLE.
+       hOfflineStream    = STREAM ddl:HANDLE.                  
+              
+/* DDM-only related settings */
+CREATE BUFFER hBuffer FOR TABLE "dictdb._Database-feature".
+hBuffer:FIND-FIRST("WHERE _Database-feature._dbfeature_name = ~'Dynamic Data Masking~'",
+                    NO-LOCK) NO-ERROR.
+IF hBuffer:AVAILABLE AND hBuffer::_Dbfeature_enabled = "1" THEN 
+ASSIGN ddmEnabled = TRUE.
+ 
+ASSIGN DumpDDM = IF ddmEnabled THEN getEnvironment("DUMP_DDM":U) ELSE "".
+       
+DELETE OBJECT hBuffer.  
+    
+IF DumpDDM = "Yes" OR DumpDDM = "Both" THEN  
+DO:          
+   hDDMStream = STREAM DDM-str:HANDLE.
+   RUN adecomm/_tmpfile.p (INPUT "-ddm", INPUT ".txt", OUTPUT tmpfile1).   
+   OUTPUT STREAM DDM-str TO VALUE(tmpfile1).
+   PUT STREAM-HANDLE hDDMStream UNFORMATTED "# BEGIN DDM_Schema_Section".           
+END.  
 
 if  user_env[5] = " "
  OR user_env[5] = ? 
@@ -401,6 +440,22 @@ DO ON STOP UNDO, LEAVE:
 
     END. /* while */
   END.
+  
+  /* DDM-only related settings */
+  IF VALID-OBJECT(hDDMStream) THEN 
+  DO:             
+     PUT STREAM-HANDLE hDDMStream UNFORMATTED SKIP(1) "# END DDM_Schema_Section" SKIP(1).     
+     
+     OUTPUT STREAM DDM-str CLOSE.                    
+     INPUT STREAM in-str FROM VALUE(tmpfile1).      
+     REPEAT:
+        IMPORT STREAM in-str UNFORMATTED cDDM.
+        IF cDDM = "" THEN PUT STREAM ddl "" SKIP.
+        PUT STREAM ddl UNFORMATTED cDDM SKIP.
+     END.
+     INPUT STREAM in-str CLOSE.          
+     OS-DELETE VALUE(tmpfile1).    
+  END. /*  IF VALID-OBJECT(hDDMStream) */
 
   /* if encryption not enabled and not assigned to alternate buffer pool,
      don't care about them.

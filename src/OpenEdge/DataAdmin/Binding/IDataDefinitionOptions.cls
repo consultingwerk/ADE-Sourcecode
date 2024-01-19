@@ -1,10 +1,10 @@
-/*************************************************************/
-/* Copyright (c) 2010,2021 by progress Software Corporation  */
-/*                                                           */
-/* all rights reserved.  no part of this program or document */
-/* may be  reproduced in  any form  or by  any means without */
-/* permission in writing from progress Software Corporation. */
-/*************************************************************/
+/******************************************************************/
+/* Copyright (c) 2010,2021,2023 by progress Software Corporation  */
+/*                                                                */
+/* all rights reserved.  no part of this program or document      */
+/* may be  reproduced in  any form  or by  any means without      */
+/* permission in writing from progress Software Corporation.      */
+/******************************************************************/
 /*------------------------------------------------------------------------
     File        : IDataDefinitionOptions
     Purpose     : Pass options to prodict load df
@@ -64,7 +64,11 @@ interface OpenEdge.DataAdmin.Binding.IDataDefinitionOptions:
     define public property PreDeployLoad        as char no-undo get. set.
     define public property TriggerLoad          as char no-undo get. set.
     define public property PostDeployLoad       as char no-undo get. set.
-    define public property OfflineLoad          as char no-undo get. set.      
+    define public property OfflineLoad          as char no-undo get. set.     
+
+    /** DDM schema load **/
+    define public property DDMLoad          as char no-undo get. set.
+    define public property IgnoreDDMLoad    as char no-undo get. set.	
     
     /** contains load errors if any  */
     define public property ErrorLog as character no-undo 

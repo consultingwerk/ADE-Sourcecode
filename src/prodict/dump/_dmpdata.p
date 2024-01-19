@@ -1,9 +1,8 @@
-/*********************************************************************
-* Copyright (C) 2007,2011,2017 by Progress Software Corporation. All *
-* rights reserved.  Prior versions of this work may contain portions *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/************************************************************************
+* Copyright (C) 2007,2011,2017,2023 by Progress Software Corporation.   *
+* All rights reserved. Prior versions of this work may contain portions *
+* contributed by participants of Possenet.                              *
+************************************************************************/
 
 /* _dmpdata.p */ /**** Data Dictionary dump contents module ****/ 
 
@@ -39,6 +38,7 @@ History:
     fernando    Jun 19, 2007  Support for large files
     fernando    Dec 12, 2007  Improved how we use user_env[4].
     rkamboj 	11/11/2011 Fixed issue of dump data for Lob field. bug OE00214956.
+	tmasood     Jul 27, 2023  Exclude two fields from dump of _sec-auth-tag
 */
 /*h-*/
 
@@ -162,7 +162,7 @@ IF SESSION:CPINTERNAL EQ "undefined":U THEN
 &ELSE 
   cSlash = "~\".
 &ENDIF
- 
+
 IF NOT isCpUndefined THEN 
 DO:
 
@@ -373,7 +373,7 @@ DO ON STOP UNDO, LEAVE:
     END.
   
     DO FOR DICTDB._File ix = 1 to numCount ON ERROR UNDO,NEXT:
-
+ 
         ASSIGN cTemp = IF has_lchar THEN ENTRY(ix,user_longchar) ELSE ENTRY(ix,user_env[1]).
     
         IF INTEGER(DBVERSION("DICTDB")) > 8 THEN 
@@ -383,7 +383,7 @@ DO ON STOP UNDO, LEAVE:
         ELSE
             FIND DICTDB._File WHERE DICTDB._File._Db-recid = drec_db 
              AND DICTDB._File._File-name = cTemp.
-            
+        
         IF loop THEN .
         ELSE if user_env[6] NE "dump-silent"  then 
         do:
@@ -601,6 +601,10 @@ DO ON STOP UNDO, LEAVE:
         do:
 /*             tableexpression = "WHERE DICTDB2._sec-authentication-domain._Domain-category = 0 " + tableexpression.*/
                exceptfields = "EXCEPT _Domain-id".
+        end.
+		else if dictdb._file._file-name = "_sec-auth-tag" then
+        do:
+               exceptfields = "EXCEPT _Auth-tag-res1 _Auth-tag-res2".
         end.
 /*        else if dictdb._file._file-name = "_sec-authentication-system" then                                                     */
 /*        do:                                                                                                                     */

@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2019, 2021-2022 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2019, 2021-2023 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : ClassOperationHandler
@@ -33,19 +33,19 @@ using Progress.Lang.ParameterList.
 using Progress.Reflect.DataType.
 
 class OpenEdge.Web.DataObject.ClassOperationHandler  inherits OperationHandler:
-    
+
     /* Default constructor */
     constructor public ClassOperationHandler():
         super().
     end constructor.
-    
+
     /* Executes the operation.
-    
+
        This is a big, big, huge ugly method because we have to keep the variables used
        by the ParameterList object in scope - particularly for output values -
        and so cannot create the param list anywhere but in the same method in
        which we invoke the method.
-       
+
        @param IWebRequest The request that resulting in the exception
        @param P.L.Object The message body of the incoming request. Typically
                          will be transformed from bytes into something useful; may also have an envelope removed.
@@ -70,7 +70,7 @@ class OpenEdge.Web.DataObject.ClassOperationHandler  inherits OperationHandler:
         define variable idx as integer no-undo.
         define variable cnt as integer no-undo.
         define variable loop as integer no-undo.
-        
+
         /* 32 array vars per data-type */
         {OpenEdge/Web/DataObject/doh_execute_defvar.i &data-type=character}
         {OpenEdge/Web/DataObject/doh_execute_defvar.i &data-type=longchar}
@@ -89,16 +89,16 @@ class OpenEdge.Web.DataObject.ClassOperationHandler  inherits OperationHandler:
         {OpenEdge/Web/DataObject/doh_execute_defvar.i &data-type=recid}
         {OpenEdge/Web/DataObject/doh_execute_defvar.i &data-type=rowid}
         {OpenEdge/Web/DataObject/doh_execute_defvar.i &data-type=Progress.Lang.Object &name-suffix=plo}
-        
+
         Assert:NotNull(poRequest,   'Web request').
         Assert:NotNull(poResponse,  'Web response').
         Assert:NotNull(pService, 'Service').
         Assert:NotNull(poOperation, 'Mapped operation').
         Assert:NotNull(poEntity, 'Entity').
-        
+
         assign args = BuildArguments(poRequest, poMessageBody, poResponse, pService, poOperation).
         Assert:NotUnknown(args, 'Operation args').
-        
+
         /* create ParameterList from operation params (IN, IN-OUT, OUT ) */
         assign execTime[1] = now
                oParamList  = new ParameterList(poOperation:Parameters:Size)
@@ -148,9 +148,9 @@ class OpenEdge.Web.DataObject.ClassOperationHandler  inherits OperationHandler:
                 {OpenEdge/Web/DataObject/doh_execute_setparam_scalar.i &PARAM-IDX=idx &OPER-ARG=oOperArg &ARG-TYPE=tt          &ARG-VALUE-TYPE=Ccs.Common.Support.IHandleHolder   &SWITCH-VALUE=table-handle   }
                 {OpenEdge/Web/DataObject/doh_execute_setparam_scalar.i &PARAM-IDX=idx &OPER-ARG=oOperArg &ARG-TYPE=plo         &ARG-VALUE-TYPE=Progress.Lang.Object               &SWITCH-VALUE=class          }
             end case.    /* scalar */
-            
+
             assign paramTime[2] = now.
-            
+
             Logger:Trace(substitute('&4: SetParameter(&1 [&6], &2&7, &3) &5 (&8ms)',
                                 idx,
                                 oOperArg:Parameter:DataType,
@@ -161,12 +161,12 @@ class OpenEdge.Web.DataObject.ClassOperationHandler  inherits OperationHandler:
                                 string(oOperArg:Parameter:IsArray, '[]/  ':u),
                                 interval(paramTime[2], paramTime[1], string(DateTimeAddIntervalEnum:Milliseconds)) )).
         end.
-        
+
         assign execTime[2] = now.
         Logger:Debug(substitute('Arguments for &1:&2 initialized in &3ms',
                                 poOperation:TargetName, poOperation:TargetFunction,
                                 interval(execTime[2], execTime[1], string(DateTimeAddIntervalEnum:Milliseconds)))).
-        
+
         /* FIND THE METHOD TO INVOKE */
         assign oMethod = GetEntityMethod(poEntity, poOperation:TargetFunction, oParamList).
         if not valid-object(oMethod) then
@@ -175,7 +175,7 @@ class OpenEdge.Web.DataObject.ClassOperationHandler  inherits OperationHandler:
                                                     string(poOperation)),
                                                     0)).
         Logger:Trace(substitute('Using method &1 for operation &2', oMethod:ToString(), poOperation:ToString())).
-        
+
         /* INVOKE & HANDLE RETURN-VALUE */
         /* either we haven't set up a return parameter or there is none. Either way ignore it. */
         assign oOperArg = args:Get(1).
@@ -191,7 +191,7 @@ class OpenEdge.Web.DataObject.ClassOperationHandler  inherits OperationHandler:
         end.
         else
             assign oValueWriter = ?.
-        
+
         assign execTime[1] = now.
         // the writer will only be valid if there's a valid return arg
         if valid-object(oValueWriter) then
@@ -211,7 +211,7 @@ class OpenEdge.Web.DataObject.ClassOperationHandler  inherits OperationHandler:
                 {OpenEdge/Web/DataObject/doh_execute_invoke.i &OPER-ARG=oOperArg &VAR-DATA-TYPE=Handle     }
                 {OpenEdge/Web/DataObject/doh_execute_invoke.i &OPER-ARG=oOperArg &VAR-DATA-TYPE=Date       }
                 {OpenEdge/Web/DataObject/doh_execute_invoke.i &OPER-ARG=oOperArg &VAR-DATA-TYPE=Datetime   }
-                 
+
                 {OpenEdge/Web/DataObject/doh_execute_invoke.i &OPER-ARG=oOperArg &VAR-DATA-TYPE=Datetime-TZ &RETURN-TYPE=DatetimeTZ }
                 {OpenEdge/Web/DataObject/doh_execute_invoke.i &OPER-ARG=oOperArg &VAR-DATA-TYPE=handle      &RETURN-TYPE=DataSet}
                 {OpenEdge/Web/DataObject/doh_execute_invoke.i &OPER-ARG=oOperArg &VAR-DATA-TYPE=handle      &RETURN-TYPE=DataSetHandle}
@@ -221,22 +221,22 @@ class OpenEdge.Web.DataObject.ClassOperationHandler  inherits OperationHandler:
                 otherwise
                     undo, throw new AppError(substitute('Unsupported data type &1', string(oMethod:ReturnType)), 0).
             end case.   /* return types */
-            
+
             oValueWriter:Close().
             assign oOperArg:ArgumentValue = oValueWriter:Value.
-            
+
             SetOutputValue(oOperArg, poResponse).
         end.
         else
             /* This invoke is basically what doh_execute_invoke.i does, but there are
                no return values to deal with in this case (or we don't care about them). */
             oMethod:Invoke(poEntity, oParamList).
-        
+
         assign execTime[2] = now.
         Logger:Trace(substitute('Execution time for &1:&2 = &3 (ms)',
                                 poOperation:TargetName, poOperation:TargetFunction,
                                 interval(execTime[2], execTime[1], string(DateTimeAddIntervalEnum:Milliseconds)))).
-        
+
         /* HANDLE OUTPUT args */
         assign execTime[1] = now.
         OUTPUT-ARGS-LOOP:
@@ -245,18 +245,18 @@ class OpenEdge.Web.DataObject.ClassOperationHandler  inherits OperationHandler:
             // We've done INPUT (we want OUTPUT and INPUT-OUTPUT)
             if not oOperArg:Parameter:IoMode:IsFlagSet(IOModeEnum:Output) then
                 next OUTPUT-ARGS-LOOP.
-            
+
             assign oValueWriter = ArgumentValueWriterBuilder:Build(oOperArg)
                                     :Logger(this-object:Logger)
                                     :Writer.
             Assert:NotNull(oValueWriter, 'Argument value writer').
-            
+
             // If this is an IN-OUT operation we can reuse the ArgValue object
             if valid-object(oOperArg:ArgumentValue) then
                 assign oValueWriter:Value = oOperArg:ArgumentValue.
-            
+
             oValueWriter:Open().
-            
+
             /* The datatype of the ABL parameter. */
             case oOperArg:Parameter:DataType:
                 {OpenEdge/Web/DataObject/doh_execute_setargvalues.i &OPER-ARG=oOperArg &DATA-TYPE=integer     }
@@ -279,19 +279,19 @@ class OpenEdge.Web.DataObject.ClassOperationHandler  inherits OperationHandler:
                 otherwise
                     undo, throw new AppError(substitute('Unsupported data type &1', oOperArg:Parameter:ABLType), 0).
             end case.   /* oOperParam:ABLType */
-            
+
             oValueWriter:Close().
             /* get the values from the writer, incl object writers */
             assign oOperArg:ArgumentValue = oValueWriter:Value.
-            
+
             SetOutputValue(oOperArg, poResponse).
         end.
-        
+
         assign execTime[2] = now.
         Logger:Trace(substitute('Building output values time for &1:&2 (num-params:&3) = &4 (ms)',
                                 poOperation:TargetName, poOperation:TargetFunction, poOperation:Parameters:Size,
                                 interval(execTime[2], execTime[1], string(DateTimeAddIntervalEnum:Milliseconds)))).
-        
+
         return integer(StatusCodeEnum:None).
         finally:
             /* clean variables */
@@ -300,7 +300,7 @@ class OpenEdge.Web.DataObject.ClassOperationHandler  inherits OperationHandler:
             set-size(retval_scalar_memptr) = 0.
             do iCleanLoop = extent(retval_arr_memptr) to 1 by -1: set-size(retval_arr_memptr[iCleanLoop]) = 0. end.
             do iCleanLoop = extent(arg_scalar_memptr) to 1 by -1: set-size(arg_scalar_memptr[iCleanLoop]) = 0. end.
-            
+
             do iCleanLoop = extent(arg_arr_memptr_01) to 1 by -1: set-size(arg_arr_memptr_01[iCleanLoop]) = 0. end.
             do iCleanLoop = extent(arg_arr_memptr_02) to 1 by -1: set-size(arg_arr_memptr_02[iCleanLoop]) = 0. end.
             do iCleanLoop = extent(arg_arr_memptr_03) to 1 by -1: set-size(arg_arr_memptr_03[iCleanLoop]) = 0. end.
@@ -335,10 +335,10 @@ class OpenEdge.Web.DataObject.ClassOperationHandler  inherits OperationHandler:
             do iCleanLoop = extent(arg_arr_memptr_32) to 1 by -1: set-size(arg_arr_memptr_32[iCleanLoop]) = 0. end.
         end finally.
     end method.
-    
+
     /* Attempts to find a method by reflection, using the name and # parameters.
        Methods must be public and instance-based
-       
+
        @param P.L.Object The business logic code
        @param character The name of the method
        @param ParameterList The list of parameters for this operation
@@ -356,7 +356,7 @@ class OpenEdge.Web.DataObject.ClassOperationHandler  inherits OperationHandler:
         define variable hasMatchingSig as logical no-undo.
         define variable hasMatchingName as logical no-undo.
         define variable methFlags as Progress.Reflect.Flags no-undo.
-        
+
         assign entityType           = pEntity:GetClass()
                extent(targetMethod) = 1
                methFlags            = (   Progress.Reflect.Flags:Instance
@@ -371,7 +371,7 @@ class OpenEdge.Web.DataObject.ClassOperationHandler  inherits OperationHandler:
             // this block attempts to figure out what failed in the GetMethod() call
             Logger:Debug(substitute('Unable to find PUBLIC instance method &1 in entity &2 with matching parameters (&3)',
                             pMethodName, entityType:TypeName, pParams:NumParameters)).
-            
+
             // Is the access level wrong?
             assign methFlags       = (   Progress.Reflect.Flags:Instance
                                       or Progress.Reflect.Flags:Private
@@ -384,7 +384,7 @@ class OpenEdge.Web.DataObject.ClassOperationHandler  inherits OperationHandler:
                                 pMethodName, caps(string(targetMethod[1]:AccessMode)))).
                 return ?.
             end.
-            
+
             // Is it a static method?
             assign methFlags       = (   Progress.Reflect.Flags:Static
                                       or Progress.Reflect.Flags:Public
@@ -398,7 +398,7 @@ class OpenEdge.Web.DataObject.ClassOperationHandler  inherits OperationHandler:
                                 pMethodName, caps(string(targetMethod[1]:AccessMode)))).
                 return ?.
             end.
-            
+
             assign extent(targetMethod) = ?
                    methFlags            = (   Progress.Reflect.Flags:Instance
                                            or Progress.Reflect.Flags:Public)
@@ -411,7 +411,7 @@ class OpenEdge.Web.DataObject.ClassOperationHandler  inherits OperationHandler:
             do loop = 1 to cnt:
                 if not targetMethod[loop]:Name eq pMethodName then
                     next METHOD-LOOP.
-                
+
                 assign hasMatchingName = yes.
                 if targetMethod[loop]:NumParameters eq pParams:NumParameters then
                 do:
@@ -431,19 +431,19 @@ class OpenEdge.Web.DataObject.ClassOperationHandler  inherits OperationHandler:
                         end case.
                     end.
                 end.
-                
+
                 if not hasMatchingSig then
                     Logger:Debug(substitute('Method &1 exists and is PUBLIC but does not have the expected number of parameters - &2',
                                                 pMethodName, pParams:NumParameters )).
             end.
-            
+
             if not hasMatchingName then
                 Logger:Debug(substitute('Method &1 does not exist in entity &2', pMethodName, entityType:TypeName )).
-            
+
             // we know we couldn't find the right one
             return ?.
         end.
-        
+
         return targetMethod[1].
     end method.
 

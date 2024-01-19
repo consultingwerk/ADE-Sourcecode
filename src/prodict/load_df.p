@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2007-2010,2021 by Progress Software Corporation. All rights *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/*************************************************************************
+* Copyright (C) 2007-2010,2021,2023 by Progress Software Corporation.    *
+* All rights reserved.  Prior versions of this work may contain portions *
+* contributed by participants of Possenet.                               *
+*                                                                        *
+**************************************************************************/
 
 /*----------------------------------------------------------------------------
 
@@ -22,7 +22,8 @@ Used/Modified Shared Objects:
     
 History:
     moved to prodict/dump/_load_df.p See
-    added new parameters for online schema change 
+    added new parameters for online schema change
+    added new parameters for DDM schema load 	
 ----------------------------------------------------------------------------*/
  
 /*==========================  DEFINITIONS ===========================*/
@@ -43,6 +44,7 @@ define variable dictOptions as OpenEdge.DataAdmin.Binding.IDataDefinitionOptions
              Just passing in file name "sports.df".
              Commit with errors and loading on-line = "sports,df,yes,NEW OBJECTS,yes,yes,yes,yes" 
              Do not commit with errors and loading on line = "sports.df,,NEW OBJECTS,yes,yes,yes,yes"
+			 Commit with errors and loading DDM Schema only = "sports.df,yes,NEW OBJECTS,no,no,no,no,yes,no" 
 */   
 
  
@@ -76,6 +78,19 @@ IF NUM-ENTRIES(df-file-name) > 3 THEN DO:
                  dictOptions:TriggerLoad     = IF ENTRY(5,df-file-name) = "" THEN "no" ELSE ENTRY(5,df-file-name)
                  dictOptions:PostDeployLoad  = IF ENTRY(6,df-file-name) = "" THEN "no" ELSE ENTRY(6,df-file-name) 
                  dictOptions:OfflineLoad     = IF ENTRY(7,df-file-name) = "" THEN "no" ELSE ENTRY(7,df-file-name).
+		WHEN 8 THEN
+          ASSIGN dictOptions:PreDeployLoad   = IF ENTRY(4,df-file-name) = "" THEN "no" ELSE ENTRY(4,df-file-name)
+                 dictOptions:TriggerLoad     = IF ENTRY(5,df-file-name) = "" THEN "no" ELSE ENTRY(5,df-file-name)
+                 dictOptions:PostDeployLoad  = IF ENTRY(6,df-file-name) = "" THEN "no" ELSE ENTRY(6,df-file-name) 
+                 dictOptions:OfflineLoad     = IF ENTRY(7,df-file-name) = "" THEN "no" ELSE ENTRY(7,df-file-name)
+                 dictOptions:DDMLoad         = IF ENTRY(8,df-file-name) = "" THEN "no" ELSE ENTRY(8,df-file-name).
+        WHEN 9 THEN
+          ASSIGN dictOptions:PreDeployLoad   = IF ENTRY(4,df-file-name) = "" THEN "no" ELSE ENTRY(4,df-file-name)
+                 dictOptions:TriggerLoad     = IF ENTRY(5,df-file-name) = "" THEN "no" ELSE ENTRY(5,df-file-name)
+                 dictOptions:PostDeployLoad  = IF ENTRY(6,df-file-name) = "" THEN "no" ELSE ENTRY(6,df-file-name) 
+                 dictOptions:OfflineLoad     = IF ENTRY(7,df-file-name) = "" THEN "no" ELSE ENTRY(7,df-file-name)
+                 dictOptions:DDMLoad         = IF ENTRY(8,df-file-name) = "" THEN "no" ELSE ENTRY(8,df-file-name)
+                 dictOptions:IgnoreDDMLoad   = IF ENTRY(9,df-file-name) = "" THEN "no" ELSE ENTRY(9,df-file-name).
     END CASE.
 END.
 ELSE

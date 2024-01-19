@@ -3,16 +3,17 @@
 *************************************************/
 /*------------------------------------------------------------------------
     File        : dboptionspolicy_set.p
-    Purpose     : set database policy option 
+    Purpose     : set database policy option
 
-    Syntax      : dbpolicyutil <type>.<policyName=value>,<type>.<policyName=value>.... db -S 7848 -U foo -P bar 
+    Syntax      : dbpolicyutil <type>.<policyName=value>,<type>.<policyName=value>.... db -S 7848 -U foo -P bar
 
-    Description : This procedure is used to set any database options using dbpolicyutil command. 
+    Description : This procedure is used to set any database options using dbpolicyutil command.
                   The command is going to support wide range of command options
 
     Author(s)   : mkondra
     Created     : Wed Aug 07 18:07:30 IST 2019
     Notes       :
+    Patches     : 12.6 KB - Modified the code to delete the hCurrentUser object before the program exits to avoid memory leak issue.
   ----------------------------------------------------------------------*/
 
 /* ***************************  Definitions  ************************** */
@@ -56,32 +57,32 @@ define variable hCurrentUser   as handle                no-undo.
 sessionParams = session:parameter.
 
 /* check user permissions */
-assign hCurrentUser = get-db-client(ldbname(1)). 
+assign hCurrentUser = get-db-client(ldbname(1)).
 
 oDAS = new DataAdminService(ldbname(1)).
 
-assign 
+assign
     iMax = num-entries (sessionParams).
 do iLoop = 1 to iMax:
-    assign 
+    assign
         policyEntry = entry(iLoop, trim(sessionParams))
         policyValue = entry(2, policyEntry, '=':u).
-        
+
     case entry(1, policyEntry, '=':u):
-        when entry(4, dbopt_lkup[1], ':':u) then run SetDatabaseOption(policyValue, 1).            
-        when entry(4, dbopt_lkup[2], ':':u) then run SetDatabaseOption(policyValue, 2).   
-        when entry(4, dbopt_lkup[3], ':':u) then run SetDatabaseOption(policyValue, 3).  
-        when entry(4, dbopt_lkup[4], ':':u) then run SetDatabaseOption(policyValue, 4).    
-        when entry(4, dbopt_lkup[5], ':':u) then run SetDatabaseOption(policyValue, 5).        
-        when entry(4, dbopt_lkup[6], ':':u) then run SetDatabaseOption(policyValue, 6).            
-        when entry(4, dbopt_lkup[7], ':':u) then run SetDatabaseOption(policyValue, 7).            
-        when entry(4, dbopt_lkup[8], ':':u) then run SetDatabaseOption(policyValue, 8).            
-        when entry(4, dbopt_lkup[9], ':':u) then run SetDatabaseOption(policyValue, 9).         
-        when 'LOG':u then 
+        when entry(4, dbopt_lkup[1], ':':u) then run SetDatabaseOption(policyValue, 1).
+        when entry(4, dbopt_lkup[2], ':':u) then run SetDatabaseOption(policyValue, 2).
+        when entry(4, dbopt_lkup[3], ':':u) then run SetDatabaseOption(policyValue, 3).
+        when entry(4, dbopt_lkup[4], ':':u) then run SetDatabaseOption(policyValue, 4).
+        when entry(4, dbopt_lkup[5], ':':u) then run SetDatabaseOption(policyValue, 5).
+        when entry(4, dbopt_lkup[6], ':':u) then run SetDatabaseOption(policyValue, 6).
+        when entry(4, dbopt_lkup[7], ':':u) then run SetDatabaseOption(policyValue, 7).
+        when entry(4, dbopt_lkup[8], ':':u) then run SetDatabaseOption(policyValue, 8).
+        when entry(4, dbopt_lkup[9], ':':u) then run SetDatabaseOption(policyValue, 9).
+        when 'LOG':u then
             do:
                 /* dump info to temp file*/
                 fRandomValue = entry(2, policyEntry, '=':u).
-                assign 
+                assign
                     cRunLog = GetOutputFolder(cFolder) + '/dbpolicyutil_' + fRandomValue + '.log':u.
                     InitLog().
                 if hCurrentUser:qualified-user-id eq '':u then
@@ -89,15 +90,15 @@ do iLoop = 1 to iMax:
                     PutDirectMessage(substitute('Blank userids cannot set policy options for db &1', quoter(ldbname(1)))).
                     return.
                 end.
-       
+
                 if not IsAdmin(hCurrentUser:qualified-user-id) then
-                do: 
+                do:
                    PutDirectMessage(substitute('Current user is not a security admin for db &1', quoter(ldbname(1)))).
                    return.
                 end.
             end.
         otherwise do:
-            run UsageHelp.            
+            run UsageHelp.
             run GetAllHelp.
             run PutNewLine.
             PutDirectMessage("EXAMPLE:":u).
@@ -109,46 +110,46 @@ end.
 
 PROCEDURE SetDatabaseOption:
     DEFINE input PARAMETER policyValue AS character NO-UNDO.
-    DEFINE input PARAMETER idx AS int NO-UNDO.    
-    
+    DEFINE input PARAMETER idx AS int NO-UNDO.
+
     policyName = ENTRY(1, dbopt_lkup[idx],":").
-    
+
     //safeuserid has different set of policy values.
     //handle them separately
     if (idx eq 8) then
-        run MapPolicyValueForSafeUserId(input-output policyValue).   
-    
-    if lookup(policyValue, dbopt_vals[idx],"#") le 0 then 
+        run MapPolicyValueForSafeUserId(input-output policyValue).
+
+    if lookup(policyValue, dbopt_vals[idx],"#") le 0 then
     do:
         PutDirectMessage(substitute('Unable to set database policy option &1 to invalid value &2':u, quoter(policyName), quoter(policyValue))).
         return.
-    end.    
-    
+    end.
+
     oDbOpt = oDAS:GetDatabaseOption(ENTRY(4, dbopt_lkup[idx],":")).
 
-    if valid-object(oDbOpt) then 
+    if valid-object(oDbOpt) then
     do:
-        if oDbOpt:OptionValue ne policyValue then 
-        do:       
+        if oDbOpt:OptionValue ne policyValue then
+        do:
             if (idx eq 8) then
                 oDbOpt:OptionValue = policyValue.
             else oDbOpt:OptionValue = upper(policyValue). //we need uppercase value to syncup with OEM UI
-            
+
             oDAS:UpdateDatabaseOption(oDbOpt).
             PutDirectMessage(substitute('Database policy option &1 is now set to &2':u, quoter(policyName), quoter(policyValue))).
         end.
         else PutDirectMessage(substitute('Database policy option &1 is already set to &2':u, quoter(policyName), quoter(policyValue))).
-    end.  
-    else 
-    do:     
+    end.
+    else
+    do:
         oDbOpt             = oDAS:NewDatabaseOption(ENTRY(4, dbopt_lkup[idx],":")).
         oDbOpt:Description = ENTRY(2, dbopt_desc[idx],":").
         oDbOpt:OptionType  = integer(DatabaseOptionTypeEnum:GeneralSecurity).
         oDbOpt:OptionValue = policyValue.
         oDAS:CreateDatabaseOption(oDbOpt).
-        
+
         PutDirectMessage(substitute('Database policy option &1 is created and is set to &2':u, quoter(policyName), quoter(policyValue))).
-    end.  
+    end.
     catch e as Progress.Lang.Error:
        PutDirectMessage(substitute("Error while setting database policy option &1: &2":u,quoter(policyName), e:GetMessage(1))).
         errorHandler = new DataAdminErrorHandler().
@@ -158,7 +159,7 @@ PROCEDURE SetDatabaseOption:
         if valid-object(oDbOpt) then
             delete object oDbOpt no-error.
     end finally.
-    
+
 END PROCEDURE.
 
 /**
@@ -167,26 +168,26 @@ END PROCEDURE.
  **/
 PROCEDURE MapPolicyValueForSafeUserId:
     define input-output parameter policValue as char no-undo.
-    
+
     case policValue:
-        when "preact":u then policValue = "ENABLED:preact":u.            
-        when "postact":u then policValue = "ENABLED:postact":u.   
-        when "predeact":u then policValue = "ENABLED:predeact":u.  
-        when "postdeact":u then policValue = "ENABLED:postdeact":u. 
-        when "disabled":u then policValue = "DISABLED":u. 
-    end case.                
+        when "preact":u then policValue = "ENABLED:preact":u.
+        when "postact":u then policValue = "ENABLED:postact":u.
+        when "predeact":u then policValue = "ENABLED:predeact":u.
+        when "postdeact":u then policValue = "ENABLED:postdeact":u.
+        when "disabled":u then policValue = "DISABLED":u.
+    end case.
 END PROCEDURE.
 
-if valid-object(oDAS) then
-    delete object oDAS no-error.
-
 catch e as Progress.Lang.Error:
-    if valid-object(oDAS) then
-        delete object oDAS no-error.
-        
-    PutDirectMessage("Error while setting database policy option: ":u + e:GetMessage(1)).
-    errorHandler = new DataAdminErrorHandler().
-    errorHandler:Error(e).
+   PutDirectMessage("Error while setting database policy option: ":u + e:GetMessage(1)).
+   errorHandler = new DataAdminErrorHandler().
+   errorHandler:Error(e).
 end catch.
 
+finally:
+   if valid-object(oDAS) then
+      delete object oDAS no-error.
+   if valid-object(hCurrentUser) then
+      delete object hCurrentUser no-error.
+end.
 /* eof */

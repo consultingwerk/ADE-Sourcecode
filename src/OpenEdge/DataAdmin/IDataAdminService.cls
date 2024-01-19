@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2014-2016,2019 by Progress Software Corporation  */
+/* Copyright (c) 2014-2016,2019,2023 by Progress Software Corporation  */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -9,7 +9,6 @@
    Purpose     : Data Admin Service with crud methods for collections (IDataAdminCollection) 
                  and entities (IDataAdminElement) and ExecuteUtility for IDataAdminUtility 
                  instances. 
-                  
    Syntax      : 
    Description : 
    Author(s)   : hdaniels
@@ -23,6 +22,8 @@ using OpenEdge.DataAdmin.Core.IPasswordPolicy from propath.
 using OpenEdge.DataAdmin.IAdministrator from propath.
 using OpenEdge.DataAdmin.IArea from propath.
 using OpenEdge.DataAdmin.IAreaSet from propath.
+using OpenEdge.DataAdmin.IAuthTag from propath.
+using OpenEdge.DataAdmin.IAuthTagSet from propath.
 using OpenEdge.DataAdmin.IAuthenticationSystem from propath.
 using OpenEdge.DataAdmin.IAuthenticationSystemSet from propath.
 using OpenEdge.DataAdmin.ICdcFieldPolicy from propath.
@@ -73,7 +74,7 @@ interface OpenEdge.DataAdmin.IDataAdminService :
 	define public event ServiceDeleted     signature void ().
 	
 	/** Url for REST - will be returned as first part of url properties in JSON */
-    define public property Url as char no-undo get. set.
+    define public property Url as character no-undo get. set.
     
     /** ThrowDataError - true  - throw data errors as other errors
                          false - don't throw data errors. All data errors to the Error property 
@@ -127,7 +128,14 @@ interface OpenEdge.DataAdmin.IDataAdminService :
         @param IAreaSet with a collection of areas to create */
     method public logical CreateAreas(areas as IAreaSet).
     
-    
+    /** Create a new auth tag  
+        @param IAuthTag to be created */
+    method public logical CreateAuthTag(tag as IAuthTag).
+        
+    /** Create new auth tags  
+        @param IAuthTagSet with a collection of areas to create */
+    method public logical CreateAuthTags(tags as IAuthTagSet).
+
     /** Create a new authentication system  
         @param system IAuthenticationSystem to be created */
     method public logical CreateAuthenticationSystem(authenticationsystem as IAuthenticationSystem).
@@ -224,6 +232,12 @@ interface OpenEdge.DataAdmin.IDataAdminService :
         @return logical TRUE if the dboptions were created */
     method public logical CreateDatabaseOptions(input poDbOption as IDatabaseOptionSet).
 
+    /** Delete a role and auth tag relation
+        @param character The name of the role to delete
+        @param character The name of the auth tag to delete
+        @throws NotFoundError if auth tag record does not exist */
+    method public logical DeleteAuthTag(input pcRoleName as character, input pcAuthTag as character).
+
     /** Delete granted role   
         @param character The ID of the granted role to delete
         @throws NotFoundError if role does not exist */
@@ -232,45 +246,55 @@ interface OpenEdge.DataAdmin.IDataAdminService :
     /** Delete domain  
         @param domainName name of domain to delete 
         @throws NotFoundError if domain does not exist */
-    method public logical DeleteDomain(domainName as char).
+    method public logical DeleteDomain(domainName as character).
     
     /** Delete authentication system
         @param authenticationsystemName name of authentication system to delete. 
         @throws NotFoundError if authentication system does not exist. */
-    method public logical DeleteAuthenticationSystem(authenticationsystemName as char).
+    method public logical DeleteAuthenticationSystem(authenticationsystemName as character).
 
     /** Delete PartitionPolicy 
         @param policyName name of policy to delete. 
         @throws NotFoundError if policy does not exist. */
-    method public logical DeletePartitionPolicy(tenantName as char).
+    method public logical DeletePartitionPolicy(tenantName as character).
     
     /** Delete CdcTablePolicy 
         @param cdc table policyName name of policy to delete. 
         @throws NotFoundError if policy does not exist. */
-    method public logical DeleteCdcTablePolicy(cdctablepolicyName as char).
-   
+    method public logical DeleteCdcTablePolicy(cdctablepolicyName as character).
+
+    /** Delete a role  
+        @param character The role to delete
+        @throws NotFoundError if role does not exist. */
+    method public logical DeleteRole(roleName as character).
+
+    /** Delete a role  
+        @param IRole The role to delete
+        @throws NotFoundError if role does not exist. */
+    method public logical DeleteRole(role as IRole).
+
     /** Delete tenant 
         @param tenantName name of tenant to delete. 
         @throws NotFoundError if tenant does not exist. */
-    method public logical DeleteTenant(tenantName as char).
+    method public logical DeleteTenant(tenantName as character).
         
     /** Delete group 
         @param groupName name of group to delete. 
         @throws NotFoundError if group does not exist. */
-    method public logical DeleteTenantGroup(groupName as char).
+    method public logical DeleteTenantGroup(groupName as character).
     
     /** Delete sequence  
         @param sequenceName name of sequence to delete. 
         @throws NotFoundError if sequence does not exist. */
-    method public logical DeleteSequence(seqname as char).
+    method public logical DeleteSequence(seqname as character).
     
     /** Delete domain  
         @param domainName name of domain to delete 
         @throws NotFoundError if user does not exist */
-    method public logical DeleteUser(usrId as char).
+    method public logical DeleteUser(usrId as character).
     
     /** Get a collection of the specified serializename, entity name or physical database filename  */
-    method public IDataAdminCollection GetCollection(pcname as char).
+    method public IDataAdminCollection GetCollection(pcname as character).
     
      /** Get a collection specified by the request in the database */
     method public IDataAdminCollection GetCollection(pRequestInfo as IRequestInfo):
@@ -280,7 +304,7 @@ interface OpenEdge.DataAdmin.IDataAdminService :
     
     /** Get an area  
         @param areaname name of area */
-    method public IArea GetArea(areaName as char).
+    method public IArea GetArea(areaName as character).
     
     /** Get an area  
         @param IRequestinfo that defines an expression that uniqely identifies an area  */
@@ -288,22 +312,31 @@ interface OpenEdge.DataAdmin.IDataAdminService :
     
     /** Get an area  
         @param areaName Number of area */
-    method public IArea GetArea(areaNum as int).
+    method public IArea GetArea(areaNum as integer).
     
     /** Get a collection of all areas in the database */
     method public IAreaSet GetAreas().
     
     /** Get a collection of areas in the database *
         @param filter a character query expression of area properties */
-    method public IAreaSet GetAreas(filter as char).
+    method public IAreaSet GetAreas(filter as character).
     
     /** Get a collection of all areas in the database 
         @param IRequestinfo with a QueryString that defines an expression of area properties */
     method public IAreaSet GetAreas(req as IRequestInfo).
-    
+
+    /** Get an auth tag  
+        @param rolename name of role
+        @param authtag name of tag */
+    method public IAuthTag GetAuthTag(rolename as character, authtag as character).
+
+    /** Get a collection of authtage in the database *
+        @param filter a character query expression of role names to tag names */
+    method public IAuthTagSet GetAuthTags(filter as character).
+
     /** Get data security 
         @param domainName name of data security */
-    method public IDataSecurity GetDataSecurity(pcKey as char).
+    method public IDataSecurity GetDataSecurity(pcKey as character).
     
     /** Get a role
           
@@ -391,7 +424,7 @@ interface OpenEdge.DataAdmin.IDataAdminService :
             
     /** Get a domain 
         @param domainName name of domain */
-    method public IDomain GetDomain(domainName as char).
+    method public IDomain GetDomain(domainName as character).
     
     /** Get a domain  
         @param IRequestinfo that defines an expression that uniqely identifies a domain  
@@ -403,7 +436,7 @@ interface OpenEdge.DataAdmin.IDataAdminService :
    
     /** Get a collection of domains in the database *
         @param filter a character query expression of domain properties */
-    method public IDomainSet GetDomains(filter as char).
+    method public IDomainSet GetDomains(filter as character).
     
     /** Get a collection of all domains in the database 
         @param IRequestinfo with a QueryString that defines an expression of domain properties 
@@ -412,14 +445,14 @@ interface OpenEdge.DataAdmin.IDataAdminService :
     
     /** Get a authentication system  
         @param systemName name of authentication system  */
-    method public IAuthenticationSystem GetAuthenticationSystem(name as char).
+    method public IAuthenticationSystem GetAuthenticationSystem(name as character).
     
     /** Get a collection of all authentication systems in the database */
     method public IAuthenticationSystemSet GetAuthenticationSystems(). 
    
     /** Get a collection of authentication systems in the database *
         @param filter a character query expression of authentication system properties */
-    method public IAuthenticationSystemSet GetAuthenticationSystems(filter as char).
+    method public IAuthenticationSystemSet GetAuthenticationSystems(filter as character).
     
     /** Get a collection of authentication systems in the database *
         @param IRequestinfo with a QueryString that defines an expression of authentication system properties */
@@ -427,11 +460,11 @@ interface OpenEdge.DataAdmin.IDataAdminService :
     
     /** Get a tenant group
         @param groupName name of tenant group */
-    method public ITenantGroup GetTenantGroup(groupName as char).  
+    method public ITenantGroup GetTenantGroup(groupName as character).  
    
     /** Get a tenant group
         @param groupId Id of tenant group */
-    method public ITenantGroup GetTenantGroup(groupId as int).
+    method public ITenantGroup GetTenantGroup(groupId as integer).
     
     /** Get a tenant group
         @param IRequestinfo that defines an expression that uniqely identifies a tenant group 
@@ -443,7 +476,7 @@ interface OpenEdge.DataAdmin.IDataAdminService :
    
     /** Get a collection of tenant groups in the database *
         @param filter a character query expression of group properties */
-    method public ITenantGroupSet GetTenantGroups(filter as char).
+    method public ITenantGroupSet GetTenantGroups(filter as character).
   
     /** Get a collection of tenant groups in the database *
         @param filter a character query expression of group properties 
@@ -452,7 +485,7 @@ interface OpenEdge.DataAdmin.IDataAdminService :
     
     /** Get a sequence 
         @param sequenceName name of sequence  */
-    method public ISequence GetSequence(SeqName as char).
+    method public ISequence GetSequence(SeqName as character).
     
     /** Get a sequence 
         @param IRequestinfo that defines an expression that uniqely identifies a sequence  
@@ -464,7 +497,7 @@ interface OpenEdge.DataAdmin.IDataAdminService :
    
     /** Get a collection of sequences in the database 
         @param filter a character query expression of sequence properties */
-    method public ISequenceSet GetSequences(filter as char).
+    method public ISequenceSet GetSequences(filter as character).
    
     /** Get a collection of sequences in the database 
         @param filter a character query expression of sequence properties 
@@ -480,25 +513,25 @@ interface OpenEdge.DataAdmin.IDataAdminService :
     /** Get a schema with changes from the specified schema file (.df) 
         The Partitions property will have all new partitions that were created after
         the schema is passed to LoadSchemaChanges */
-    method public ISchema GetSchemaChanges(pcFile as char).
+    method public ISchema GetSchemaChanges(pcFile as character).
    
     /** Load schema changes in the datbase from the specified schema file (.df) */
-    method public logical LoadSchemaChanges(pcFile as char).
+    method public logical LoadSchemaChanges(pcFile as character).
     
     /*  method public ISchemaSet GetSchemas(filter as char).*/
     
     /** Get a table 
         @param tableName name of table  */
-    method public ITable GetTable(tableName as char).
+    method public ITable GetTable(tableName as character).
     
      /** Get a table 
         @param id (_field-number)  */
-    method public ITable GetTable(id as int).
+    method public ITable GetTable(id as integer).
     
     /** Get a table 
         @param tableName name of table  
         @param owner name of the table owner*/    
-    method public ITable GetTable(tableName as char,owner as char).
+    method public ITable GetTable(tableName as character,owner as character).
     
     /** Get a table 
         @param IRequestinfo that defines an expression that uniqely identifies a tenant group 
@@ -510,7 +543,7 @@ interface OpenEdge.DataAdmin.IDataAdminService :
    
     /** Get a collection of tables in the database *
         @param filter a character query expression of table properties */
-    method public ITableSet GetTables(filter as char).
+    method public ITableSet GetTables(filter as character).
     
     /** Get a collection of tables in the database *
         @param filter a character query expression of table properties 
@@ -519,28 +552,28 @@ interface OpenEdge.DataAdmin.IDataAdminService :
 
     /** Get a table permission 
         @param tableName name of table permission  */
-    method public ITablePermission GetTablePermission(tablename as char ).
+    method public ITablePermission GetTablePermission(tablename as character ).
     
     /** Get a collection of all table permissions in the database */
     method public ITablePermissionSet GetTablePermissions( ).
    
     /** Get a collection of table permissions in the database *
         @param filter a character query expression of table permission properties */
-    method public ITablePermissionSet GetTablePermissions(filter as char).
+    method public ITablePermissionSet GetTablePermissions(filter as character).
 
     /** Get a tenant by external id 
         @param external id that uniquely identifes a tenant  
                Use GetTenants() with filter or Requestinfo with query expression on the 
                external id if the value is not unique  */
-    method public ITenant GetTenantByExternalId(extId as char).
+    method public ITenant GetTenantByExternalId(extId as character).
     
     /** Get a tenant  
         @param tenantId integer of of tenant */  
-    method public ITenant GetTenant(tenantId as int).
+    method public ITenant GetTenant(tenantId as integer).
     
     /** Get a tenant
         @param tenantName name of tenant */  
-    method public ITenant GetTenant(tenantName as char).
+    method public ITenant GetTenant(tenantName as character).
    
     /** Get a tenant
         @param IRequestinfo that defines an expression that uniqely identifies a tenant 
@@ -552,7 +585,7 @@ interface OpenEdge.DataAdmin.IDataAdminService :
     
     /** Get a collection of tenants in the database 
         @param filter a character query expression of tenant properties */
-    method public ITenantSet GetTenants(filter as char).
+    method public ITenantSet GetTenants(filter as character).
    
     /** Get a collection of tenants in the database 
         @param filter a character query expression of tenant properties 
@@ -561,11 +594,11 @@ interface OpenEdge.DataAdmin.IDataAdminService :
     
     /** Get a PartitionPolicy  
         @param  name char of PartitionPolicy*/ 
-    method public IPartitionPolicy GetPartitionPolicy(pname as char).
+    method public IPartitionPolicy GetPartitionPolicy(pname as character).
     
     /** Get a PartitionPolicy  
         @param  object number int of PartitionPolicy*/ 
-    method public IPartitionPolicy GetPartitionPolicy(pid as int).
+    method public IPartitionPolicy GetPartitionPolicy(pid as integer).
     
     /** Get a PartitionPolicy  
          @param  request IRequestInfo*/ 
@@ -580,7 +613,7 @@ interface OpenEdge.DataAdmin.IDataAdminService :
    
     /** Get a collection of partition policies 
         @param  filter  */ 
-    method public IPartitionPolicySet GetPartitionPolicies(pFilter as char).
+    method public IPartitionPolicySet GetPartitionPolicies(pFilter as character).
    
    /** Get a collection of all partition policies details in the database   */
     method public IPartitionPolicyDetailSet GetPartitionPolicyDetails().
@@ -591,15 +624,15 @@ interface OpenEdge.DataAdmin.IDataAdminService :
     
     /** Get a collection of  partition policies details   
        @param  filter  */ 
-    method public IPartitionPolicyDetailSet GetPartitionPolicyDetails(pFilter as char).
+    method public IPartitionPolicyDetailSet GetPartitionPolicyDetails(pFilter as character).
    
     /** Get a collection of permissions for the specified collections 
         @param collections a comma separated list of collections known by the service */ 
-    method public IUserTablePermissionSet GetPermissions(pccollections as char).
+    method public IUserTablePermissionSet GetPermissions(pccollections as character).
     
     /** Get a CdcTablePolicy  
         @param  name char of CdcTablePolicy*/ 
-    method public ICdcTablePolicy GetCdcTablePolicy(pname as char).
+    method public ICdcTablePolicy GetCdcTablePolicy(pname as character).
     
     /** Get a CdcTablePolicy  
          @param  request IRequestInfo*/ 
@@ -614,7 +647,7 @@ interface OpenEdge.DataAdmin.IDataAdminService :
    
     /** Get a collection of CdcField policies 
         @param  filter  */ 
-    method public ICdcTablePolicySet GetCdcTablePolicies(pFilter as char).
+    method public ICdcTablePolicySet GetCdcTablePolicies(pFilter as character).
    
    /** Get a collection of all CdcField policies in the database   */
     method public ICdcFieldPolicySet GetCdcFieldPolicies().
@@ -625,49 +658,60 @@ interface OpenEdge.DataAdmin.IDataAdminService :
     
     /** Get a collection of  CdcField policies    
        @param  filter  */ 
-    method public ICdcFieldPolicySet GetCdcFieldPolicies(pFilter as char).
+    method public ICdcFieldPolicySet GetCdcFieldPolicies(pFilter as character).
    
    /** Get a user permission 
         @param userid user id of user in the form <name>@<domain> 
                the user id does not need to exist */  
-    method public IUserPermission GetUserPermission(usrID as char).
+    method public IUserPermission GetUserPermission(usrID as character).
     
     /** Get a collection of all user permissions  in the database */
     method public IUserPermissionSet GetUserPermissions().
    
     /** Get a collection of user permissions in the database 
         @param filter a character query expression of user permission properties */
-    method public IUserPermissionSet GetUserPermissions(filter as char).
+    method public IUserPermissionSet GetUserPermissions(filter as character).
     
     /** Get a user
       @param userid user id of user in the form <name>@<domain> */  
-    method public IUser GetUser(usrID as char).
+    method public IUser GetUser(usrID as character).
 
     /** Get a collection of all users in the database */
     method public IUserSet GetUsers().
    
     /** Get a collection of users in the database *
         @param filter a character query expression of user properties */
-    method public IUserSet GetUsers(pcfilter as char).
+    method public IUserSet GetUsers(pcfilter as character).
    
     /** Get a collection of users in the database *
         @param filter a character query expression of user properties. */
     method public IUserSet GetUsers(pReq as IRequestInfo).
      
     /** Get a new collection of the specified serializename, entity name or physical database filename  */
-    method public IDataAdminCollection NewCollection(pcname as char).
+    method public IDataAdminCollection NewCollection(pcname as character).
   
     /** Get a new area   
         Expected to be passed to CreateArea() to be created in the database or added to a new or 
         existing IAreaSet collection to be submitted to the database with the collection.
         
         @param areaname name of the new area */
-    method public IArea NewArea(pname as char).
+    method public IArea NewArea(areaname as character).
     
     /** Get an empty area collection  
         Add new areas to the collection and pass it to CreateAreas() to create the areas in the database. */ 
     method public IAreaSet NewAreas().
+
+    /** Get a new auth tag   
+        Expected to be passed to CreateAuthTag() to be created in the database or added to a new or 
+        existing IAuthTagSet collection to be submitted to the database with the collection.
+        
+        @param tagname name of the new auth tag */
+    method public IAuthTag NewAuthTag(tagname as character).
     
+    /** Get an empty auth tag collection  
+        Add new auth tags to the collection and pass it to CreateAuthTags() to create the auth tags in the database. */ 
+    method public IAuthTagSet NewAuthTags().
+
     /** Get a new extent     
         Expected to be added to an IArea:Extents collection to be submitted to the database 
         using the service's CreateArea() or UpdateAreas() methods.*/ 
@@ -689,7 +733,7 @@ interface OpenEdge.DataAdmin.IDataAdminService :
         database with the collection. 
      
         @param domainName name of the new domain */
-    method public IDomain NewDomain(pname as char).
+    method public IDomain NewDomain(pname as character).
     
     /** Get an empty domain collection  
         Add new domains to the collection and pass it to CreateDomains() to create the domains in the database. */ 
@@ -729,7 +773,7 @@ interface OpenEdge.DataAdmin.IDataAdminService :
         database with the collection.
          
         @param systemName name of the new authentication system */
-    method public IAuthenticationSystem NewAuthenticationSystem(pname as char).
+    method public IAuthenticationSystem NewAuthenticationSystem(pname as character).
     
     /** Get an empty authentication system collection  
         Add new authentication systems to the collection and pass it to CreateAuthenticationSystems() 
@@ -737,7 +781,7 @@ interface OpenEdge.DataAdmin.IDataAdminService :
     method public IAuthenticationSystemSet NewAuthenticationSystems().
     
      /** Get an empty partition policy   */ 
-    method public IPartitionPolicy NewPartitionPolicy(pname as char).
+    method public IPartitionPolicy NewPartitionPolicy(pname as character).
    
      /** Get an empty partition policy collection  */ 
     method public IPartitionPolicySet NewPartitionPolicies().
@@ -745,10 +789,10 @@ interface OpenEdge.DataAdmin.IDataAdminService :
          /** Get an empty partition policy detail  */ 
      /*  Expected to be added to IPartitionPolicy:Details collection to be submitted to the database*/
      /*        using the service's UpdateTable() or UpdateTables() methods.*/
-    method public IPartitionPolicyDetail NewPartitionPolicyDetail(pname as char).
+    method public IPartitionPolicyDetail NewPartitionPolicyDetail(pname as character).
     
     /** Get an empty cdc table policy   */ 
-    method public ICdcTablePolicy NewCdcTablePolicy(pname as char).
+    method public ICdcTablePolicy NewCdcTablePolicy(pname as character).
    
      /** Get an empty cdc table policy collection  */ 
     method public ICdcTablePolicySet NewCdcTablePolicies().
@@ -763,7 +807,7 @@ interface OpenEdge.DataAdmin.IDataAdminService :
         or existing ITenantSet collection to be submitted to the database with the collection. 
      
         @param tenantName name of the new tenant */
-    method public ITenant NewTenant(pname as char).
+    method public ITenant NewTenant(pname as character).
     
     /** Get an empty tenant collection  
         Add new tenants to the collection and pass it to CreateTenants() to create the tenants 
@@ -775,7 +819,7 @@ interface OpenEdge.DataAdmin.IDataAdminService :
         or existing ITenantGroupSet collection to be submitted to the database with the collection. 
      
         @param groupName name of the new tenant group */
-    method public ITenantGroup NewTenantGroup(pname as char).
+    method public ITenantGroup NewTenantGroup(pname as character).
     
     /** Get an empty tenant group collection  
         Add new tenant groups to the collection and pass it to CreateTenantGroups() to create the tenants 
@@ -787,7 +831,7 @@ interface OpenEdge.DataAdmin.IDataAdminService :
         or existing ISequenceSet collection to be submitted to the database with the collection. 
      
        @param userid user id of user in the form <name>@<domain> */  
-    method public ISequence NewSequence(pname as char).
+    method public ISequence NewSequence(pname as character).
     
     /** Get an empty sequence collection  
         Add new sequences to the collection and pass it to CreateSequences() to create the sequences 
@@ -800,7 +844,7 @@ interface OpenEdge.DataAdmin.IDataAdminService :
         to the database with the collection. 
      
        @param userid user id of user in the form <name>@<domain> */  
-    method public IUser NewUser(pname as char).   
+    method public IUser NewUser(pname as character).   
     
     /** Get an empty user collection  
         Add new users to the collection and pass it to CreateUsers() to create the users 
@@ -819,9 +863,17 @@ interface OpenEdge.DataAdmin.IDataAdminService :
     method public logical UpdateArea(area as IArea).
     
     /** Update the database with new extents added to the areas in the collection 
-        @param areas IAreaset collection  */ 
+        @param areas IAreaSet collection  */ 
     method public logical UpdateAreas(areas as IAreaSet).
+
+    /** Update a single auth tag record
+        @param area IAuthTag */ 
+    method public logical UpdateAuthTag(tag as IAuthTag).
     
+    /** Update multiple auth tag records
+        @param areas IAuthTagSet collection  */ 
+    method public logical UpdateAuthTags(tags as IAuthTagSet).
+
     /** Update the database with security changes 
         @param securityInstance IDataSecurity   */ 
     method public logical UpdateDataSecurity(pinst as IDataSecurity ).

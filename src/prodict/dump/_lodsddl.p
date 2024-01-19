@@ -1,8 +1,8 @@
-/**********************************************************************
-* Copyright (C) 2006-2017,2021,2022 by Progress Software Corporation. *
-* All contributed by participants of Possenet.                        *
-*                                                                     *
-***********************************************************************/
+/***************************************************************************
+* Copyright (C) 2006-2017,2021,2022,2023 by Progress Software Corporation. *
+* All contributed by participants of Possenet.                             *
+*                                                                          *
+****************************************************************************/
 /*------------------------------------------------------------------------
     File        : _lodsddl
     Purpose     : 
@@ -61,8 +61,11 @@
    tmasood     01/15/21 Modified the logic to load new df file section
    tmasood     02/22/21 Display a message when inactive index added to an existing table
    tmasood     03/03/21 Abort the load when selected section missing from df file
-   tmasood     03/10/22 Fixed the error 16621 while loading encryption details of new Index   
+   tmasood     03/10/22 Fixed the error 16621 while loading encryption details of new Index
+   tmasood     07/24/23 Added support for loading DDM schema     
 */
+
+USING Progress.Database.*. 
 
 { prodict/dump/loaddefs.i NEW }
 { prodict/dictvar.i }
@@ -79,7 +82,7 @@ DEFINE NEW SHARED TEMP-TABLE s_ttb_fake-cp
     FIELD   db-name     AS CHARACTER
     FIELD   db-recid    AS RECID.
  
-DEFINE VARIABLE error_text AS CHARACTER EXTENT 76 NO-UNDO.
+DEFINE VARIABLE error_text AS CHARACTER EXTENT 77 NO-UNDO.
 ASSIGN
   error_text[ 1] = "Unknown action":t72
   error_text[ 2] = "Unknown object":t72
@@ -245,9 +248,14 @@ DEFINE VARIABLE lPreDeployExist  AS LOGICAL          NO-UNDO INITIAL FALSE.
 DEFINE VARIABLE lTriggerExist    AS LOGICAL          NO-UNDO INITIAL FALSE.
 DEFINE VARIABLE lPostDeployExist AS LOGICAL          NO-UNDO INITIAL FALSE.
 DEFINE VARIABLE lOfflineExist    AS LOGICAL          NO-UNDO INITIAL FALSE.
+DEFINE VARIABLE lBeginDDMSection AS LOGICAL          NO-UNDO INITIAL FALSE.
+DEFINE VARIABLE lEndDDMSection   AS LOGICAL          NO-UNDO INITIAL FALSE.
+DEFINE VARIABLE cDDMExist        AS LOGICAL          NO-UNDO INITIAL FALSE.
+DEFINE VARIABLE cMaskValue       AS CHARACTER        NO-UNDO.
 DEFINE VARIABLE iNextLoop        AS INTEGER          NO-UNDO.
 DEFINE VARIABLE lFileOpened      AS LOGICAL          NO-UNDO INITIAL FALSE.
 DEFINE VARIABLE loadBySection    AS LOGICAL          NO-UNDO.
+DEFINE VARIABLE loadDDMSection   AS LOGICAL          NO-UNDO.
 DEFINE VARIABLE loadDone         AS LOGICAL          NO-UNDO.
 DEFINE VARIABLE lBlankFile       AS LOGICAL          NO-UNDO INITIAL TRUE.
 DEFINE VARIABLE lShowWarn        AS LOGICAL          NO-UNDO INITIAL FALSE.
@@ -256,6 +264,7 @@ DEFINE VARIABLE lChkTriggers     AS LOGICAL          NO-UNDO INITIAL FALSE.
 DEFINE VARIABLE lChkPostDeploy   AS LOGICAL          NO-UNDO INITIAL FALSE.
 DEFINE VARIABLE lChkOffline      AS LOGICAL          NO-UNDO INITIAL FALSE.
 DEFINE VARIABLE err_message      AS CHARACTER        NO-UNDO.
+DEFINE VARIABLE rConfig          AS DBConfig.
 
 define variable oAppError    as Progress.Lang.AppError no-undo. 
 define variable cStopMessage as character no-undo.
@@ -380,7 +389,6 @@ END PROCEDURE.
 ------------------------------------------------------*/
 PROCEDURE Show_Error:
   DEFINE INPUT PARAMETER p_cmd AS CHAR NO-UNDO.
-   
  
   DEFINE VAR msg AS CHAR    NO-UNDO INIT "".
   DEFINE VAR ix  AS INTEGER NO-UNDO.
@@ -1325,10 +1333,17 @@ do:
         user_env[41] = "yes".
     if dictLoadOptions:OfflineLoad = "yes" then
         user_env[42] = "yes".
+    if dictLoadOptions:DDMLoad = "yes" then
+        ddmload = "yes".
+    if dictLoadOptions:IgnoreDDMLoad = "yes" then
+        ignoreddmload = "yes".
 end.
 
 IF user_env[39] = "YES" OR user_env[40] = "YES" OR user_env[41] = "YES" OR user_env[42] = "YES" THEN
    ASSIGN loadBySection = YES.
+   
+IF ddmload = "YES" OR (ddmload = "NO" AND ignoreddmload = "NO") THEN 
+   ASSIGN loadDDMSection = YES.
 
 if not valid-object(dictLoader) then
 do:
@@ -1433,7 +1448,9 @@ END.
   &entries = "IF lvar[i] BEGINS ""encpolicy=""
                  THEN hasEncPol = LOGICAL(SUBSTRING(lvar[i],11,-1,""character"")).
               IF lvar[i] BEGINS ""bufpool=""
-                 THEN hasBufPool = LOGICAL(SUBSTRING(lvar[i],9,-1,""character""))."
+                 THEN hasBufPool = LOGICAL(SUBSTRING(lvar[i],9,-1,""character"")).
+              IF lvar[i] BEGINS ""ddm=yes""
+                 THEN cDDMExist = TRUE."
   &file    = "user_env[2]"
   }  /* read trailer, sets variables: codepage and cerror */
 
@@ -1455,6 +1472,8 @@ REPEAT ON ERROR UNDO,RETRY ON ENDKEY UNDO, LEAVE:
            lEndTrigger      = FALSE
            lEndPostDeploy   = FALSE
            lEndOffline      = FALSE
+           lBeginDDMSection = FALSE
+           lEndDDMSection   = FALSE
            ierror           = 0
            ilin             = ?.    
     
@@ -1642,7 +1661,7 @@ REPEAT ON ERROR UNDO,RETRY ON ENDKEY UNDO, LEAVE:
                          lChkPostDeploy   = TRUE.
                 ELSE IF cVal = "#BEGINOffline_Section" THEN
                   ASSIGN lOfflineExist = TRUE
-                         loadDone      = TRUE /* we have reach the end of loading df */
+                         loadDone      = TRUE WHEN NOT loadDDMSection /* we have reach the end of loading df */
                          lChkOffline   = TRUE.
                 /* If section is not selected then skip the lines till we reach the end of section */
                 IF (lPreDeployExist AND user_env[39] = "NO") THEN DO WHILE cVal <> "#ENDPre_Deploy_Section":
@@ -1681,7 +1700,7 @@ REPEAT ON ERROR UNDO,RETRY ON ENDKEY UNDO, LEAVE:
                           stopped         = FALSE.
                    /* If we hit the end of the section, and the user doesn't want to load
                      other sections, we can leave here */
-                   IF user_env[40] = "NO" AND user_env[41] = "NO" AND user_env[42] = "NO" THEN
+                   IF user_env[40] = "NO" AND user_env[41] = "NO" AND user_env[42] = "NO" AND NOT loadDDMSection THEN
                    DO:
                      ASSIGN loadDone = TRUE.    
                    END.
@@ -1694,7 +1713,7 @@ REPEAT ON ERROR UNDO,RETRY ON ENDKEY UNDO, LEAVE:
                           lTriggerExist = FALSE
                           lEndTrigger   = FALSE
                           stopped       = FALSE.
-                   IF user_env[41] = "NO" AND user_env[42] = "NO" THEN
+                   IF user_env[41] = "NO" AND user_env[42] = "NO" AND NOT loadDDMSection THEN
                    DO:
                      ASSIGN loadDone = TRUE.    
                    END.
@@ -1707,7 +1726,7 @@ REPEAT ON ERROR UNDO,RETRY ON ENDKEY UNDO, LEAVE:
                           lPostDeployExist = FALSE
                           lEndPostDeploy   = FALSE
                           stopped          = FALSE.
-                   IF user_env[42] = "NO" THEN
+                   IF user_env[42] = "NO" AND NOT loadDDMSection THEN
                    DO:
                      ASSIGN loadDone = TRUE.    
                    END.
@@ -1719,9 +1738,38 @@ REPEAT ON ERROR UNDO,RETRY ON ENDKEY UNDO, LEAVE:
                           iNextLoop = ipos
                           lOfflineExist = FALSE
                           stopped       = FALSE.
+                   /* Need to load DDM Section don't leave section loop */       
+                   IF loadDDMSection AND cDDMExist THEN 
+                     lEndOffline = FALSE. 
+                   ELSE 
+                     lEndOffline = TRUE.
                    LEAVE load_loop.
                 END.
             END. /* End of DO loop */
+            /* DDM Section Load */
+            IF ddmload = "YES" THEN DO:
+                ASSIGN cVal = ilin[1] + ilin[2] + ilin[3].
+                /* If load section is not selected then skip the lines till we reach the DDM section */
+                IF NOT loadBySection AND NOT lBeginDDMSection THEN DO WHILE cVal <> "#BEGINDDM_Schema_Section":
+                   ilin = ?.
+                   NEXT import_loop.
+                END.
+                
+                IF cVal = "#BEGINDDM_Schema_Section" THEN
+                  ASSIGN lBeginDDMSection = TRUE
+                         loadDone = TRUE. /* we have reach the end of loading df */        
+            
+                IF cVal = "#ENDDDM_Schema_Section" THEN
+                  ASSIGN lEndDDMSection = TRUE.
+                /* Initialize at the end of DDM section */
+                IF lEndDDMSection THEN DO:
+                   ASSIGN inum = 0
+                          ilin = ?
+                          iNextLoop = ipos
+                          stopped     = FALSE.
+                   LEAVE load_loop.
+                END.
+            END. /* End of DDM Load */
           END.
           lBlankFile = FALSE.
           inum = 0.
@@ -1729,11 +1777,10 @@ REPEAT ON ERROR UNDO,RETRY ON ENDKEY UNDO, LEAVE:
           IF CAN-DO(
             "ADD,CREATE,NEW,UPDATE,MODIFY,ALTER,CHANGE,DELETE,DROP,REMOVE,RENAME":u,
             ilin[1]) THEN DO:
-    
+
             /* This is the start of a command - so copy the buffer values from 
                  the last time through the loop into the database.
-            */
-    
+            */ 
             IF AVAILABLE wdbs AND imod <> ? THEN DO:
               RUN "prodict/dump/_lod_dbs.p".
               IF imod <> "d" and drec_db <> RECID(_Db) THEN 
@@ -2184,8 +2231,7 @@ REPEAT ON ERROR UNDO,RETRY ON ENDKEY UNDO, LEAVE:
                   if cRenamed > "" then
                      FIND _Field OF _File WHERE _Field._Field-name = cRenamed NO-ERROR.    
                 end.  
-                
-                
+                                
                 IF NOT AVAILABLE _Field THEN DO:
                   ASSIGN wfld._Field-name = ilin[3].
                   ierror = 3. /* "Try to modify unknown &2" */
@@ -2526,7 +2572,7 @@ REPEAT ON ERROR UNDO,RETRY ON ENDKEY UNDO, LEAVE:
       
             END. /*-------------------------------------------------------------------*/
           ELSE IF iobj = "s" THEN DO: /*--------------------------------------------*/
-      
+
             CASE ikwd:
               WHEN "SEQUENCE"       THEN wseq._Seq-Name = iarg.
               /* Supports keyword alone as true */
@@ -2963,6 +3009,22 @@ REPEAT ON ERROR UNDO,RETRY ON ENDKEY UNDO, LEAVE:
                       RUN addBufferPoolSetting(wfld._Data-Type, iKwd , iarg).
                   END.
               END.
+              WHEN "MASK" THEN DO:
+                  IF loadDDMSection THEN
+                     cMaskValue = iarg. /* We will assign mask & authtag at once */                  
+              END.
+              WHEN "AUTHTAG" THEN DO:
+                  IF loadDDMSection THEN DO:
+                      rConfig = NEW DBConfig(LDBNAME(1)).
+                      rConfig:SetFieldDDMConfig(_File._File-Name, wfld._Field-Name, cMaskValue, iarg) NO-ERROR.
+                      IF ERROR-STATUS:ERROR AND ERROR-STATUS:NUM-MESSAGES > 0 THEN DO:
+					     ierror = 77.
+                         error_text[ierror] = ERROR-STATUS:GET-MESSAGE(1).
+                         RUN Put_Header (INPUT dbload-e, INPUT-OUTPUT hdr).
+                         Run Show_Error("curr").
+                      END.
+                  END.                  
+              END.
               OTHERWISE ierror = 4. /* "Unknown &2 keyword" */
     
             END CASE.
@@ -3102,7 +3164,7 @@ REPEAT ON ERROR UNDO,RETRY ON ENDKEY UNDO, LEAVE:
             END.  
           END.
           IF ierror > 0 AND ierror <> 50 THEN UNDO,RETRY load_loop.
-          
+
           ASSIGN stopped = false.
         
         END.  /* end repeat load_loop*/
@@ -3147,7 +3209,7 @@ REPEAT ON ERROR UNDO,RETRY ON ENDKEY UNDO, LEAVE:
         IF do-commit OR (NOT (ierror > 0 AND user_env[4] BEGINS "y":u)) THEN
         finish: 
         DO ON STOP UNDO,LEAVE:
-    
+
           ASSIGN stopped = TRUE.
     
           /* Copy any remaining buffer values to the database */
@@ -3263,7 +3325,7 @@ REPEAT ON ERROR UNDO,RETRY ON ENDKEY UNDO, LEAVE:
           ELSE DO: 
              ASSIGN xerror  = FALSE
                     stopped = FALSE.
-             IF lEndOffline OR (NOT loadBySection) THEN DO:
+             IF lEndOffline OR lEndDDMSection OR (NOT loadBySection) THEN DO:
                  HIDE MESSAGE no-pause.
                  RUN adecomm/_setcurs.p ("").
                  LEAVE section_loop.
@@ -3280,7 +3342,7 @@ REPEAT ON ERROR UNDO,RETRY ON ENDKEY UNDO, LEAVE:
                    pause 10.
                END.
            end.
-           IF lEndOffline OR (NOT loadBySection) THEN DO:
+           IF lEndOffline OR lEndDDMSection OR (NOT loadBySection) THEN DO:
               HIDE MESSAGE no-pause.
               RUN adecomm/_setcurs.p ("").
               LEAVE section_loop.
@@ -3311,12 +3373,12 @@ REPEAT ON ERROR UNDO,RETRY ON ENDKEY UNDO, LEAVE:
       /* batch or dictloader avoid undo if force commit */ 
       ELSE IF do-commit THEN DO:
          xerror = false.
-         IF lEndOffline OR (NOT loadBySection) THEN
+         IF lEndOffline OR lEndDDMSection OR (NOT loadBySection) THEN
             LEAVE section_loop.
       END.
       ELSE DO: /* this will end the loop when no force commit for silent script */
           IF NOT (xerror OR STOPPED) THEN DO:
-             IF lEndOffline OR (NOT loadBySection) THEN
+             IF lEndOffline OR lEndDDMSection OR (NOT loadBySection) THEN
                LEAVE section_loop.
           END.
       END.
@@ -3327,7 +3389,7 @@ REPEAT ON ERROR UNDO,RETRY ON ENDKEY UNDO, LEAVE:
          transaction here or in caller prodict/load_df.p. */
       if (stopped or xerror) and (iError = 0 or iError = 23) then 
       do:
-          
+
          oAppError = new Progress.Lang.AppError().
          /* Get the error message - use proc defined in prohelp/msgs.i 
            (_msg(1) has the error since STOP is not affected by the CATCH) */

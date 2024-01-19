@@ -1,8 +1,7 @@
-/*************************************************************************
-* Copyright (C) 2005-2009,2011,2021 by Progress Software Corporation.    *
-* All rights reserved. Prior versions of this work may contain portions  *
-* contributed by participants of Possenet.                               *
-*                                                                        *
+/***************************************************************************
+* Copyright (C) 2005-2009,2011,2021,2023 by Progress Software Corporation. *
+* All rights reserved. Prior versions of this work may contain portions    *
+* contributed by participants of Possenet.                                 *
 **************************************************************************/
 
 /* _loddata.p */ /**** Data Dictionary load contents module ****/
@@ -57,6 +56,7 @@ history
     fernando    Nov  4, 2008  Output number of records to .ds file
     rkamboj     Nov 15, 2011  Fixed lod directory upload issue.
     tmasood     Nov 03, 2021  Support for load .d file with date/numeric mismatch
+	tmasood     Jul 28, 2023  Exclude fields of _sec-role requirement for DDM roles
 */
 
 /* ensure that errors from directory functions are thrown   
@@ -406,7 +406,7 @@ DO ON STOP UNDO, LEAVE:
    ELSE    
       FIND DICTDB._File WHERE DICTDB._File._File-name = cTemp
                           AND DICTDB._File._Db-recid = drec_db.
-        
+    
     IF infinity THEN .
     ELSE do:
        &IF "{&WINDOW-SYSTEM}" begins "MS-WIN"
@@ -863,6 +863,10 @@ DO ON STOP UNDO, LEAVE:
     else if dictdb._file._file-name = "_sec-authentication-domain" then
     do:
         exceptList = "EXCEPT _Domain-id".  
+    end.
+    else if dictdb._file._file-name = "_sec-role" then
+    do:
+         exceptlist = "EXCEPT _Role-Attr _AuthVer".
     end.    
     
     CREATE ALIAS "DICTDB2" FOR DATABASE VALUE(user_dbname) NO-ERROR.

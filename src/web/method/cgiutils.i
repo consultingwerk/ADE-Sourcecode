@@ -1,10 +1,10 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER WDT_v2r12 Method-Library
 &ANALYZE-RESUME
-&ANALYZE-SUSPEND _CODE-BLOCK _CUSTOM Definitions 
+&ANALYZE-SUSPEND _CODE-BLOCK _CUSTOM Definitions
 /*********************************************************************
-* Copyright (C) 2005,2009-2011, 2018 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
+* Copyright (C) 2005,2009-2011, 2018, 2023 by Progress Software Corporation. *
+* All rights reserved. Prior versions of this work may contain       *
+* portions contributed by participants of Possenet.                  *
 *                                                                    *
 *********************************************************************/
 /*--------------------------------------------------------------------------
@@ -16,8 +16,8 @@
                 by these functions and procedures.
 
                 This file is for internal use by WebSpeed runtime
-                procedures ONLY. Applications should not include this file. 
-                
+                procedures ONLY. Applications should not include this file.
+
   Updated     : 01/07/1997 billb@progress.com
                   Initial version
                 10/16/2001 adams@progress.com
@@ -52,11 +52,11 @@ DEFINE VARIABLE wseu-cookie AS CHAR NO-UNDO.
 DEFINE VARIABLE HelpAddress  AS CHARACTER NO-UNDO FORMAT "x(40)":U.
 
 /* Unsafe characters that must be encoded in URL's.  See RFC 1738 Sect 2.2. */
-DEFINE VARIABLE url_unsafe   AS CHARACTER NO-UNDO 
+DEFINE VARIABLE url_unsafe   AS CHARACTER NO-UNDO
     INITIAL " <>~"#%~{}|~\^~~[]`".
 
 /* Reserved characters that normally are not encoded in URL's */
-DEFINE VARIABLE url_reserved AS CHARACTER NO-UNDO 
+DEFINE VARIABLE url_reserved AS CHARACTER NO-UNDO
     INITIAL "~;/?:@=&".
 &ANALYZE-RESUME
 /* *********************** Procedure Settings ************************ */
@@ -75,7 +75,7 @@ DEFINE VARIABLE url_reserved AS CHARACTER NO-UNDO
 
 &IF DEFINED(EXCLUDE-convert-datetime) = 0 &THEN
 
-&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION convert-datetime 
+&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION convert-datetime
 FUNCTION convert-datetime RETURNS CHARACTER
   (INPUT p_conversion AS CHARACTER,
    INPUT p_idate       AS DATE,
@@ -98,7 +98,7 @@ Parameters:
   Input:  Time to convert.  Seconds since midnight (see TIME function).
   Output: Converted date.
   Output: Converted time.
-Returns: 
+Returns:
 Global Variables: utc-offset
 ****************************************************************************/
   DEFINE VARIABLE seconds-per-day AS INTEGER NO-UNDO INITIAL 86400.
@@ -149,7 +149,7 @@ END FUNCTION. /* convert-datetime */
 
 &IF DEFINED(EXCLUDE-format-datetime) = 0 &THEN
 
-&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION format-datetime 
+&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION format-datetime
 FUNCTION format-datetime RETURNS CHARACTER
   (INPUT p_format  AS CHARACTER,
    INPUT p_date    AS DATE,
@@ -198,7 +198,7 @@ References:
   IF p_options = "" OR p_options = ? THEN
     ASSIGN p_options = "LOCAL":U.
 
-  /* If Local was specified and the format is Cookie or HTTP, convert date and 
+  /* If Local was specified and the format is Cookie or HTTP, convert date and
      time to UTC. */
   IF CAN-DO(p_options, "LOCAL":U) AND
     (p_format = "COOKIE":U OR p_format = "HTTP":U) THEN
@@ -213,7 +213,7 @@ References:
   CASE p_format:
     WHEN "COOKIE":U THEN DO:
       /* Cookie format based on RFC-1123: Wdy, DD-Mon-YYYY HH:MM:SS GMT */
-      ASSIGN 
+      ASSIGN
         p_rfcdate = ENTRY(WEEKDAY(p_date), weekday-list) + ", ":U +
                     STRING(DAY(p_date),"99":U) + "-":U +
                     ENTRY(MONTH(p_date), month-list) + "-":U +
@@ -222,7 +222,7 @@ References:
     END.
     WHEN "HTTP" THEN DO:
       /* HTTP format based on RFC-1123: Wdy, DD Mon YYYY HH:MM:SS GMT */
-      ASSIGN 
+      ASSIGN
         p_rfcdate = ENTRY(WEEKDAY(p_date), weekday-list) + ", ":U +
                     STRING(DAY(p_date),"99":U) + " ":U +
                     ENTRY(MONTH(p_date), month-list) + " ":U +
@@ -243,14 +243,14 @@ END FUNCTION. /* format-datetime */
 
 &IF DEFINED(EXCLUDE-get-binary-data) = 0 &THEN
 
-&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION get-binary-data 
+&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION get-binary-data
 FUNCTION get-binary-data RETURNS MEMPTR
   (INPUT p_name AS CHARACTER) :
 /****************************************************************************
 Description: Retrieves a MEMPTR with the contents of a file posted with a
              multipart/form-data form
 Input Parameter: Name of variable (a field of type 'file' from the form)
-Returns: MEMPTR or ? (which means the file was too big).  
+Returns: MEMPTR or ? (which means the file was too big).
 ****************************************************************************/
     RETURN WEB-CONTEXT:GET-BINARY-DATA(p_name).
 END FUNCTION. /* get-binary-data */
@@ -260,7 +260,7 @@ END FUNCTION. /* get-binary-data */
 
 &IF DEFINED(EXCLUDE-get-cgi) = 0 &THEN
 
-&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION get-cgi 
+&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION get-cgi
 FUNCTION get-cgi RETURNS CHARACTER
   (INPUT p_name AS CHARACTER) :
 /****************************************************************************
@@ -271,9 +271,9 @@ Returns: Value or blank if invalid name.  If ? was specified for
 ****************************************************************************/
   IF p_name = ? THEN
       RETURN WEB-CONTEXT:GET-CGI-LIST("ENV":U).
-  ELSE  
+  ELSE
       RETURN WEB-CONTEXT:GET-CGI-VALUE("ENV":U, p_name).
-  
+
 END FUNCTION. /* get-cgi */
 &ANALYZE-RESUME
 
@@ -281,7 +281,7 @@ END FUNCTION. /* get-cgi */
 
 &IF DEFINED(EXCLUDE-get-cgi-long) = 0 &THEN
 
-&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION get-cgi-long 
+&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION get-cgi-long
 FUNCTION get-cgi-long RETURNS LONGCHAR
   (INPUT p_name AS CHARACTER) :
 /****************************************************************************
@@ -299,11 +299,11 @@ END FUNCTION. /* get-cgi-long */
 
 &ENDIF
 
- 
+
 
 &IF DEFINED(EXCLUDE-get-field) = 0 &THEN
 
-&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION get-field 
+&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION get-field
 FUNCTION get-field RETURNS CHARACTER
   (INPUT p_name AS CHARACTER) :
 /****************************************************************************
@@ -327,7 +327,7 @@ Global Variables: FieldList
     /* If the field list was already computed for this request, return it */
     IF FieldList <> "" THEN
       RETURN FieldList.
-    
+
     ASSIGN v-form = WEB-CONTEXT:GET-CGI-LIST("FORM":U)
            v-query = WEB-CONTEXT:GET-CGI-LIST("QUERY":U)
            /* Combine form input and query string */
@@ -360,13 +360,13 @@ Global Variables: FieldList
     IF usetttWebFieldList THEN
        ASSIGN getFromForm = CAN-FIND (FIRST ttWebFieldList WHERE field-name = p_name
                                       AND field-type = "F":U).
-    ELSE 
+    ELSE
        ASSIGN getFromForm = LOOKUP(p_name, WEB-CONTEXT:GET-CGI-LIST("FORM":U)) > 0.
- 
+
     IF getFromForm THEN
         RETURN REPLACE(WEB-CONTEXT:GET-CGI-VALUE("FORM":U, p_name, SelDelim),
                      "~r~n":U, "~n":U).
-    ELSE  
+    ELSE
         RETURN REPLACE(WEB-CONTEXT:GET-CGI-VALUE("QUERY":U, p_name, SelDelim),
                      "~r~n":U, "~n":U).
   END.
@@ -378,7 +378,7 @@ END FUNCTION. /* get-field */
 
 &IF DEFINED(EXCLUDE-get-fieldEx) = 0 &THEN
 
-&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION get-fieldEx 
+&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION get-fieldEx
 FUNCTION get-fieldEx RETURNS LONGCHAR
   (INPUT p_name AS CHARACTER) :
 /****************************************************************************
@@ -437,11 +437,11 @@ Global Variables: FieldList
 
     IF (cTmp > "") THEN
       cTmp = REPLACE(cTmp, "~r~n":U, "~n":U).
-  
+
     RETURN cTmp. /* using char for performance */
 
   END.
-  
+
 END FUNCTION. /* get-fieldEx */
 &ANALYZE-RESUME
 
@@ -449,7 +449,7 @@ END FUNCTION. /* get-fieldEx */
 
 &IF DEFINED(EXCLUDE-get-from-form-fields) = 0 &THEN
 
-&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION get-from-form-fields 
+&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION get-from-form-fields
 FUNCTION get-from-form-fields RETURNS LOGICAL
   (INPUT p_name AS CHARACTER) :
 /****************************************************************************
@@ -473,19 +473,19 @@ END FUNCTION. /* get-from-form-fields */
 
 &IF DEFINED(EXCLUDE-get-long-value) = 0 &THEN
 
-&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION get-long-value 
+&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION get-long-value
 FUNCTION get-long-value RETURNS LONGCHAR
   (INPUT p_name AS CHARACTER) :
 /****************************************************************************
 Description: Retrieves the longchar value for a field or cookie.
 Input Parameter: Name of field
-Returns: Value of form field or Cookie in that order or blank if an invalid name.  
+Returns: Value of form field or Cookie in that order or blank if an invalid name.
 ****************************************************************************/
   DEFINE VARIABLE cValue      AS LONGCHAR NO-UNDO.
   DEFINE VARIABLE i           AS int      NO-UNDO.
 
   /* If name is ? return blank */
-  IF p_name = ? OR p_name = "" THEN 
+  IF p_name = ? OR p_name = "" THEN
     RETURN cValue.
 
   /* item name passed so look fields and query string. */
@@ -496,7 +496,7 @@ Returns: Value of form field or Cookie in that order or blank if an invalid name
 
   IF (cValue > "") THEN
     cValue = REPLACE(cValue, "~r~n":U, "~n":U).
-  
+
   RETURN cValue.
 
 END FUNCTION. /* get-long-value */
@@ -506,7 +506,7 @@ END FUNCTION. /* get-long-value */
 
 &IF DEFINED(EXCLUDE-get-user-field) = 0 &THEN
 
-&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION get-user-field 
+&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION get-user-field
 FUNCTION get-user-field RETURNS CHARACTER
   (INPUT p_name AS CHARACTER) :
 /****************************************************************************
@@ -532,14 +532,14 @@ END FUNCTION. /* get-user-field */
 
 &IF DEFINED(EXCLUDE-get-value) = 0 &THEN
 
-&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION get-value 
+&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION get-value
 FUNCTION get-value RETURNS CHARACTER
   (INPUT p_name AS CHARACTER) :
 /****************************************************************************
 Description: Retrieves the first available value for a user field, field
   or cookie.
 Input Parameter: Name of item or ?
-Returns: Value of user field, form field or Cookie in that order or blank if 
+Returns: Value of user field, form field or Cookie in that order or blank if
   an invalid name.  If ? was specified for the name, a comma separated list
 of all user fields, fields and cookies is returned.
 Global Variables: UserFieldList, UserFieldVar, FieldList, FieldVar
@@ -578,7 +578,7 @@ Global Variables: UserFieldList, UserFieldVar, FieldList, FieldVar
     ELSE DO:
        RUN find_web_form_field (p_name, OUTPUT found).
     END.
-    
+
     IF found THEN
        RETURN get-field(p_name).
 
@@ -592,18 +592,18 @@ END FUNCTION. /* get-value */
 
 &IF DEFINED(EXCLUDE-get-value) = 0 &THEN
 
-&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION get-valueEx 
+&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION get-valueEx
 FUNCTION get-valueEx RETURNS LONGCHAR
   (INPUT p_name AS CHARACTER) :
 /****************************************************************************
 Description: see get-value()
 Input Parameter: Name of item or ?
-Returns: Value of user field, form field or Cookie in that order or blank if 
+Returns: Value of user field, form field or Cookie in that order or blank if
   an invalid name.  If ? was specified for the name, a comma separated list
 of all user fields, fields and cookies is returned.
 Global Variables: UserFieldList, UserFieldVar
 
-This is an enhanced version of get-value which handles long lists with 
+This is an enhanced version of get-value which handles long lists with
 LONGCHAR
 ****************************************************************************/
   DEFINE VARIABLE v-value       AS LONGCHAR  NO-UNDO.
@@ -652,7 +652,7 @@ END FUNCTION. /* get-valueEx */
 
 &IF DEFINED(EXCLUDE-hidden-field) = 0 &THEN
 
-&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION hidden-field 
+&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION hidden-field
 FUNCTION hidden-field RETURNS CHARACTER
   (INPUT p_name AS CHARACTER,
    INPUT p_value AS CHARACTER) :
@@ -671,7 +671,7 @@ END FUNCTION.  /* hidden-field */
 
 &IF DEFINED(EXCLUDE-hidden-field-list) = 0 &THEN
 
-&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION hidden-field-list 
+&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION hidden-field-list
 FUNCTION hidden-field-list RETURNS CHARACTER
   (INPUT p_name-list AS CHARACTER) :
 /****************************************************************************
@@ -697,7 +697,7 @@ Returns: HTML hidden fields delimited by newlines.
     IF v-value <> "" THEN
       ASSIGN v-out = v-out + hidden-field(v-item, v-value) + "~n":U.
   END.
-    
+
   RETURN v-out.
 END FUNCTION.  /* hidden-field-list */
 &ANALYZE-RESUME
@@ -706,7 +706,7 @@ END FUNCTION.  /* hidden-field-list */
 
 &IF DEFINED(EXCLUDE-html-encode) = 0 &THEN
 
-&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION html-encode 
+&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION html-encode
 FUNCTION html-encode RETURNS CHARACTER
   (INPUT p_in AS CHARACTER):
 /****************************************************************************
@@ -731,11 +731,11 @@ END FUNCTION. /* html-encode */
 
 &IF DEFINED(EXCLUDE-multi-session-agent) = 0 &THEN
 
-&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION multi-session-agent 
+&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION multi-session-agent
 FUNCTION multi-session-agent RETURNS LOGICAL
   ():
 /****************************************************************************
-Description: Returns true if we're running in a multi-session agent (PAS) 
+Description: Returns true if we're running in a multi-session agent (PAS)
 ****************************************************************************/
     return session:client-type = "MULTI-SESSION-AGENT":U.
 END FUNCTION. /* multi-session-agent */
@@ -745,7 +745,7 @@ END FUNCTION. /* multi-session-agent */
 
 &IF DEFINED(EXCLUDE-output-content-type) = 0 &THEN
 
-&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION output-content-type 
+&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION output-content-type
 FUNCTION output-content-type RETURNS LOGICAL
   (INPUT p_type AS CHARACTER) :
 /****************************************************************************
@@ -756,39 +756,39 @@ Input Parameter: MIME content type.  If the input value is "", then no
   will be output followed by a blank line.
 Returns: If a Content-Type header was output, TRUE is returned, else FALSE.
 Global Variables: output-content-type
-****************************************************************************/  
+****************************************************************************/
   DEFINE VARIABLE c-new-wseu   AS CHARACTER NO-UNDO.
   DEFINE VARIABLE rslt         AS LOGICAL   NO-UNDO.
   DEFINE VARIABLE mime-charset AS CHARACTER NO-UNDO.
-  
+
   /* Set the content type. If previously set, then output-content-type will
      be non-blank.  In that case we do nothing.  If p_type is blank, then no
-     Content-Type header will be output.  In this case output-content-type 
+     Content-Type header will be output.  In this case output-content-type
      will be set to ?. */
   IF output-content-type = "" THEN DO:
-    ASSIGN 
+    ASSIGN
       output-content-type = (IF p_type = "" THEN ? ELSE p_type)
       c-new-wseu          = ENTRY(2, {&WEB-EXCLUSIVE-ID}, "=":U).
-      
-    &IF KEYWORD-ALL("HTML-CHARSET") <> ? &THEN  
+
+    &IF KEYWORD-ALL("HTML-CHARSET") <> ? &THEN
     /* Add MIME codepage, if available. */
-    IF output-content-type BEGINS TRIM("text/html":U) 
+    IF output-content-type BEGINS TRIM("text/html":U)
       AND INDEX(output-content-type, "charset":U) = 0
       AND WEB-CONTEXT:html-charset <> "" THEN DO:
         RUN adecomm/convcp.p ( WEB-CONTEXT:html-charset, "toMime":U,
                                OUTPUT mime-charset ) NO-ERROR.
         IF mime-charset <> "" THEN
-          output-content-type = output-content-type + "; charset=":U + 
+          output-content-type = output-content-type + "; charset=":U +
                                 mime-charset.
     END.
     &ENDIF
-    
+
     if not multi-session-agent() then
     do:
-    /* If there are any persistent Web objects, then reset the cookie used by 
-     * the web broker to identify this Agent. (The wo temp-table is 
+    /* If there are any persistent Web objects, then reset the cookie used by
+     * the web broker to identify this Agent. (The wo temp-table is
      * defined in web/objects/web-util.p.)
-     * this is defined in stateaware -  run with no-error 
+     * this is defined in stateaware -  run with no-error
      */
        RUN find-web-objects IN web-utilities-hdl (OUTPUT rslt) no-error.
     end.
@@ -834,7 +834,7 @@ END FUNCTION. /* output-content-type */
 
 &IF DEFINED(EXCLUDE-output-http-header) = 0 &THEN
 
-&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION output-http-header 
+&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION output-http-header
 FUNCTION output-http-header RETURNS CHARACTER
   (INPUT p_header AS CHARACTER,
    INPUT p_value  AS CHARACTER) :
@@ -855,32 +855,36 @@ Input Parameters: HTTP Header name (less colon), associated header value.
   IF debugging-enabled AND CAN-DO(debug-options, "http":U) AND
       p_header <> "" AND p_value <> "" THEN
     queue-message("DEBUG":U, "<B>HTTP header:</B> ":U + p_header + p_value).
-    
-    // if the status is passed in, set the flag to true 
+
+    // if the status is passed in, set the flag to true
     if     p_header eq '':u
        and p_value begins 'HTTP/':u
     then
         assign http-status-written  = true.
-    
+
     /* If the HTTP return status has not yet been written and */
     if not http-status-written then
     do:
-        // if the status line is not being specified, then use 200/OK
-        put {&webstream} control
-            'HTTP/1.1 200 OK':u
-            http-newline.
-        
+        if p_header eq 'Status:':u then
+            put {&webstream} control
+                substitute('HTTP/1.1 &1':u, p_value )
+                http-newline.
+        else
+            // if the status line is not being specified, then use 200/OK
+            put {&webstream} control
+                'HTTP/1.1 200 OK':u
+                http-newline.
         assign http-status-written  = true.
     end.
-    
+
   /* Output the header and associated value to the output stream */
   PUT {&WEBSTREAM} CONTROL
-    p_header
-    p_value 
-    /* Newline must have both CR and LF even on UNIX.   
-       Bug: 97-03-04-008  Some web servers such as Netscape-Fasttrack 2.01
-       don't like the CR character so allow the newline to be changed. */
-    http-newline.
+        p_header
+        p_value
+        /* Newline must have both CR and LF even on UNIX.
+           Bug: 97-03-04-008  Some web servers such as Netscape-Fasttrack 2.01
+           don't like the CR character so allow the newline to be changed. */
+        http-newline.
 END FUNCTION. /* output-http-header */
 &ANALYZE-RESUME
 
@@ -888,15 +892,15 @@ END FUNCTION. /* output-http-header */
 
 &IF DEFINED(EXCLUDE-set-user-field) = 0 &THEN
 
-&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION set-user-field 
+&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION set-user-field
 FUNCTION set-user-field RETURNS LOGICAL
   (INPUT p_name AS CHARACTER,
    INPUT p_value AS CHARACTER) :
 /****************************************************************************
 Description: Sets the associated value for the specified user field.  User
   field values are global and available to any Web object run by the
-  current Agent in the same web request.  The value can be retrieved with 
-  get-user-field() or get-value(). 
+  current Agent in the same web request.  The value can be retrieved with
+  get-user-field() or get-value().
 Input Parameters: Name of user field, associated value
 Returns: TRUE if field added, otherwise FALSE
 Side effects: Queues a message if adding a field fails
@@ -931,7 +935,7 @@ END FUNCTION. /* set-user-field */
 
 &IF DEFINED(EXCLUDE-set-wseu-cookie) = 0 &THEN
 
-&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION set-wseu-cookie 
+&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION set-wseu-cookie
 FUNCTION set-wseu-cookie RETURNS CHARACTER
   (INPUT p_cookie AS CHARACTER) :
 /****************************************************************************
@@ -949,14 +953,14 @@ Input Parameters: p_cookie -- the new cookie value..
   IF p_cookie NE wseu-cookie THEN DO:
     /* Save the new value. */
     ASSIGN wseu-cookie = p_cookie.
-    IF p_cookie eq "" THEN 
-      RETURN delete-cookie ({&WSEU-NAME}, ?, ?).   
+    IF p_cookie eq "" THEN
+      RETURN delete-cookie ({&WSEU-NAME}, ?, ?).
     ELSE DO:
       IF NOT cfg-eval-mode THEN
-        set-cookie ({&WSEU-NAME}, wseu-cookie, ?, ?, ?, ?, ?).    
+        set-cookie ({&WSEU-NAME}, wseu-cookie, ?, ?, ?, ?, ?).
       RETURN "".
     END.
-  END.  
+  END.
 END FUNCTION. /* set-wseu-cookie */
 &ANALYZE-RESUME
 
@@ -964,7 +968,7 @@ END FUNCTION. /* set-wseu-cookie */
 
 &IF DEFINED(EXCLUDE-url-decode) = 0 &THEN
 
-&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION url-decode 
+&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION url-decode
 FUNCTION url-decode RETURNS CHARACTER
   (INPUT p_in AS CHARACTER) :
 /****************************************************************************
@@ -974,16 +978,16 @@ Input: String to decode
 Returns: decoded string
 ****************************************************************************/
   DEFINE VARIABLE out AS CHARACTER NO-UNDO.
-  
+
   /* Copy and replace from p_in to out.  Note that p_in will have
      End-of-Line replaced with a CF/LF.  We need to replace this with the
      4GL-standard LF so when an HTML <TEXTAREA> is saved in a database, it
      won't contain extra characters. */
-  ASSIGN 
+  ASSIGN
     out = REPLACE(p_in, "%0D%0A":U, "~n":U).
-  
+
   RETURN WEB-CONTEXT:URL-DECODE(out).
-  
+
 END FUNCTION.  /* url-decode */
 &ANALYZE-RESUME
 
@@ -991,7 +995,7 @@ END FUNCTION.  /* url-decode */
 
 &IF DEFINED(EXCLUDE-url-encode) = 0 &THEN
 
-&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION url-encode 
+&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION url-encode
 FUNCTION url-encode RETURNS CHARACTER
   (INPUT p_value AS CHARACTER,
    INPUT p_enctype AS CHARACTER) :
@@ -1009,11 +1013,11 @@ Global Variables: url_unsafe, url_reserved
   DEFINE VARIABLE encode-list AS CHARACTER NO-UNDO.
   DEFINE VARIABLE i           AS INTEGER   NO-UNDO.
   DEFINE VARIABLE c           AS INTEGER   NO-UNDO.
- 
+
   /* Don't bother with blank or unknown  */
-  IF LENGTH(p_value) = 0 OR p_value = ? THEN 
+  IF LENGTH(p_value) = 0 OR p_value = ? THEN
     RETURN "".
-   
+
   /* What kind of encoding should be used? */
   CASE p_enctype:
     WHEN "query":U THEN              /* QUERY_STRING name=value parts */
@@ -1052,7 +1056,7 @@ END FUNCTION.  /* url-encode */
 
 &IF DEFINED(EXCLUDE-url-field) = 0 &THEN
 
-&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION url-field 
+&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION url-field
 FUNCTION url-field RETURNS CHARACTER
   (INPUT p_name AS CHARACTER,
    INPUT p_value AS CHARACTER,
@@ -1074,7 +1078,7 @@ END FUNCTION.  /* url-field */
 
 &IF DEFINED(EXCLUDE-url-field-list) = 0 &THEN
 
-&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION url-field-list 
+&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION url-field-list
 FUNCTION url-field-list RETURNS CHARACTER
   (INPUT p_name-list AS CHARACTER,
    INPUT p_delim AS CHARACTER) :
@@ -1109,7 +1113,7 @@ Returns: Encoded name and value pairs
            delimiter before the first name=value pair. */
         url-field(v-item, v-value, (IF v-out = "" THEN "" ELSE p_delim)).
   END.
-    
+
   RETURN v-out.
 END FUNCTION.  /* url-field-list */
 &ANALYZE-RESUME
@@ -1118,7 +1122,7 @@ END FUNCTION.  /* url-field-list */
 
 &IF DEFINED(EXCLUDE-url-format) = 0 &THEN
 
-&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION url-format 
+&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION url-format
 FUNCTION url-format RETURNS CHARACTER
   (INPUT p_url AS CHARACTER,
    INPUT p_name-list AS CHARACTER,
@@ -1149,7 +1153,7 @@ END FUNCTION.  /* url-format */
 
 &IF DEFINED(EXCLUDE-AsciiToHtml) = 0 &THEN
 
-&ANALYZE-SUSPEND _CODE-BLOCK _PROCEDURE AsciiToHtml 
+&ANALYZE-SUSPEND _CODE-BLOCK _PROCEDURE AsciiToHtml
 PROCEDURE AsciiToHtml :
 /****************************************************************************
 Description: See html-encode.  For backwards compatibility with
@@ -1169,7 +1173,7 @@ END PROCEDURE. /* AsciiToHtml */
 
 &IF DEFINED(EXCLUDE-GetCGI) = 0 &THEN
 
-&ANALYZE-SUSPEND _CODE-BLOCK _PROCEDURE GetCGI 
+&ANALYZE-SUSPEND _CODE-BLOCK _PROCEDURE GetCGI
 PROCEDURE GetCGI :
 /****************************************************************************
 Description: See getcgi().
@@ -1180,9 +1184,9 @@ Global Variables: CgiList, CgiVar
 ****************************************************************************/
   DEFINE INPUT  PARAMETER p_name  AS CHARACTER NO-UNDO.
   DEFINE OUTPUT PARAMETER p_value AS CHARACTER NO-UNDO.
-  
+
   /* Just return the function output */
-  ASSIGN p_value = get-cgi (p_name).  
+  ASSIGN p_value = get-cgi (p_name).
 END PROCEDURE.
 &ANALYZE-RESUME
 
@@ -1190,7 +1194,7 @@ END PROCEDURE.
 
 &IF DEFINED(EXCLUDE-GetField) = 0 &THEN
 
-&ANALYZE-SUSPEND _CODE-BLOCK _PROCEDURE GetField 
+&ANALYZE-SUSPEND _CODE-BLOCK _PROCEDURE GetField
 PROCEDURE GetField :
 /****************************************************************************
 Description: See get-field().
@@ -1212,7 +1216,7 @@ END PROCEDURE.
 
 &IF DEFINED(EXCLUDE-HtmlError) = 0 &THEN
 
-&ANALYZE-SUSPEND _CODE-BLOCK _PROCEDURE HtmlError 
+&ANALYZE-SUSPEND _CODE-BLOCK _PROCEDURE HtmlError
 PROCEDURE HtmlError :
 /****************************************************************************
 Description: Prints the input text string as an HTML error message also
@@ -1220,7 +1224,7 @@ Description: Prints the input text string as an HTML error message also
 Input Parameter: Character string to output
 ****************************************************************************/
   DEFINE INPUT PARAMETER p_error AS CHARACTER NO-UNDO.
-  
+
   RUN OutputContentType (INPUT "text/html":U).
   {&OUT}
   "<HTML>~n":U
@@ -1241,7 +1245,7 @@ END PROCEDURE. /* HtmlError */
 
 &IF DEFINED(EXCLUDE-OutputContentType) = 0 &THEN
 
-&ANALYZE-SUSPEND _CODE-BLOCK _PROCEDURE OutputContentType 
+&ANALYZE-SUSPEND _CODE-BLOCK _PROCEDURE OutputContentType
 PROCEDURE OutputContentType :
 /****************************************************************************
 Description: See output-content-type().
@@ -1261,7 +1265,7 @@ END PROCEDURE. /* OutputContentType */
 
 &IF DEFINED(EXCLUDE-OutputHttpHeader) = 0 &THEN
 
-&ANALYZE-SUSPEND _CODE-BLOCK _PROCEDURE OutputHttpHeader 
+&ANALYZE-SUSPEND _CODE-BLOCK _PROCEDURE OutputHttpHeader
 PROCEDURE OutputHttpHeader :
 /****************************************************************************
 Description: See output-http-header().
@@ -1269,7 +1273,7 @@ Input Parameters: HTTP Header name (less colon), associated header value.
 ****************************************************************************/
   DEFINE INPUT PARAMETER p_header AS CHARACTER NO-UNDO.
   DEFINE INPUT PARAMETER p_value  AS CHARACTER NO-UNDO.
-  
+
   output-http-header(p_header, p_value).
 END PROCEDURE. /* OutputHttpHeader */
 &ANALYZE-RESUME
@@ -1278,7 +1282,7 @@ END PROCEDURE. /* OutputHttpHeader */
 
 &IF DEFINED(EXCLUDE-UrlDecode) = 0 &THEN
 
-&ANALYZE-SUSPEND _CODE-BLOCK _PROCEDURE UrlDecode 
+&ANALYZE-SUSPEND _CODE-BLOCK _PROCEDURE UrlDecode
 PROCEDURE UrlDecode :
 /****************************************************************************
 Description: See url-decode().
@@ -1297,7 +1301,7 @@ END PROCEDURE.  /* UrlDecode */
 
 &IF DEFINED(EXCLUDE-UrlEncode) = 0 &THEN
 
-&ANALYZE-SUSPEND _CODE-BLOCK _PROCEDURE UrlEncode 
+&ANALYZE-SUSPEND _CODE-BLOCK _PROCEDURE UrlEncode
 PROCEDURE UrlEncode :
 /****************************************************************************
 Description: See url-encode().
@@ -1323,12 +1327,12 @@ END PROCEDURE.  /* UrlEncode */
 
  &IF DEFINED(EXCLUDE-find_web_form_field) = 0 &THEN
 
-&ANALYZE-SUSPEND _CODE-BLOCK _PROCEDURE find_web_form_field 
+&ANALYZE-SUSPEND _CODE-BLOCK _PROCEDURE find_web_form_field
 /****************************************************************************
 Description: Find if a given field name exists in the form or query string
              This does what get-field(?) does but handle the case where
              there are too many fields to be placed in the FieldList global.
-Input Parameter: Name of item 
+Input Parameter: Name of item
 Output: found returns TRUE if it finds a field, otherwise it returns false.
 ****************************************************************************/
 
@@ -1346,7 +1350,7 @@ PROCEDURE find_web_form_field.
     DEFINE VARIABLE cTmp    AS CHARACTER NO-UNDO.
     DEFINE VARIABLE lChForm AS LONGCHAR  NO-UNDO.
     DEFINE VARIABLE lChQry  AS LONGCHAR  NO-UNDO.
-    
+
     IF FieldList = "" THEN DO:
 
         ASSIGN v-form = WEB-CONTEXT:GET-CGI-LIST("FORM":U) NO-ERROR.
@@ -1357,7 +1361,7 @@ PROCEDURE find_web_form_field.
         IF ERROR-STATUS:ERROR THEN
             lChQry = WEB-CONTEXT:GET-CGI-LIST("QUERY":U).
 
-        /* if either one of the strings is too big, 
+        /* if either one of the strings is too big,
            just handle it w/ longchars */
         IF lChForm NE "" OR lChQry NE "" THEN DO:
             IF lChForm NE "" THEN
@@ -1390,7 +1394,7 @@ PROCEDURE find_web_form_field.
         END.
 
         ASSIGN j = NUM-ENTRIES(v-value).
-    
+
         /* eliminate dupes */
         DO i = 1 TO j:
           ASSIGN v-name = ENTRY(i, v-value).
@@ -1398,7 +1402,7 @@ PROCEDURE find_web_form_field.
             ASSIGN cTmp = cTmp +
                    (IF cTmp = "" THEN "" ELSE ",":U) + v-name.
         END.
-    
+
         ASSIGN FieldList = cTmp NO-ERROR. /* save it away */
         IF ERROR-STATUS:ERROR THEN DO:
             /* if we got this far, just lookup using cTmp and don't

@@ -71,7 +71,7 @@ class OpenEdge.Net.HTTP.DefaultHttpClientBuilder inherits ClientBuilder
 
         /* SET OPTIONS */
         if HasOption('numRetries':u) then
-            oClient:Options:NumRetries = GetOptionNumericValue('numRetries':u).
+            oClient:Options:NumRetries = integer(GetOptionNumericValue('numRetries':u)).
         if HasOption('pauseBetweenRetry':u) then
             oClient:Options:PauseBetweenRetry = GetOptionNumericValue('pauseBetweenRetry':u).
         if HasOption('requestTimeout':u) then

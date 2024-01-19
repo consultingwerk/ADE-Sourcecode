@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2014-2018, 2021-2022 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014-2018, 2021-2023 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : ByteBucket
@@ -18,12 +18,22 @@ using OpenEdge.Core.HashAlgorithmEnum.
 using OpenEdge.Core.ISupportInitialize.
 using OpenEdge.Core.Memptr.
 using OpenEdge.Core.String.
-using Progress.IO.MemoryOutputStream.
 using OpenEdge.Core.IMemoryPointer.
+using Progress.IO.MemoryOutputStream.
+using Progress.Collections.IComparable.
+using Progress.Collections.IHashable.
 using Progress.Lang.AppError.
+using Progress.Lang.Object.
 
 class OpenEdge.Core.ByteBucket
-implements ISupportInitialize, IMemptrHolder, IMemoryPointer:
+implements ISupportInitialize
+         , IMemptrHolder
+         , IMemoryPointer
+           // Compare to the interface so that other implementations of IMemptrHolder can be sorted with this one
+         , IComparable<IMemptrHolder>
+         , IHashable
+:
+
     // The storage of the memptr data - this is a dynamically-extensible primitive
     define private variable memoutStream as MemoryOutputStream no-undo.
     define private variable twoGbSize as int64 no-undo init 2147483647.
@@ -53,7 +63,9 @@ implements ISupportInitialize, IMemptrHolder, IMemoryPointer:
                 set-size(bbData) = memoutStream:BytesWritten.
                 bbData = get-bytes(memoutStream:Data, 1, memoutStream:BytesWritten).
             end.
+
             return bbData.
+
             finally:
                 // cleaning up this memptr doesn't mean that the caller
                 // will have a zero-byte value
@@ -68,13 +80,13 @@ implements ISupportInitialize, IMemptrHolder, IMemoryPointer:
         end get.
     
     /** Constructor for a ByteBucket. Defaults to 0 memptr size */
-    constructor public ByteBucket():
+    constructor public ByteBucket ():
         this-object(0).
     end constructor.
     
     /** Constructor for a ByteBucket
         @param int64 the intial size of memptr to store bytes */
-    constructor public ByteBucket(input piDefaultCapacity as int64):
+    constructor public ByteBucket (input piDefaultCapacity as int64):
         Assert:IsZeroOrPositive(piDefaultCapacity, 'Initial size').
         assign memoutStream                = new MemoryOutputStream(piDefaultCapacity)
                this-object:Position        = 1
@@ -82,7 +94,7 @@ implements ISupportInitialize, IMemptrHolder, IMemoryPointer:
                .
     end constructor.
     
-    destructor ByteBucket():
+    destructor ByteBucket ():
         Destroy().
     end destructor.
     
@@ -91,7 +103,7 @@ implements ISupportInitialize, IMemptrHolder, IMemoryPointer:
         @param integer  The initial size of the array (ie how many extents)
         @param int64 the intial size of  memptr to store bytes */
     {&_proparse_ prolint-nowarn(varusage)}
-    constructor public ByteBucket(input piInitialSize as integer, input piDefaultCapacity as int64):
+    constructor public ByteBucket (input piInitialSize as integer, input piDefaultCapacity as int64):
         this-object(piDefaultCapacity).
     end constructor.
     
@@ -100,7 +112,7 @@ implements ISupportInitialize, IMemptrHolder, IMemoryPointer:
         @param integer The initial size of the bucket (ie how many 32k rows)
         @deprecated(since='12.0':u).
         */
-    constructor public ByteBucket(input piInitialSize as integer):
+    constructor public ByteBucket (input piInitialSize as integer):
         this-object(int64(piInitialSize)).
     end constructor.
     
@@ -108,7 +120,7 @@ implements ISupportInitialize, IMemptrHolder, IMemoryPointer:
     
         @param integer  The initial size of the array (ie how many extents)
         @param int64 The size of each memptr in the array */
-    method public static ByteBucket Instance(input piInitialSize as integer, input piDefaultCapacity as int64):
+    method public static ByteBucket Instance (input piInitialSize as integer, input piDefaultCapacity as int64):
         define variable oBB as ByteBucket no-undo.
         assign oBB = new ByteBucket(piInitialSize, piDefaultCapacity).
         oBB:Initialize().
@@ -118,7 +130,7 @@ implements ISupportInitialize, IMemptrHolder, IMemoryPointer:
     /** Factory method for creating a ByteBucket.
     
         @param int64 The size of  memptr to store bytes */
-    method public static ByteBucket Instance(input piDefaultCapacity as int64):
+    method public static ByteBucket Instance (input piDefaultCapacity as int64):
         define variable oBB as ByteBucket no-undo.
         
         assign oBB = new ByteBucket(piDefaultCapacity).
@@ -128,7 +140,7 @@ implements ISupportInitialize, IMemptrHolder, IMemoryPointer:
     end method.
     
     /** Factory method for creating a ByteBucket. */
-    method public static ByteBucket Instance():
+    method public static ByteBucket Instance ():
         define variable oBB as ByteBucket no-undo.
         
         assign oBB = new ByteBucket().
@@ -139,7 +151,7 @@ implements ISupportInitialize, IMemptrHolder, IMemoryPointer:
     
     /** Clears/resets the ByteBucket. Does not de-allocate the memory, just the
         various pointers/counters/cursors. */
-    method public void Clear():
+    method public void Clear ():
          memoutStream:Clear().
          assign this-object:Position = 1.
              
@@ -150,12 +162,12 @@ implements ISupportInitialize, IMemptrHolder, IMemoryPointer:
     /** Default object initialization
         
         Clears and resizes the bucket's internals to the initial size (num records) */
-    method public void Initialize():
+    method public void Initialize ():
         assign this-object:Position = 1.
     end method.
     
     /** Destroy/Shutdown/Anti-Initializer */
-    method public void Destroy():
+    method public void Destroy ():
         this-object:Clear().
     end method.
     
@@ -165,7 +177,7 @@ implements ISupportInitialize, IMemptrHolder, IMemoryPointer:
         
         @param integer The new size (number of extents) for the array */
     {&_proparse_ prolint-nowarn(varusage)}
-    method public void ResizeArray(input piSize as integer):
+    method public void ResizeArray (input piSize as integer):
         //this-object:Resize(piSize).
     end method.
     
@@ -175,7 +187,7 @@ implements ISupportInitialize, IMemptrHolder, IMemoryPointer:
         
         @param integer The new size (number of records) for the internal structure */
     {&_proparse_ prolint-nowarn(varusage)}
-    method public void Resize(input piSize as integer):
+    method public void Resize (input piSize as integer):
         // not needed
     end method.
     
@@ -184,8 +196,8 @@ implements ISupportInitialize, IMemptrHolder, IMemoryPointer:
     
         @param int64 The pointer to memory represented by a memptr (via get-pointer-value).
         @param int64 The size of the memptr represented by the pointer value. */
-    method public void PutBytes(input piPointerValue as int64,
-                                input piSize as int64):
+    method public void PutBytes (input piPointerValue as int64,
+                                 input piSize as int64):
         define variable bytesWritten as int64 no-undo.
         
         // Nothing to do if there's no data
@@ -221,7 +233,7 @@ implements ISupportInitialize, IMemptrHolder, IMemoryPointer:
     /** Copies all of the bytes from a String object (longchar) into this bucket.
         
         @param String The longchar containing the source data. */
-    method public void PutString(input poData as String):
+    method public void PutString (input poData as String):
         Assert:NotNull(poData, 'String data').
         
         PutString(poData:Value, poData:Encoding).
@@ -230,7 +242,7 @@ implements ISupportInitialize, IMemptrHolder, IMemoryPointer:
     /** Copies all of the bytes from a longchar into this bucket.
         
         @param longchar The longchar containing the source data */
-    method public void PutString(input pcData as longchar):
+    method public void PutString (input pcData as longchar):
         PutString(pcData, 'utf-8':u).
     end method.
     
@@ -239,8 +251,8 @@ implements ISupportInitialize, IMemptrHolder, IMemoryPointer:
         @param longchar The longchar containing the source data
         @param longchar The target codepage used to write data into the bucket. Defaults to UTF-8 */
     @deprecated(since="11.7.3", use="PutString(longchar,character)").
-    method public void PutString(input pcData as longchar,
-                                 input pcTargetCodepage as longchar):
+    method public void PutString (input pcData as longchar,
+                                  input pcTargetCodepage as longchar):
         {&_proparse_ prolint-nowarn(overflow)}
         PutString(pcData, string(pcTargetCodepage)).
     end method.
@@ -249,8 +261,8 @@ implements ISupportInitialize, IMemptrHolder, IMemoryPointer:
         
         @param longchar The longchar containing the source data
         @param character The target codepage used to write data into the bucket. Defaults to UTF-8 */
-    method public void PutString(input pcData as longchar,
-                                 input pcTargetCodepage as character):
+    method public void PutString (input pcData as longchar,
+                                  input pcTargetCodepage as character):
         define variable mData as memptr no-undo.
         
         // Nothing to do if there's no data
@@ -278,7 +290,7 @@ implements ISupportInitialize, IMemptrHolder, IMemoryPointer:
         caller is responsible for cleaning up the memptr.
     
         @param OpenEdge.Core.Memptr The Memptr instance containing the data. */
-    method public void PutBytes(input poData as class Memptr):
+    method public void PutBytes (input poData as class Memptr):
         Assert:NotNull(poData, 'Data').
         PutBytes(poData:GetPointerValue(), poData:Size).
     end method.
@@ -287,7 +299,7 @@ implements ISupportInitialize, IMemptrHolder, IMemoryPointer:
         caller is responsible for cleaning up the source ByteBucket.
             
         @param ByteBucket The ByteBucket instance containing the data. */
-    method public void PutBytes(input poData as class ByteBucket):
+    method public void PutBytes (input poData as class ByteBucket):
         Assert:NotNull(poData, 'Input data').
         
         // Check to make sure file is less than 2 gb max, error if it is because memptr can't accept it
@@ -305,7 +317,7 @@ implements ISupportInitialize, IMemptrHolder, IMemoryPointer:
         caller is responsible for cleaning up the memptr.
     
         @param memptr The memptr containing the data. */
-    method public void PutBytes(input pmData as memptr):
+    method public void PutBytes (input pmData as memptr):
         // Nothing to do if there's no data
         if get-size(pmData) eq 0 then
             return.
@@ -318,7 +330,7 @@ implements ISupportInitialize, IMemptrHolder, IMemoryPointer:
         position marker.
         
         @return integer The byte value at the current position */
-    method public integer GetByte():
+    method public integer GetByte ():
         define variable iByte as integer no-undo.
         
         assign iByte                = GetByte(this-object:Position)
@@ -331,8 +343,7 @@ implements ISupportInitialize, IMemptrHolder, IMemoryPointer:
         
         @param int64 The position at which to return the byte.
         @return integer The byte value at the current position */
-    method public integer GetByte(input piStartPos as int64):
-        
+    method public integer GetByte (input piStartPos as int64):
         if piStartPos  <=  memoutStream:BytesWritten then do:
             return get-byte(memoutStream:Data,piStartPos).
         end.
@@ -346,8 +357,8 @@ implements ISupportInitialize, IMemptrHolder, IMemoryPointer:
         @param int64 The start potision
         @param int64 The size of the data (in bytes) to return
         @return longchar The character/string data requested     */
-    method public longchar GetString(input piStartPos as int64,
-                                     input piSliceSize as int64):
+    method public longchar GetString (input piStartPos as int64,
+                                      input piSliceSize as int64):
         return GetString(piStartPos, piSliceSize, session:cpinternal, 'UTF-8':u).
     end method.
     
@@ -358,9 +369,9 @@ implements ISupportInitialize, IMemptrHolder, IMemoryPointer:
         @param  int64 The size of the data (in bytes) to return
         @param  character The target codepage for the character data
         @return longchar The character/string data requested     */
-    method public longchar GetString(input piStartPos as int64,
-                                     input piSliceSize as int64,
-                                     input pcTargetCodepage as character):
+    method public longchar GetString (input piStartPos as int64,
+                                      input piSliceSize as int64,
+                                      input pcTargetCodepage as character):
         return GetString(piStartPos, piSliceSize, session:cpinternal, pcTargetCodepage).
     end method.
                                                                                         
@@ -372,10 +383,10 @@ implements ISupportInitialize, IMemptrHolder, IMemoryPointer:
         @param  character The source codepage for the character data
         @param  character The target codepage for the character data
         @return longchar The character/string data requested     */
-    method public longchar GetString(input piStartPos as int64,
-                                     input piSliceSize as int64,
-                                     input pcSourceCodepage as character,
-                                     input pcTargetCodepage as character):
+    method public longchar GetString (input piStartPos as int64,
+                                      input piSliceSize as int64,
+                                      input pcSourceCodepage as character,
+                                      input pcTargetCodepage as character):
         define variable rawData as memptr no-undo.
         define variable stringData as longchar no-undo.
         
@@ -416,21 +427,21 @@ implements ISupportInitialize, IMemptrHolder, IMemoryPointer:
     
         @param int64 The size of the data (in bytes) to return
         @return longchar The character/string data requested     */
-    method public longchar GetString(input piSliceSize as int64):
+    method public longchar GetString (input piSliceSize as int64):
         return GetString(this-object:Position, piSliceSize).
     end method.
     
     /** Returns a string/character representation of the entire set of bytes.
         
         @return longchar The character/string data requested     */
-    method public longchar GetString():
+    method public longchar GetString ():
         return GetString(1, this-object:Size).
     end method.
     
     /** Returns the entire contents of this bucket as a Memptr instance.
     
         @return Memptr The complete bucket data */
-    method public class Memptr GetBytes():
+    method public class Memptr GetBytes ():
         return GetBytes(1, this-object:Size).
     end method.
     
@@ -439,7 +450,7 @@ implements ISupportInitialize, IMemptrHolder, IMemoryPointer:
     
         @param int64 The number of bytes to return
         @return Memptr The complete bucket data */
-    method public class Memptr GetBytes(input piSliceSize as int64):
+    method public class Memptr GetBytes (input piSliceSize as int64):
         return GetBytes(this-object:Position, piSliceSize).
     end method.
     
@@ -449,8 +460,8 @@ implements ISupportInitialize, IMemptrHolder, IMemoryPointer:
         @param int64 The starting position
         @param int64 The number of bytes to return
         @return Memptr The complete bucket data */
-    method public class Memptr GetBytes(input piStartPos as int64,
-                                        input piSliceSize as int64):
+    method public class Memptr GetBytes (input piStartPos as int64,
+                                         input piSliceSize as int64):
         define variable data as memptr no-undo.
         
         /* return an empty Memptr */
@@ -481,8 +492,8 @@ implements ISupportInitialize, IMemptrHolder, IMemoryPointer:
        
        @param int64  The start position to read
        @param memptr The memptr into which to read the data */
-    method private void ReadBytes(input piStartPos as int64,
-                                  input pData as memptr):
+    method private void ReadBytes (input piStartPos as int64,
+                                   input pData as memptr):
         define variable bytestoread as int64 no-undo.
         define variable mSize as int64 no-undo.
         
@@ -508,7 +519,7 @@ implements ISupportInitialize, IMemptrHolder, IMemoryPointer:
     
     /* Debug method to dump out current RAW bytes into numbered files
        Files are named bytebucket-memptr-<number>.bin */
-    method public void Debug():
+    method public void Debug ():
         copy-lob from memoutStream:Data to file session:temp-dir + 'bytebucket-memptr-':u + string(int64(this-object)) + '.bin':u.
     end method.
     
@@ -516,7 +527,7 @@ implements ISupportInitialize, IMemptrHolder, IMemoryPointer:
         for comparing memptr values quickly.
         
         @return raw The hashed value of the memptr. */
-    method public raw GetHash():
+    method public raw GetHash ():
         return GetHash(HashAlgorithmEnum:MD5).
     end method.
     
@@ -525,7 +536,7 @@ implements ISupportInitialize, IMemptrHolder, IMemoryPointer:
         
         @param HashAlgorithmEnum The algorithm to use for the message
         @return raw The hashed value of the memptr. */
-    method public raw GetHash(input poAlgorithm as HashAlgorithmEnum):
+    method public raw GetHash (input poAlgorithm as HashAlgorithmEnum):
         Assert:NotNull(poAlgorithm, 'Algorithm').
         
         /* hash of all the bytes */
@@ -537,7 +548,7 @@ implements ISupportInitialize, IMemptrHolder, IMemoryPointer:
         @param longchar The search string. Must be non-unknown.
         @return int64 The 1-based index of the start of the search string. Returns 0 if the search string cannot be found */
     @since(rel='12.5.0').
-    method public int64 IndexOf(input pSearchStr as longchar):
+    method public int64 IndexOf (input pSearchStr as longchar):
         return IndexOf(pSearchStr, 1).
     end method.
     
@@ -547,8 +558,8 @@ implements ISupportInitialize, IMemptrHolder, IMemoryPointer:
         @param int64 The position to start searching at. Must be 1 or greater. If > the bytes written, returns 0.
         @return int64 The 1-based index of the start of the search string. Returns 0 if the search string cannot be found */
     @since(rel='12.5.0').
-    method public int64 IndexOf(input pSearchStr as longchar,
-                                input pStartAt as int64):
+    method public int64 IndexOf (input pSearchStr as longchar,
+                                 input pStartAt as int64):
         var int64 idx.
         
         if memoutStream:BytesWritten eq 0
@@ -569,4 +580,65 @@ implements ISupportInitialize, IMemptrHolder, IMemoryPointer:
         return idx.
     end method.
     
+    method override public logical Equals (input p0 as Object):
+        if type-of(p0, ByteBucket) then do:
+            if (this-object:Size eq cast(p0, ByteBucket):Size) then
+                // If the same size, we need to confirm the contents.
+                return (this-object:GetHash() eq cast(p0, ByteBucket):GetHash()) eq true.
+            else
+                return false. // If not the same size then we're done.
+        end.
+        else
+            return super:Equals(p0).
+    end method.
+
+    /* Comparison method, used by SortedSet's default comparer
+        
+        - If the returned value is less than 0 (zero), then the current object sorts before the object passed in.
+        - If the returned value equals 0 (zero) , then the current object occupies the same position in the sort order.
+        - If the returned value is greater than 0(zero), then the current object sorts after the object passed in.
+        - If either object's Value is the unknown value (?), then that sorts high/early/before
+        
+        @param IMemptrHolder The object to compare to.
+        @return integer  0 = same object
+                        +1 = sorts after
+                        -1 = sorts before   */
+    method public integer CompareTo (input pOther as IMemptrHolder):
+        var raw toraw, poraw.
+
+        Assert:NotNull(pOther, 'CompareTo object').
+        // use SHA-256 to get the hash code and put it in a raw value to compare
+        toraw = message-digest("SHA-256", this-object:Value).
+        poraw = message-digest("SHA-256", pOther:Value).
+         
+        if toraw eq poraw then
+            return 0.
+        else
+        // unknown values sort first/lower
+        //  Compare the string representation of the raw hash code
+        if string(toraw) gt string(poraw)
+        or poraw eq ?
+        then
+            return +1.
+        else
+        if string(toraw) lt string(poraw)
+        or toraw eq ?
+        then
+            return -1.
+        
+        // this will raise an error in the Comparer; we should never get here though.
+        return ?.
+    end method.
+
+    /* Hashing method for creating a proper index for use with Progress.Collections.HashMap
+
+        @return integer Result of the hash-code method using this object's comparable value(s) */
+    method public integer HashCode ( ):
+        // In order to create a meaningful hash for an object instance,
+        // we should follow suite with how the Equals() logic works.
+        // By using the full class name plus the object's comparable value(s)
+        // this should be consistent for any instance of this object type.
+        return hash-code(this-object:GetClass():TypeName, this-object:Value).
+    end method.
+
 end class.

@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013, 2021 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2013, 2021, 2023 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : ConnectionParameters
@@ -156,17 +156,18 @@ class OpenEdge.Core.ServerConnection.ConnectionParameters
             case poOptions:GetType(cNames[iLoop]):
                 when JsonDataType:String then
                     cConnectionString = cConnectionString
-                              + substitute(pcFormatMask,
-                                           cNames[iLoop],
-                                           poOptions:GetCharacter(cNames[iLoop])).
+                                      + substitute(pcFormatMask,
+                                                   cNames[iLoop],
+                                                   poOptions:GetCharacter(cNames[iLoop])).
                 otherwise
+                    {&_proparse_ prolint-nowarn(overflow)}
                     cConnectionString = cConnectionString
-                              + substitute(pcFormatMask,
-                                           cNames[iLoop],
-                                           poOptions:GetJsonText(cNames[iLoop])).
+                                      + substitute(pcFormatMask,
+                                                   cNames[iLoop],
+                                                   string(poOptions:GetJsonText(cNames[iLoop]))).
             end case.
         end.
-        
+
         return cConnectionString.
     end method.
     

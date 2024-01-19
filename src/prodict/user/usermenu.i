@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2006-2013,2016,2020 by Progress Software Corporation. All *
-* rights reserved.  Prior versions of this work may contain portions *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***************************************************************************
+* Copyright (C) 2006-2013,2016,2020,2023 by Progress Software Corporation. *
+* All rights reserved. Prior versions of this work may contain portions    *
+* contributed by participants of Possenet.                                 *
+*                                                                          *
+****************************************************************************/
 
 /*----------------------------------------------------------------------------
 File: usermenu.i
@@ -90,7 +90,8 @@ fernando 06/09/06   Support for large key entries
 fernando 06/23/08   Support for encryption
 fernando 04/07/09   Added Alternate Buffer Pool utilities
 kmayur   06/21/11   Added options for constraint creation (Server Attributes in Dataserver) OE00195067
-rkamboj  08/16/11   Added new terminology for security items and windows. 
+rkamboj  08/16/11   Added new terminology for security items and windows.
+tmasood  05/22/23   Added new security table in the list when DDM is enabled
 
 Date Created: 01/04/93 
 ----------------------------------------------------------------------------*/
@@ -1330,15 +1331,22 @@ END.
 
 /*----- DUMP SECURITY PERMISSIONS -----*/
 ON CHOOSE OF MENU-ITEM mi_Dump_Sec_Perm IN MENU mnu_Dump DO:
+  DEFINE VARIABLE hBuffer  AS HANDLE NO-UNDO.
+
   IF NOT dbAdmin(USERID("DICTDB")) THEN DO:
     MESSAGE "You must be a Security Administrator to access this dump option!"
         VIEW-AS ALERT-BOX ERROR BUTTONS OK.
     RETURN NO-APPLY.
   END.
-
-  ASSIGN user_env[1]  = 
-                "_sec-role,_sec-granted-role,_sec-granted-role-condition"
-         user_excepts = "_sys.audit.admin,_sys.audit.archive," + 
+  CREATE BUFFER hBuffer FOR TABLE "DICTDB._file".
+  hBuffer:FIND-FIRST("WHERE _file._File-Name = ~'_sec-auth-tag~'",
+                          NO-LOCK) NO-ERROR.
+  IF hBuffer:AVAILABLE THEN 
+    ASSIGN user_env[1]  = "_sec-role,_sec-granted-role,_sec-granted-role-condition,_sec-auth-tag". /* When DDM enabled */
+  ELSE  
+    ASSIGN user_env[1]  = "_sec-role,_sec-granted-role,_sec-granted-role-condition".
+    
+    ASSIGN user_excepts = "_sys.audit.admin,_sys.audit.archive," + 
                         "_sys.audit.read,_sys.audit.appevent.insert".
   RUN Perform_Func ("9=m,_usrdump,_dmpdata").
 END.
@@ -1601,15 +1609,20 @@ END.
 
 /*----- LOAD SECURITY AUTHENTICATION RECORDS -----*/
 ON CHOOSE OF MENU-ITEM mi_Load_Sec_Perm IN MENU mnu_Load DO:
+  DEFINE VARIABLE hBuffer AS HANDLE NO-UNDO.
   IF NOT dbAdmin(USERID("DICTDB")) THEN DO:
     MESSAGE "You must be a Security Administrator to access this load option!"
         VIEW-AS ALERT-BOX ERROR BUTTONS OK.
     user_env = "".
     RETURN NO-APPLY.
   END.
-
-  user_env[1]  = "_sec-role,_sec-granted-role," + 
-                 "_sec-granted-role-condition".
+  CREATE BUFFER hBuffer FOR TABLE "DICTDB._file".
+  hBuffer:FIND-FIRST("WHERE _file._File-Name = ~'_sec-auth-tag~'",
+                          NO-LOCK) NO-ERROR.
+  IF hBuffer:AVAILABLE THEN
+    ASSIGN user_env[1]  = "_sec-role,_sec-granted-role,_sec-granted-role-condition,_sec-auth-tag". /* When DDM enabled */
+  ELSE
+    ASSIGN user_env[1]  = "_sec-role,_sec-granted-role,_sec-granted-role-condition".
 
   RUN Perform_Func ("9=m,_usrload,_loddata").
 END.

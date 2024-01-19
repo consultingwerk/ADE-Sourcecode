@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2013-2022 by Progress Software Corporation
+Copyright (c) 2013-2023 by Progress Software Corporation
 and/or one of its subsidiaries or affiliates. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
@@ -200,6 +200,7 @@ class OpenEdge.Core.Assert:
         {&_proparse_ prolint-nowarn(varusage)}
         define variable iCheckVal as integer no-undo.
 
+        // Intentional use of no-error as we will consider an error to indicate this is not an integer.
         iCheckVal = integer(pArgument) no-error.
         if error-status:error then
             undo, throw new AssertionFailedError(substitute('&1 is not an integer value':u, pcName), 0).
@@ -211,9 +212,10 @@ class OpenEdge.Core.Assert:
 
     method public static void IsDecimal (input pArgument as character, input pcName as character):
         {&_proparse_ prolint-nowarn(varusage)}
-        define variable iCheckVal as integer no-undo.
+        define variable fCheckVal as decimal no-undo.
 
-        iCheckVal = decimal(pArgument) no-error.
+        // Intentional use of no-error as we will consider an error to indicate this is not a decimal.
+        fCheckVal = decimal(pArgument) no-error.
         if error-status:error then
             undo, throw new AssertionFailedError(substitute('&1 is not a decimal value':u, pcName), 0).
     end method.
@@ -226,6 +228,7 @@ class OpenEdge.Core.Assert:
         {&_proparse_ prolint-nowarn(varusage)}
         define variable iCheckVal as int64 no-undo.
 
+        // Intentional use of no-error as we will consider an error to indicate this is not an int64.
         iCheckVal = int64(pArgument) no-error.
         if error-status:error then
             undo, throw new AssertionFailedError(substitute('&1 is not an int64 value':u, pcName), 0).

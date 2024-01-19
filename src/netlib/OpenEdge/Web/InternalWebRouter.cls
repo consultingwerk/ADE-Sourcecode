@@ -193,16 +193,10 @@ implements ISupportLogging
 
         Assert:NotNullOrEmpty(pHandlerName, 'Web handler name').
 
-        // If the given handler name cannot be found, we're done here and cannot proceed.
-        assign plc = Progress.Lang.Class:GetClass(pHandlerName) no-error.
-        if not valid-object(plc) then
-            undo, throw new AppError(substitute('Class "&1" cannot be found on PROPATH', pHandlerName), 0).
-
         // First attempt to look in a CCS Service Manager for a registered instance of this handler.
         if valid-object(Ccs.Common.Application:ServiceManager) then do:
             assign webHandler = cast(Ccs.Common.Application:ServiceManager
-                                                           :getService(get-class(IWebHandler), pHandlerName),
-                                     IWebHandler)
+                                                           :getService(get-class(IWebHandler), pHandlerName), IWebHandler)
                    no-error. // NO-ERROR for cases where there is a Service Manager but it does not handle IWebHandler.
             assign error-status:error = false.
         end.
@@ -215,6 +209,13 @@ implements ISupportLogging
 
             return cast(webHandler, IWebHandler). // Immediately return the valid IWebHandler instance.
         end.
+
+        // If we did not get a valid WebHandler from the CCS ServiceManager, check the PROPATH.
+        assign plc = Progress.Lang.Class:GetClass(pHandlerName) no-error.
+
+        // If the given handler name cannot be found here then we're done and cannot proceed.
+        if not valid-object(plc) then
+            undo, throw new AppError(substitute('Class "&1" cannot be found on PROPATH', pHandlerName), 0).
 
         // If not in debug mode then look in our cache of existing handler instances.
         assign dbg = DebugEnabled no-error.

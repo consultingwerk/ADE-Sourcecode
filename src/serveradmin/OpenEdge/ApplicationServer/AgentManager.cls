@@ -95,7 +95,7 @@ class OpenEdge.ApplicationServer.AgentManager final:
 
             // Set the default logging level if we could not establish this from the config.
             if not valid-object(oLogLevel) then
-                assign oLogLevel = LogLevelEnum:Default.
+                assign oLogLevel = LogLevelEnum:Default. // aka. WARN
 
             // Manually create a logger instance using 2 filters:
             //  FullTextFormat  - Provides a common and expected log format with timestamp.
@@ -404,7 +404,9 @@ class OpenEdge.ApplicationServer.AgentManager final:
         define variable cUrl as longchar no-undo.
         assign cUrl = OutUrl. // A leading character parameter to substitute should be a longchar if subsequent parameters are longchar.
 
-        this-object:logMessage(substitute("PushProfilerData - OutUrl[&1] RequestCount[&2] Settings[&3":u, cUrl, RequestCount, SettingsJson)).
+        define variable cMsg as longchar no-undo initial "PushProfilerData - OutUrl[&1] RequestCount[&2] Settings[&3":u.
+        {&_proparse_ prolint-nowarn(overflow)}
+        this-object:logMessage(string(substitute(cMsg, cUrl, RequestCount, SettingsJson))).
         return pasam:PushProfilerData(OutUrl, RequestCount, SettingsJson).
     end method.
 

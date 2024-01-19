@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2006-2020 by Progress Software Corporation. All rights *
+* Copyright (C) 2006-2020,2023 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -15,7 +15,9 @@
  *                          20050930-006                            *
  * vmaganti     10/12/20    Making native sequence as default one   *
  * tmasood      11/12/20    Include four new sections to            *
- *                          support online schema change feature.   */
+ *                          support online schema change feature.
+ * kberlia      06/06/23    Supporting dump of _field DDM Schema.   
+ * tmasood      07/24/23    Support load of DDM Schema              */
    
 /* uservar.i - dictionary user interface variable definitions */
 
@@ -64,6 +66,12 @@ DEFINE {1} SHARED VARIABLE hTriggersStream   AS HANDLE NO-UNDO.
 DEFINE {1} SHARED VARIABLE hPostDeployStream AS HANDLE NO-UNDO.
 DEFINE {1} SHARED VARIABLE hOfflineStream    AS HANDLE NO-UNDO.
 
+/* For DDM schema support */
+DEFINE {1} SHARED STREAM DDM-str.
+DEFINE {1} SHARED VARIABLE hDDMStream  AS HANDLE    NO-UNDO.
+DEFINE {1} SHARED VARIABLE DumpDDM     AS CHARACTER NO-UNDO.
+DEFINE {1} SHARED VARIABLE ddmload        AS CHARACTER NO-UNDO.
+DEFINE {1} SHARED VARIABLE ignoreddmload  AS CHARACTER NO-UNDO.
 
 &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN 
    DEFINE RECTANGLE rect_Btns {&STDPH_OKBOX}.

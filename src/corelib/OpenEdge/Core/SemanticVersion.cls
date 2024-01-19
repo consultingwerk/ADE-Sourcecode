@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2017-2018, 2021-2022 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2017-2018, 2021-2023 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : SemanticVersion
@@ -21,9 +21,13 @@ block-level on error undo, throw.
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.SemanticVersion.
 using Progress.Collections.IComparable.
+using Progress.Collections.IHashable.
 using Progress.Lang.Object.
 
-class OpenEdge.Core.SemanticVersion serializable implements IComparable<SemanticVersion>:
+class OpenEdge.Core.SemanticVersion
+serializable
+implements IComparable<SemanticVersion>
+         , IHashable:
     /* The major version */
     define public property Major as integer no-undo get. private set.
     
@@ -155,8 +159,9 @@ class OpenEdge.Core.SemanticVersion serializable implements IComparable<Semantic
     
     method override public logical Equals(input pCompare as Object):
         if super:Equals(pCompare) then
-            return true.
-        // BUILD METADATA is NOT 
+            return true. // Objects are the same per original equality check.
+
+        // If comparing against another SemanticVersion then we should check each property.
         if type-of(pCompare, SemanticVersion) then
             return (    this-object:Major         eq cast(pCompare, SemanticVersion):Major
                     and this-object:Minor         eq cast(pCompare, SemanticVersion):Minor
@@ -255,5 +260,25 @@ class OpenEdge.Core.SemanticVersion serializable implements IComparable<Semantic
         // this will raise an error in the Comparer; we should never get here though.
         return ?.
     end method.
+
+    /* Hashing method for creating a proper index for use with Progress.Collections.HashMap
+
+        @return integer Result of the hash-code method using this object's comparable value(s) */
+    method public integer HashCode ( ):
+        // In order to create a meaningful hash for an object instance,
+        // we should follow suite with how the Equals() logic works.
+        // By using the full class name plus the object's comparable value(s)
+        // this should be consistent for any instance of this object type.
+
+        // In limited testing, performance of hash-code({individual properties})
+        // appears to be faster than hash-code(this-object:ToString())
+        if this-object:BuildMetadata ne '':u then
+            return hash-code(this-object:GetClass():TypeName, this-object:Major, this-object:Minor, this-object:Patch, this-object:PreRelease, this-object:BuildMetadata).
+        
+        if this-object:PreRelease ne '':u then
+            return hash-code(this-object:GetClass():TypeName, this-object:Major, this-object:Minor, this-object:Patch, this-object:PreRelease).
+            
+        return hash-code(this-object:GetClass():TypeName, this-object:Major, this-object:Minor, this-object:Patch).
+    end method. 
     
 end class.

@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2018, 2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2018, 2021, 2023 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : OpenAPI30ServiceWriter
@@ -302,7 +302,8 @@ class OpenEdge.Web.DataObject.Writer.OpenAPI30ServiceWriter inherits DataObjectS
                .
         operJson:GetJsonObject('responses':u):Add(string(pData:StatusCode, '999':u), childObj).
         childObj:Add('description':u, substitute('&1 &2 operation for service &3 v&4':u,
-                                            string(pData:Method), pData:ServiceURI, pService:Name, string(pService:Version))).
+                                                 string(pData:Method), pData:ServiceURI, pService:Name, string(pService:Version))).
+
         if pData:Name eq 'dataservice.catalog' then
         do:
             childObj:Add('content':u,   jsonData).
@@ -318,8 +319,13 @@ class OpenEdge.Web.DataObject.Writer.OpenAPI30ServiceWriter inherits DataObjectS
         if valid-object(pData:ReturnValue) then 
             assign cnt = extent(pData:ReturnValue:OutputElement).
         
+        RETURNLOOP:
         do loop = 1 to cnt:
+            // Use the safe navigation operator to check if any portion of this object chain is not valid.
+            if not valid-object(pData?:ReturnValue?:OutputElement[loop]?:ElementType) then next RETURNLOOP.
+
             assign jsonData = operJson:GetJsonObject('responses':u):GetJsonObject(string(pData:StatusCode, '999':u)).
+
             case pData:ReturnValue:OutputElement[loop]:ElementType:
                 when ElementTypeEnum:Field then
                 do:
@@ -374,9 +380,9 @@ class OpenEdge.Web.DataObject.Writer.OpenAPI30ServiceWriter inherits DataObjectS
                         schemaJson:Add('type':u, 'object':u).
                 end.
                 otherwise
-                    next.
+                    next RETURNLOOP.
             end case.
-        end.        //output
+        end. // return value
         
         if pData:Headers:Size gt 0 then
             childObj:Add('headers':u, WriteHeaders(pData)).
@@ -390,7 +396,11 @@ class OpenEdge.Web.DataObject.Writer.OpenAPI30ServiceWriter inherits DataObjectS
             
             // we only care about inputs here
             assign cnt = extent(opParam:InputElement).
-            do loop = 1 to cnt:  
+            INPUTLOOP:
+            do loop = 1 to cnt:
+                // Use the safe navigation operator to check if any portion of this object chain is not valid.
+                if not valid-object(opParam?:InputElement[loop]?:ElementType) then next INPUTLOOP.
+                
                 // REQUIRED. The location of the parameter. Possible values are "query", "header", "path" or "cookie".
                 case opParam:InputElement[loop]:ElementType:
                     when ElementTypeEnum:Query  or
@@ -479,13 +489,17 @@ class OpenEdge.Web.DataObject.Writer.OpenAPI30ServiceWriter inherits DataObjectS
                     end.
                     
                     otherwise
-                        next.
+                        next INPUTLOOP.
                 end case.
-            end.    // input loop
+            end. // input loop
             
             // now outputs
             assign cnt = extent(opParam:OutputElement).
-            do loop = 1 to cnt:  
+            OUTPUTLOOP:
+            do loop = 1 to cnt:
+                // Use the safe navigation operator to check if any portion of this object chain is not valid.
+                if not valid-object(opParam?:OutputElement[loop]?:ElementType) then next OUTPUTLOOP.
+
                 assign jsonData = operJson:GetJsonObject('responses':u):GetJsonObject(string(pData:StatusCode, '999':u)).
                 case opParam:OutputElement[loop]:ElementType:
                     when ElementTypeEnum:Field then
@@ -556,9 +570,9 @@ class OpenEdge.Web.DataObject.Writer.OpenAPI30ServiceWriter inherits DataObjectS
                     end.
                     
                     otherwise
-                        next.
+                        next OUTPUTLOOP.
                 end case.
-            end.        //output
+            end. // output loop
         end.
     end method.
     

@@ -19,12 +19,16 @@ using OpenEdge.Core.Assert.
 using OpenEdge.Core.AssertionFailedError.
 using OpenEdge.Core.FileInfo.
 using OpenEdge.Core.StringConstant.
-USING Progress.Collections.IComparable.
+using Progress.Collections.IComparable.
+using Progress.Collections.IHashable.
 
 @since(rel='12.6.0').
 class OpenEdge.Core.FileInfo
 abstract
-serializable implements IComparable<FileInfo>:
+serializable
+implements IComparable<FileInfo>    
+         , IHashable
+:
                
     // On Windows in particular, these characters are illegal in path (file or folder) names
     var private character[8] mIllegalChars = ['<':u,'>':u,':':u,'"':u,'|':u,'?':u,'*':u, '^':u].
@@ -116,8 +120,8 @@ serializable implements IComparable<FileInfo>:
        
        @param character A path - not null. Cannot contain any of the following characters: <>:"|?*
        @param character The file-info type: D or F typically */
-    constructor protected FileInfo(input pPath as character,
-                                   input pType as character):
+    constructor protected FileInfo (input pPath as character,
+                                    input pType as character):
         this-object(pPath, pType, ?).
     end constructor.
     
@@ -126,9 +130,9 @@ serializable implements IComparable<FileInfo>:
        @param character A path - not null, not ".."  Paths may start with "." or ".."
        @param character A/the replacement character that will replace the illegal characters. If ? is passed, no replacements
                         are done, and the path name cannot contain any of the following characters: <>:"|?* */
-    constructor protected FileInfo(input pPath as character,
-                                   input pType as character,
-                                   input pReplacementChar as character):
+    constructor protected FileInfo (input pPath as character,
+                                    input pType as character,
+                                    input pReplacementChar as character):
         var character drive, firstPath.
         var integer entries.
         
@@ -197,7 +201,7 @@ serializable implements IComparable<FileInfo>:
        
        @param character A string to check
        @return logical TRUE if the string is not-null, and has at least one illegal character in it; FALSE otherwise */
-    method private logical StringContainsIllegalCharacters(input pValue as character):
+    method private logical StringContainsIllegalCharacters (input pValue as character):
         if pValue eq ? then
             return false.
         
@@ -218,7 +222,7 @@ serializable implements IComparable<FileInfo>:
     /* Returns a flag indicating whether the path is legal for the current OS.
        
        @return logical TRUE if the path Name contains no illegal characters for the current platform, FALSE otherwise */
-    method public logical HasLegalName():
+    method public logical HasLegalName ( ):
         var integer pos, cnt, loop.
         var character pathEntry, testName.
         
@@ -314,7 +318,7 @@ serializable implements IComparable<FileInfo>:
        Note that no error is thrown from this method; FALSE is returned instead.
        
        @return logical TRUE if the file was created. FALSE if the file already exists, or if an error wa raised during creation. */
-    method abstract public logical Create().
+    method abstract public logical Create ( ).
     
     /* Deletes the path on disk.
     
@@ -322,13 +326,13 @@ serializable implements IComparable<FileInfo>:
        
        @return logical TRUE if the path was deleted. FALSE if the path does not exist, or does not have write permissions,
                        or if an error was raised during creation. */
-    method abstract public logical Delete().
+    method abstract public logical Delete ( ).
     
     /** Returns the absolute path. If the path does not exist on this host, or the file on this host is not
         the correct type, the unknown value is returned.
         
         @return character An absolute (file system) representation of this path */
-    method public character AbsolutePath():
+    method public character AbsolutePath ( ):
         var character absPath.
         
         SetFileInfo().
@@ -343,7 +347,7 @@ serializable implements IComparable<FileInfo>:
         return replace(absPath, StringConstant:BACKSLASH, '/').
     end method.
     
-    method override public logical Equals(input pRef as Progress.Lang.Object):
+    method override public logical Equals (input pRef as Progress.Lang.Object):
         if super:Equals(pRef) then
             return true.
         
@@ -359,7 +363,7 @@ serializable implements IComparable<FileInfo>:
     end method.
     
     /* Sets the FILE-INFO value to represent this path */
-    method protected void SetFileInfo():
+    method protected void SetFileInfo ( ):
         assign file-info:file-name = this-object:Name.
     end method.
     
@@ -371,7 +375,7 @@ serializable implements IComparable<FileInfo>:
        
        @param character An attribute value - a single character from the documented values
        @return logical TRUE if the path exists on disk, AND is of the correct type (D or F) AND has the input attribute. FALSE otherwise */
-    method protected logical HasAttribute(input pAttribute as character):
+    method protected logical HasAttribute (input pAttribute as character):
         Assert:NotNullOrEmpty(pAttribute, 'Attribute').
         
         if file-info:full-pathname eq ? then
@@ -391,7 +395,7 @@ serializable implements IComparable<FileInfo>:
        to / for the path separator
        
        @return character The short path. On non-Windows, or if an error is encountered, the absolute path is returned. */
-    method public character GetShortName():
+    method public character GetShortName ( ):
         var character shortName, path.
         var integer len, maxLen.
         var memptr mShort.
@@ -433,7 +437,7 @@ serializable implements IComparable<FileInfo>:
         @return integer  0 = same object
                         +1 = sorts after
                         -1 = sorts before   */
-    method public integer CompareTo(input pOther as FileInfo):
+    method public integer CompareTo (input pOther as FileInfo):
         Assert:NotNull(pOther, 'CompareTo object').
         
         if this-object:Name eq pOther:Name then
@@ -451,5 +455,16 @@ serializable implements IComparable<FileInfo>:
         // this will raise an error in the Comparer; we should never get here though.
         return ?.
     end method.
-    
+
+    /* Hashing method for creating a proper index for use with Progress.Collections.HashMap
+
+        @return integer Result of the hash-code method using this object's comparable value(s) */
+    method public integer HashCode ( ):
+        // In order to create a meaningful hash for an object instance,
+        // we should follow suite with how the Equals() logic works.
+        // By using the full class name plus the object's comparable value(s)
+        // this should be consistent for any instance of this object type.
+        return hash-code(this-object:GetClass():TypeName, this-object:Name).
+    end method.
+
 end class.

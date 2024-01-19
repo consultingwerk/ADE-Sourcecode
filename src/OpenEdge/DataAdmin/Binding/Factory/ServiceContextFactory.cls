@@ -1,5 +1,7 @@
- 
- /*------------------------------------------------------------------------
+/************************************************
+Copyright (c) 2011,2023 by Progress Software Corporation. All rights reserved.
+*************************************************/
+/*------------------------------------------------------------------------
     File        : ServiceContextFactory
     Purpose     : 
     Syntax      : 
@@ -7,7 +9,7 @@
     Author(s)   : hdaniels
     Created     : Tue Sep 13 22:02:26 EDT 2011
     Notes       : 
-  ----------------------------------------------------------------------*/
+------------------------------------------------------------------------*/
 
 using OpenEdge.DataAdmin.Binding.AdministratorContext.
 using OpenEdge.DataAdmin.Binding.DataSecurityContext.
@@ -31,6 +33,7 @@ using OpenEdge.DataAdmin.Error.IllegalArgumentError.
 using OpenEdge.DataAdmin.Error.NotFoundError.
 using OpenEdge.DataAdmin.IDataAdminService.
 using Progress.Lang.*.
+
 routine-level on error undo, throw.
 
 class OpenEdge.DataAdmin.Binding.Factory.ServiceContextFactory inherits AbstractContextFactory implements IServiceContextFactory: 
@@ -44,7 +47,6 @@ class OpenEdge.DataAdmin.Binding.Factory.ServiceContextFactory inherits Abstract
             return AdministratorContext.   
         end. 
         set.
-     
      
      define public property PermissionContext as PermissionContext no-undo 
         get():
@@ -142,7 +144,7 @@ class OpenEdge.DataAdmin.Binding.Factory.ServiceContextFactory inherits Abstract
         return new SchemaChanges(pcfile,this-object).       
     end method.
     
-     method public UserTablePermissionContext GetUserTablePermissionContext():
+    method public UserTablePermissionContext GetUserTablePermissionContext():
         return new UserTablePermissionContext(this-object).
     end method.
     
@@ -154,23 +156,21 @@ class OpenEdge.DataAdmin.Binding.Factory.ServiceContextFactory inherits Abstract
         case pname:
             when "FieldPermission" then
                 return FieldPermissionContext.
+
             when "TablePermission" then
                 return TablePermissionContext.
+
             when "UserFieldPermission" then
-            do:
                 return GetUserFieldPermissionContext().
-            end.    
+
             when "UserTablePermission" then
-            do: 
                 return UserPermissionContext:GetChild("userTablePermissions").
-            end.
+
             when "UserPermission" then
                 return UserPermissionContext.
             
             otherwise return super:GetInternalcontext(pname).      
         end.
      end method.    
-    
-    
             
 end class.

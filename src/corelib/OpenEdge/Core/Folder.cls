@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2022 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2022-2023 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : Folder
@@ -193,12 +193,14 @@ serializable:
                 return false.
             
             assign cnt = num-entries(this-object:Name, '/').
-            do loop = 1 to cnt
-            while os-error eq 0:
+            do loop = 1 to cnt:
                 assign newfolder += delim + entry(loop, this-object:Name, '/')
                        delim      = '/'
                        .
                 os-create-dir value(newfolder).
+
+                // Leave block if os-error has been set after running os-create-dir
+                if os-error ne 0 then leave.                
             end.
             
             return (os-error eq 0).

@@ -94,7 +94,7 @@ class OpenEdge.ApplicationServer.AgentInfo final:
 
             // Set the default logging level if we could not establish this from the config.
             if not valid-object(oLogLevel) then
-                assign oLogLevel = LogLevelEnum:Default.
+                assign oLogLevel = LogLevelEnum:Default. // aka. WARN
 
             // Manually create a logger instance using 2 filters:
             //  FullTextFormat  - Provides a common and expected log format with timestamp.

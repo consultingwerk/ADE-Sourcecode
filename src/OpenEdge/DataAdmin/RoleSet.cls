@@ -1,5 +1,5 @@
  /************************************************
-  Copyright (c) 2016 by Progress Software Corporation. All rights reserved.
+  Copyright (c) 2016,2023 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     Purpose     : Set of security roles 
@@ -90,12 +90,12 @@ class OpenEdge.DataAdmin.RoleSet inherits DataAdminCollection implements IRoleSe
         end catch.
     end method.
         
-     method public IRole Find(domainname as char):
-        return cast(Context:FindEntity(domainname),IRole). 
+    method public IRole Find(pcRoleName as character):
+        return cast(Context:FindEntity(pcRoleName),IRole). 
     end method.   
-             
-    method public logical CanFind(domainname as char):
-        return Context:CanFind(domainname).
+
+    method public logical CanFind(pcRoleName as character):
+        return Context:CanFind(pcRoleName).
     end method.   
          
     method override protected void PrepareExport(  ):

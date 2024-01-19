@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013, 2015-2016, 2019, 2021 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2013, 2015-2016, 2019, 2021, 2023.  by Progress Software Corporation. All rights reserved.
 *************************************************/
  /*------------------------------------------------------------------------
     File        : DataTypeHelper
@@ -17,6 +17,13 @@ using OpenEdge.Core.DataTypeEnum.
 
 class OpenEdge.Core.DataTypeHelper:
     
+    /** This method changes a type description or 'mask' if it's an array to 
+        return the base datatype and the word Extent, otherwise it returns 
+        the datatype enetered.  This allows the user to find out if a particular
+        datatype is an array or not through the isArray method.
+        
+        @param DataTypeEnum The ABL data type
+        @return Character The mask of the data type. */
     method static public character GetMask(input poDataType as DataTypeEnum):
         Assert:NotNull(poDataType, 'Data type').
         
@@ -43,7 +50,11 @@ class OpenEdge.Core.DataTypeHelper:
             otherwise                                 return string(poDataType).
         end case.
     end method.
-          
+
+    /** Check to see if the data type is a primitive datatype.
+        
+        @param DataTypeEnum The ABL data type
+        @return logical Is the datatype a primitive. */
     method static public logical IsPrimitive(poDataType as DataTypeEnum):
         define variable lPrimitive as logical no-undo.
         
@@ -61,8 +72,18 @@ class OpenEdge.Core.DataTypeHelper:
         return lPrimitive.
     end method.
     
+    /** Check to see if the data type is an array so user knows how to handle extents.
+        e.g. CharacterArray - Character is primitive, but the array type makes it so
+        the user must handle the extents to get the character data.
+        
+        @param DataTypeEnum The ABL data type
+        @return logical Is the datatype an array. */
     method static public logical IsArray(input poDataType as DataTypeEnum):
-        return (entry(num-entries(string(poDataType), ' ':u), string(poDataType), ' ':u) eq 'extent':u).
+        define variable cMask as character no-undo.
+        // gets the mask, which is defined in GetMask method and all
+        // arrays have extent in the description.
+        cMask = GetMask(poDataType).
+        return (entry(num-entries(cMask, ' ':u), cMask, ' ':u) eq 'extent':u).
     end method.
     
     /** Mapping from ABL data type to XML Schema supported data types. Taken from 

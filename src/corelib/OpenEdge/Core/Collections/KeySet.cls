@@ -1,31 +1,22 @@
-/** ****************************************************************************
-  Copyright 2012, 2020 Progress Software Corporation
-  
-  Licensed under the Apache License, Version 2.0 (the "License");
-  you may not use this file except in compliance with the License.
-  You may obtain a copy of the License at
-  
-    http://www.apache.org/licenses/LICENSE-2.0
-  
-  Unless required by applicable law or agreed to in writing, software
-  distributed under the License is distributed on an "AS IS" BASIS,
-  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  See the License for the specific language governing permissions and
-  limitations under the License.
-**************************************************************************** **/
- /*------------------------------------------------------------------------
+/************************************************
+Copyright (c) 2012, 2020, 2023 by Progress Software Corporation. All rights reserved.
+*************************************************/ 
+/*------------------------------------------------------------------------
     File        : KeySet
-    Purpose     : 
-    Syntax      : 
+    Purpose     :
     Description : 
-    @author hdaniels
+    Author(s)   : hdaniels
     Created     : apr 2010
-    Notes       : no empty constructor, specialized for KeySet of IMap 
-                 - Changes to the map are reflected here, and vice-versa. 
-                 - Supports removal and removes the corresponding map entry from the map
-                   (Iterator.remove, Collection.remove, removeAll, retainAll and clear) .
-                 - Do not support add and addAll.   
-                 - no empty constructor, specialised for IMap 
+    Notes       : DEPRECATED: Uses the MapBackedCollection which used a temp-table
+                  to store the name-value pairs. Instead, use another ISet class
+                  such as OE.Core.Collections.Set.
+
+                  No empty constructor, specialized for KeySet of IMap 
+                  - Changes to the map are reflected here, and vice-versa. 
+                  - Supports removal and removes the corresponding map entry from the map
+                    (Iterator.remove, Collection.remove, removeAll, retainAll and clear) .
+                  - Do not support add and addAll.   
+                  - no empty constructor, specialised for IMap 
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
@@ -36,9 +27,12 @@ using OpenEdge.Core.Collections.ISet.
 using OpenEdge.Core.Collections.KeySet. 
 using OpenEdge.Core.Collections.MapBackedCollection. 
 using Progress.Lang.Object.
- 
-class OpenEdge.Core.Collections.KeySet serializable inherits MapBackedCollection
-        implements ISet: 
+
+@deprecated(from='12.8.0', reason='Use OpenEdge.Core.Collections.Set').
+class OpenEdge.Core.Collections.KeySet
+serializable
+inherits MapBackedCollection
+implements ISet: 
     
     /* Constructor
        

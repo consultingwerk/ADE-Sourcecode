@@ -1,14 +1,16 @@
 /************************************************
-Copyright (c) 2013, 2017, 2020, 2022 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2013, 2017, 2020, 2022-2023 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : MapBackedCollection
     Purpose     : This class acts as a helper for the Key and Value collections that comprise a temp-table-based Map
-    Syntax      :
     Description :
     Author(s)   : pjudge
     Created     : Mon Dec 16 16:24:45 EST 2013
-    Notes       :
+    Notes       : DEPRECATED: This class is retained for backwards compatibility
+                  with applications using the OpenEdge.Core.Collections though
+                  for Map objects it is highly recommended to directly use the
+                  new Progress.Collections.HashMap<K,V> class directly.
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
@@ -21,6 +23,7 @@ using OpenEdge.Core.Collections.StringStringMap.
 using OpenEdge.Core.System.UnsupportedOperationError.
 using Progress.Lang.Object.
 
+@deprecated(from='12.8.0', reason='Use Progress.Collections.HashMap').
 class OpenEdge.Core.Collections.MapBackedCollection
 abstract
 serializable
@@ -68,6 +71,10 @@ implements ICollection:
     
     method public logical Add(newObject as Object):
        return error new UnsupportedOperationError('Add', this-object:GetClass():TypeName).
+    end method.
+
+    method public logical AddNull( ):
+        return error new UnsupportedOperationError('AddNull', this-object:GetClass():TypeName).
     end method.
 
     method public logical AddAll( newCollection as ICollection ):

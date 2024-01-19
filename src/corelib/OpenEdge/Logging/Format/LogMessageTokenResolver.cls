@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2022 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2022-2023 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
  /*------------------------------------------------------------------------
     File        : LogMessageTokenResolver
@@ -40,7 +40,7 @@ abstract
                                                input pEvent as LogEvent):
         var character formatString.
         var IIterator<Token> iter.
-        var integer cnt, loop, idx.
+        var integer idx.
         
         // no-op, no failure if there are no tokens or context/event
         if not valid-object(pTokens)
@@ -49,7 +49,7 @@ abstract
             return.
         
         assign iter = pTokens:GetIterator().
-        do while iter:MoveNext().
+        do while iter:MoveNext():
             // A valid value has not been set yet.
             // We try to resolve the value, even if ? is a valid value, since at this point we
             // don't know whether the value has actually been set or not

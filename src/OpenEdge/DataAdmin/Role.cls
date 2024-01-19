@@ -1,5 +1,5 @@
 /************************************************
-  Copyright (c) 2016 by Progress Software Corporation. All rights reserved.
+  Copyright (c) 2016,2023 by Progress Software Corporation. All rights reserved.
 *************************************************/
  /*------------------------------------------------------------------------
     File        : Role
@@ -51,7 +51,24 @@ class OpenEdge.DataAdmin.Role inherits Entity implements IRole, IDataAdminElemen
             else
                 return IsBuiltin. 
         end.
-    
+
+    /* Used to designate the Role is used for Dynamic Data Masking (DDM) */ 
+    define public property IsDDM as logical no-undo                 
+        get():
+            if valid-handle(mBuffer) then
+                return mBuffer::IsDDM.
+            else
+                return IsDDM. 
+        end.
+        set(input plIsDDM as logical):
+            if valid-handle(mBuffer) then
+            do:
+                mDefaultBuffer:find-by-rowid(mBuffer:rowid).  
+                mdefaultbuffer::IsDDM = plIsDDM.
+            end.
+            IsDDM = plIsDDM.
+        end. 
+
     define public property Id as integer no-undo                 
          get():
             if valid-handle(mBuffer) then
@@ -141,7 +158,7 @@ class OpenEdge.DataAdmin.Role inherits Entity implements IRole, IDataAdminElemen
     end method.     
      
 	method public override  void Export():
-		Export("role.json").
+		export("role.json").
 	end method.
 
 end class.

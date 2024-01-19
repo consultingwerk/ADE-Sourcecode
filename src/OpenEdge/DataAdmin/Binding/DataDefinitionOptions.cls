@@ -62,7 +62,10 @@ class OpenEdge.DataAdmin.Binding.DataDefinitionOptions abstract implements IData
     define public property PreDeployLoad        as char no-undo get. set.
     define public property TriggerLoad          as char no-undo get. set.
     define public property PostDeployLoad       as char no-undo get. set.
-    define public property OfflineLoad          as char no-undo get. set.   	
+    define public property OfflineLoad          as char no-undo get. set.  
+
+    define public property DDMLoad          as char no-undo get. set.
+    define public property IgnoreDDMLoad    as char no-undo get. set. 	
 	
 	define public property Logger as IDataDefinitionLoader no-undo 
         get.

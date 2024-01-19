@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2007-2010,2021 by Progress Software Corporation. All rights *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/************************************************************************
+* Copyright (C) 2007-2010,2021,2023 by Progress Software Corporation.   *
+* All rights reserved. Prior versions of this work may contain portions *
+* contributed by participants of Possenet.                              *
+*                                                                       *
+*************************************************************************/
 
 /*----------------------------------------------------------------------------
 
@@ -50,10 +50,12 @@ History (from when this was in prodict/load_df):
     fernando    03/05/10    Fix code that checks rollback error
     hdaniels    03/26/10    Added CATCH in transaction and showLoadError
     tmasood     01/15/21    Changes to load delta df by sections
+    tmasood     07/24/23    Changes to load ddm schema
 ----------------------------------------------------------------------------*/
 /*h-*/
 
 /*==========================  DEFINITIONS ===========================*/
+USING Progress.Database.*. 
  
 define input parameter poptions        as OpenEdge.DataAdmin.Binding.IDataDefinitionOptions no-undo.
  
@@ -72,7 +74,9 @@ DEFINE VARIABLE cMsg        AS CHARACTER      NO-UNDO.
 DEFINE VARIABLE stopped     AS LOGICAL        NO-UNDO.
 DEFINE VARIABLE xError      AS LOGICAL        NO-UNDO.
 DEFINE VARIABLE OK_trans    AS LOGICAL       /*UNDO*/.
+DEFINE VARIABLE cDDMSecExist AS LOGICAL       NO-UNDO.
 define variable dictLoader as OpenEdge.DataAdmin.Binding.IDataDefinitionLoader no-undo.
+DEFINE VARIABLE rConfig     AS DBConfig.
 DEFINE STREAM loaderr.
 
 /*========================= MAINLINE CODE ============================*/
@@ -124,6 +128,9 @@ ASSIGN
   user_env[40] = IF dictLoadOptions:TriggerLoad = "yes" THEN "yes" ELSE "no"
   user_env[41] = IF dictLoadOptions:PostDeployLoad = "yes" THEN "yes" ELSE "no"
   user_env[42] = IF dictLoadOptions:OfflineLoad = "yes" THEN "yes" ELSE "no"
+  ddmload      = IF dictLoadOptions:ddmLoad = "yes" THEN "yes" ELSE "no"
+  ignoreddmload = IF dictLoadOptions:ignoreddmLoad = "yes" THEN "yes" ELSE "no"
+  cDDMSecExist  = FALSE
   user_dbname = LDBNAME("DICTDB")
   user_dbtype = DBTYPE("DICTDB")
   drec_db     = RECID(_Db)  
@@ -142,6 +149,16 @@ do on error undo, leave:
     end catch.
 end.
 ASSIGN user_env[10] = CODEPAGE.
+
+do on error undo, leave:
+    RUN check-ddmsettings.   
+    /* if stopped or error, then check error file */
+    IF stopped OR xError THEN DO:
+      MESSAGE "Please check" LDBNAME("DICTDB") 
+              ".e for load errors and/or warnings.".
+      RETURN.
+    END.
+end.
      
 DO TRANSACTION ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE ON STOP UNDO, LEAVE:
 
@@ -291,6 +308,7 @@ PROCEDURE read-cp.
   INPUT CLOSE.
   DO i = 1 TO lvar#:
     IF lvar[i] BEGINS "cpstream=" OR lvar[i] BEGINS "codepage=" THEN codepage = TRIM(SUBSTRING(lvar[i],10,-1,"character":U)).
+    IF lvar[i] BEGINS "ddm=yes" THEN cDDMSecExist = TRUE.
   END.
   catch e as Progress.Lang.Error :
   		undo, throw e.
@@ -479,6 +497,37 @@ procedure handleLoadError:
         dictLoader:AddError(poError).
     end.
 end procedure.    
+
+procedure check-ddmsettings:
+    DEFINE VARIABLE hBuffer  AS HANDLE NO-UNDO.
+    
+    IF ddmload = "Yes" AND NOT cDDMSecExist THEN
+    DO:
+       RUN Show_Phase2_Error ("DDM Schema Section is not present in the selected df file.", ?).
+       RETURN.
+    END.
+  
+    /* Check for DDM Admin */ 
+    IF (ddmload = "Yes" OR (ddmload = "No" AND ignoreddmload = "No")) AND cDDMSecExist THEN
+    DO:
+       /* DDM-only related settings */
+       CREATE BUFFER hBuffer FOR TABLE "dictdb._Database-feature".
+       hBuffer:FIND-FIRST("WHERE _Database-feature._dbfeature_name = ~'Dynamic Data Masking~'",
+                           NO-LOCK) NO-ERROR.
+       IF hBuffer:AVAILABLE AND hBuffer::_Dbfeature_enabled <> "1" THEN DO:
+         RUN Show_Phase2_Error ("DDM feature is not enabled on connected database.", ?).
+         RETURN.
+       END.
+       
+       IF rConfig = ? THEN
+          ASSIGN rConfig = NEW DBConfig(LDBNAME("DICTDB")).    
+       IF NOT rConfig:IsDDMAdmin THEN
+       DO:
+          RUN Show_Phase2_Error ("You must be a DDM Administrator to access this dump option!", ?).
+		  RETURN.
+       END.
+    END.
+end procedure.
 
 /*========================== END OF load_df.p ==========================*/
 

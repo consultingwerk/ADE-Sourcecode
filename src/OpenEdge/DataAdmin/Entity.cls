@@ -231,43 +231,7 @@ class OpenEdge.DataAdmin.Entity abstract implements IDataAdminElement use-widget
         end.     
         return Context:GetChildCollection(CreateRowInfo(),pcchild).          
     end method.
-        
-/*    method protected IDataAdminCollection GetChildcollection(pcKey as char,pcchild as char):        */
-/*        define variable childReq as IRequestInfo no-undo.                                           */
-/*        if valid-object(RequestInfo) then                                                           */
-/*        do:                                                                                         */
-/*            childReq = RequestInfo:Get(pcchild).                                                    */
-/*            if valid-object(childReq) then                                                          */
-/*               return Context:GetChildCollection(pcKey,childReq).                                   */
-/*        end.                                                                                        */
-/*        return Context:GetChildCollection(pcKey,pcchild).                                           */
-/*                                                                                                    */
-/*    end method.                                                                                     */
-/*                                                                                                    */
-/*    method protected IDataAdminCollection GetChildcollection(piKey as int,pcchild as char):         */
-/*        define variable childReq as IRequestInfo no-undo.                                           */
-/*        if valid-object(RequestInfo) then                                                           */
-/*        do:                                                                                         */
-/*            childReq = RequestInfo:Get(pcchild).                                                    */
-/*            if valid-object(childReq) then                                                          */
-/*               return Context:GetChildCollection(piKey,childReq).                                   */
-/*        end.                                                                                        */
-/*        return Context:GetChildCollection(piKey,pcchild).                                           */
-/*                                                                                                    */
-/*    end method.                                                                                     */
-/*                                                                                                    */
-/*    method protected IDataAdminCollection GetChildcollection(pcKeys as char extent,pcchild as char):*/
-/*        define variable childReq as IRequestInfo no-undo.                                           */
-/*        if valid-object(RequestInfo) then                                                           */
-/*        do:                                                                                         */
-/*            childReq = RequestInfo:Get(pcchild).                                                    */
-/*            if valid-object(childReq) then                                                          */
-/*               return Context:GetChildCollection(pcKeys,childReq).                                  */
-/*        end.                                                                                        */
-/*        return Context:GetChildCollection(pcKeys,pcchild).                                          */
-/*                                                                                                    */
-/*    end method.                                                                                     */
-    
+
     /* the context we attached to changed */
     method protected void NewContext(cntxt as IDataAdminModel):
         define variable hNewDefaultBuffer as handle no-undo. 
@@ -277,10 +241,7 @@ class OpenEdge.DataAdmin.Entity abstract implements IDataAdminElement use-widget
         hNewBuffer:serialize-name = hNewDefaultbuffer:serialize-name.
         
         hNewBuffer:find-unique ("where " + cntxt:GetKeyWhere(GetKeyValues())).
-/*        if Context:IsLocalShared then*/
-/*        do:                          */
-/*            mbuffer:buffer-delete.   */
-/*        end.                         */
+
         delete object mbuffer no-error.
         mBuffer = hNewBuffer.      
         

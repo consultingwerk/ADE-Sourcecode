@@ -1,19 +1,22 @@
 /************************************************
-Copyright (c) 2013, 2017, 2020-2021 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2013, 2017, 2020-2021, 2023 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : EntrySet
     Purpose     : 
-    Syntax      : 
     Description : 
-    @author hdaniels
+    Author(s)   : hdaniels
     Created     : apr 2010
-    Notes       : no empty constructor, specialized for KeySet of IMap 
-                 - Changes to the map are reflected here, and vice-versa. 
-                 - Supports removal and removes the corresponding map entry from the map
-                   (Iterator.remove, Collection.remove, removeAll, retainAll and clear) .
-                 - Do not support add and addAll.   
-                 - no empty constructor, specialised for IMap 
+    Notes       : DEPRECATED: Uses the MapBackedCollection which used a temp-table
+                  to store the name-value pairs. Instead, use another ISet class
+                  such as OE.Core.Collections.Set.
+
+                  No empty constructor, specialized for KeySet of IMap 
+                  - Changes to the map are reflected here, and vice-versa. 
+                  - Supports removal and removes the corresponding map entry from the map
+                    (Iterator.remove, Collection.remove, removeAll, retainAll and clear) .
+                  - Do not support add and addAll.   
+                  - no empty constructor, specialised for IMap 
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
@@ -27,8 +30,11 @@ using OpenEdge.Core.Collections.ICollection.
 using OpenEdge.Core.Assert.
 using Progress.Lang.Object.
 
-class OpenEdge.Core.Collections.EntrySet serializable inherits MapBackedCollection
-            implements ISet:
+@deprecated(from='12.8.0', reason='Use OpenEdge.Core.Collections.Set').
+class OpenEdge.Core.Collections.EntrySet
+serializable
+inherits MapBackedCollection
+implements ISet:
     
     /* Constructor
        

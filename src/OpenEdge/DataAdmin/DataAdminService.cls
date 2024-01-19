@@ -1,10 +1,6 @@
-/*************************************************************/
-/* Copyright (c) 2011-2017,2019 by Progress Software Corporation  */
-/*                                                           */
-/* all rights reserved.  no part of this program or document */
-/* may be  reproduced in  any form  or by  any means without */
-/* permission in writing from progress Software Corporation. */
-/*************************************************************/
+/***********************************************************************************
+Copyright (c) 2011-2017,2019,2023 by Progress Software Corporation. All rights reserved.
+***********************************************************************************/
 /** 
    Purpose     : Data Admin Service with crud methods for 
                  collections (IDataAdminCollection) and 
@@ -13,12 +9,13 @@
    Description : 
    Author(s)   : hdaniels
    Created     : Sat Jul 10 23:27:42 EDT 2010
-   Notes       :  
+   Notes       : 
+   Patches     : OCTA-55313 12.8 Added the methods to set/reset the mask value & authorization tag for DDM Enabled user. 
    */
- 
 
 block-level on error undo, throw.
 
+USING OpenEdge.DataAdmin.Lang.Collections.IIterator.
 using OpenEdge.DataAdmin.Binding.CreateContext from propath.
 using OpenEdge.DataAdmin.Binding.Factory.IServiceContextFactory from propath.
 using OpenEdge.DataAdmin.Binding.Factory.ServiceContextFactory from propath.
@@ -42,6 +39,8 @@ using OpenEdge.DataAdmin.Extent from propath.
 using OpenEdge.DataAdmin.IAdministrator from propath.
 using OpenEdge.DataAdmin.IArea from propath.
 using OpenEdge.DataAdmin.IAreaSet from propath.
+using OpenEdge.DataAdmin.IAuthTag from propath.
+using OpenEdge.DataAdmin.IAuthTagSet from propath.
 using OpenEdge.DataAdmin.IAuthenticationSystem from propath.
 using OpenEdge.DataAdmin.IAuthenticationSystemSet from propath.
 using OpenEdge.DataAdmin.ICdcFieldPolicy from propath.
@@ -51,9 +50,9 @@ using OpenEdge.DataAdmin.ICdcTablePolicySet from propath.
 using OpenEdge.DataAdmin.IDataAdminCollection from propath.
 using OpenEdge.DataAdmin.IDataAdminElement from propath.
 using OpenEdge.DataAdmin.IDataAdminService from propath.
+using OpenEdge.DataAdmin.IDataSecurity from propath.
 using OpenEdge.DataAdmin.IDatabaseOption.
 using OpenEdge.DataAdmin.IDatabaseOptionSet.
-using OpenEdge.DataAdmin.IDataSecurity from propath.
 using OpenEdge.DataAdmin.IDomain from propath.
 using OpenEdge.DataAdmin.IDomainSet from propath.
 using OpenEdge.DataAdmin.IExtent from propath.
@@ -94,6 +93,7 @@ using OpenEdge.DataAdmin.TenantGroupMember from propath.
 using OpenEdge.DataAdmin.Util.IDataAdminUtility from propath.
 using OpenEdge.DataAdmin.Util.IUtilityFactory from propath.
 using OpenEdge.DataAdmin.Util.UtilityFactory from propath.
+using Progress.Database.DBConfig from propath.
 using Progress.Lang.AppError from propath.
 using Progress.Lang.Error from propath.
 using Progress.Lang.Object from propath.
@@ -105,7 +105,7 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
     define private variable ServiceAdapter as ServiceAdapter no-undo.
     define protected variable ContextFactory as IServiceContextFactory no-undo.
    
-    define public property URL as char no-undo get. set.
+    define public property URL as character no-undo get. set.
     define public property ThrowDataErrors as logical no-undo init yes 
         get. 
         set.
@@ -149,26 +149,35 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
     constructor public DataAdminService (  ):
         super ().
     	ServiceAdapter = new ServiceAdapter( ).
-        ContextFactory = new ServiceContextFactory(this-object,ServiceAdapter).  
+        ContextFactory = new ServiceContextFactory(this-object, ServiceAdapter).  
     end constructor.
        
-    constructor public DataAdminService ( name as char ):     
+    constructor public DataAdminService ( name as character ):     
         ServiceAdapter = new ServiceAdapter(name).     
-        ContextFactory = new ServiceContextFactory(this-object,ServiceAdapter).  
+        ContextFactory = new ServiceContextFactory(this-object, ServiceAdapter).  
     end constructor.
         
-    constructor public DataAdminService ( path as char,name as char ):
+    constructor public DataAdminService ( path as character, name as character ):
         super ().
          /* this error is duplicated in ServiceAdapter*/
         if path = ? then
         do:
-            undo, throw new UnknownValueError("Service constructor","path","Specify blank to connect to a database in the current directory or use the single character parameter constructor to use the Service with a connected database.").
+            undo, throw new UnknownValueError("Service constructor", "path", "Specify blank to connect to a database in the current directory or use the single character parameter constructor to use the Service with a connected database.").
         end.     
        
-        ServiceAdapter = new ServiceAdapter(path,name).    
-        ContextFactory = new ServiceContextFactory(this-object,ServiceAdapter).  
+        ServiceAdapter = new ServiceAdapter(path, name).    
+        ContextFactory = new ServiceContextFactory(this-object, ServiceAdapter).  
     end constructor.
-        
+
+    destructor public DataAdminService ( ):
+         /* service adapter holds dataservice whihc holds datacessfactory */
+         delete object ServiceAdapter no-error.
+         /* contextfactory hold all context objects */
+         delete object ContextFactory no-error.
+         
+         ServiceDeleted:Publish().
+    end destructor.
+
     /* the service only supports one active context retrieved with GetShemaChanges */
     method public logical CancelSchemaChanges():
         CurrentSchemaChanges = ?.
@@ -176,20 +185,20 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
     
     /* the service only supports one active context retrieved with GetShemaChanges */
     /*method public logical DeleteSchemaChanges(pschema as ISchema):
-        AssertUpdate(pSchema,CurrentSchemaChanges).
+        AssertUpdate(pSchema, CurrentSchemaChanges).
         CancelSchemaChanges().
     end method.*/
     
     /** Create a new role  
         @param IRole The role to be created */
     method public logical CreateRole(role as IRole):
-        return CreateElement(role,ContextFactory:RoleContext).
+        return CreateElement(role, ContextFactory:RoleContext).
     end method.
    
     /** Create new roles  
         @param IRoleSet A collection of roles to create */
     method public logical CreateRoles(roles as IRoleSet):
-        return CreateCollection(roles,ContextFactory:RoleContext). 
+        return CreateCollection(roles, ContextFactory:RoleContext). 
     end method.
 
     /** Create a new role grant
@@ -207,102 +216,97 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
     method public logical CreateGrantedRoles(input poGrants as IGrantedRoleSet):
         return CreateCollection(poGrants, ContextFactory:GrantedRoleContext).
     end method.
-    
-    /** Delete granted role   
-        @param character The ID of the granted role to delete
-        @throws NotFoundError if role does not exist */
-    method public logical DeleteGrantedRole(input pcGrantId as character):
-        define variable response as ISaveRequest no-undo.       
-        define variable inst as IGrantedRole no-undo.    
-       
-        inst = GetGrantedRole(pcGrantId).
-        if not valid-object(inst) then 
-            undo, throw new NotFoundError("Granted Role " + quoter(pcGrantId) + " not found").  
-        
-        return DeleteElement(pcGrantId,inst,ContextFactory:GrantedRoleContext).    
-    end method.
         
     method public logical CreateArea(area as IArea):
-        return CreateElement(area,ContextFactory:AreaContext).
+        return CreateElement(area, ContextFactory:AreaContext).
     end method.
    
     method public logical CreateAreas(areas as IAreaSet):
-        return CreateCollection(areas,ContextFactory:AreaContext).
+        return CreateCollection(areas, ContextFactory:AreaContext).
+    end method.
+
+    method public logical CreateAuthTag(tag as IAuthTag):
+        return CreateElement(tag, ContextFactory:AuthTagContext).
     end method.
    
+    method public logical CreateAuthTags(tags as IAuthTagSet):
+        return CreateCollection(tags, ContextFactory:AuthTagContext).
+    end method.
+
     method public logical CreateDomain(domain as IDomain):
-        return CreateElement(domain,ContextFactory:DomainContext).        
+        return CreateElement(domain, ContextFactory:DomainContext).        
     end method.
    
     method public logical CreateDomains(domains as IDomainSet):
-        return CreateCollection(domains,ContextFactory:DomainContext). 
+        return CreateCollection(domains, ContextFactory:DomainContext). 
     end method.
     
     method public logical CreateAuthenticationSystem(authenticationsystem as IAuthenticationSystem):
-        return CreateElement(authenticationsystem,ContextFactory:AuthenticationSystemContext).         
+        return CreateElement(authenticationsystem, ContextFactory:AuthenticationSystemContext).         
     end method.
    
     method public logical CreateAuthenticationSystems(authenticationsystems as IAuthenticationSystemSet):
-        return CreateCollection(authenticationsystems,ContextFactory:AuthenticationSystemContext). 
+        return CreateCollection(authenticationsystems, ContextFactory:AuthenticationSystemContext). 
     end method.
     
     /** Create a new partition policy 
         @param policy IPartitionPolicy to be created */
     method public logical CreatePartitionPolicy(policy as IPartitionPolicy):
-        return CreateElement(policy,ContextFactory:PartitionPolicyContext). 
+        return CreateElement(policy, ContextFactory:PartitionPolicyContext). 
     end method.    
+
    /** Create a new partition policy  
         @param policies IPartitionPolicySet with policies to be created */
     method public logical CreatePartitionPolicies(policies as IPartitionPolicySet).
-       return CreateCollection(policies,ContextFactory:PartitionPolicyContext).
+       return CreateCollection(policies, ContextFactory:PartitionPolicyContext).
     end method. 
     
     method public logical CreateCdcTablePolicy(policy as ICdcTablePolicy):
-        return CreateElement(policy,ContextFactory:CdcTablePolicyContext). 
+        return CreateElement(policy, ContextFactory:CdcTablePolicyContext). 
     end method.    
    
     method public logical CreateCdcTablePolicies(policies as ICdcTablePolicySet).
-       return CreateCollection(policies,ContextFactory:CdcTablePolicyContext).
+       return CreateCollection(policies, ContextFactory:CdcTablePolicyContext).
     end method. 
       
     method public logical CreateTenantGroups(groups as ITenantGroupSet):
-        return CreateCollection(groups,ContextFactory:TenantGroupContext). 
+        return CreateCollection(groups, ContextFactory:TenantGroupContext). 
     end method.
     
     method public logical CreateTenantGroup(newgroup as ITenantGroup):
-        return CreateElement(newGroup,ContextFactory:TenantGroupContext).        
+        return CreateElement(newGroup, ContextFactory:TenantGroupContext).        
     end method.
     
     method public logical CreateSequence(sequence as ISequence):
-        return CreateElement(sequence,ContextFactory:SequenceContext).        
+        return CreateElement(sequence, ContextFactory:SequenceContext).        
     end method.
     
     method public logical CreateSequences(sequences as ISequenceSet):
-        return CreateCollection(sequences,ContextFactory:SequenceContext).        
+        return CreateCollection(sequences, ContextFactory:SequenceContext).        
     end method.
     
     method public logical CreateTenants(tenants as ITenantSet):
-        return CreateCollection(tenants,ContextFactory:TenantContext). 
+        return CreateCollection(tenants, ContextFactory:TenantContext). 
     end method.
     
     method public logical CreateTenant(tenant as ITenant):
-        return CreateElement(tenant,ContextFactory:TenantContext).        
+        return CreateElement(tenant, ContextFactory:TenantContext).        
     end method.
        
     method public logical CreateUsers(users as IUserSet):
-        return CreateCollection(users,ContextFactory:UserContext).        
+        return CreateCollection(users, ContextFactory:UserContext).        
     end method.
     
     /** Create a collection */
     method public logical CreateCollection(pccol as IDataAdminCollection).
         define variable cntxt as IDataAdminModel no-undo. 
         cntxt = ContextFactory:GetContextBySerializeName(pccol:SerializeName).
-        return CreateCollection(pccol,cntxt).
+        return CreateCollection(pccol, cntxt).
     end method.  
     
     method protected logical CreateCollection(coll as IDataAdminCollection, cntxt as IDataAdminModel):
         define variable newcontext as IDataAdminContext no-undo.
-        AssertCreate(coll,cntxt).
+        AssertCreate(coll, cntxt).
         do on error undo, throw:
             newcontext = new CreateContext(cntxt).
             coll:Attach(newcontext).         
@@ -311,7 +315,7 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
                 return false.
             end catch.
         end.
-        return UpdateCollection(coll,cntxt).
+        return UpdateCollection(coll, cntxt).
         finally:
             /* clean error-status */
             define variable i as integer no-undo.       
@@ -319,19 +323,19 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
         end finally.
     end method.
     
-    method protected logical CreateElement(elem as IDataAdminElement,cntxt as IDataAdminModel):
+    method protected logical CreateElement(elem as IDataAdminElement, cntxt as IDataAdminModel):
         define variable rowinfo as IRow no-undo.
         define variable response as ISaveRequest no-undo.
-        AssertCreate(elem,cntxt).
+        AssertCreate(elem, cntxt).
         do on error undo, throw:
             elem:Attach(cntxt).
             if num-entries(cntxt:KeyFields) > 1 then
             do:
-                rowinfo = GetRowInfo(elem,cntxt).
-                response = cast(cntxt,IDataAdminModel):GetCreateRowRequest(rowinfo).
+                rowinfo = GetRowInfo(elem, cntxt).
+                response = cast(cntxt, IDataAdminModel):GetCreateRowRequest(rowinfo).
             end.
             else
-                response = cast(cntxt,IDataAdminModel):GetCreateRowRequest().
+                response = cast(cntxt, IDataAdminModel):GetCreateRowRequest().
             
             if not valid-object(response) then
                 return false. 
@@ -373,10 +377,36 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
     end.    
     
     method public logical CreateUser(usr as IUser):
-        return CreateElement(usr,ContextFactory:UserContext).         
+        return CreateElement(usr, ContextFactory:UserContext).         
     end method.
-     
-    method public logical DeleteDomain(domainName as char):
+
+    method public logical DeleteAuthTag(input pcRoleName as character,
+                                        input pcAuthTag  as character):
+        define variable response as ISaveRequest no-undo.       
+        define variable inst as IAuthTag no-undo.    
+
+        inst = GetAuthTag(pcRoleName, pcAuthTag).
+        if not valid-object(inst) then 
+            undo, throw new NotFoundError("AuthTag " + quoter(pcAuthTag) + " for role " +  quoter(pcRoleName) + " not found").  
+
+        return DeleteElement(pcAuthTag, inst, ContextFactory:AuthTagContext).
+    end method.
+
+    /** Delete granted role   
+        @param character The ID of the granted role to delete
+        @throws NotFoundError if role does not exist */
+    method public logical DeleteGrantedRole(input pcGrantId as character):
+        define variable response as ISaveRequest no-undo.       
+        define variable inst as IGrantedRole no-undo.    
+       
+        inst = GetGrantedRole(pcGrantId).
+        if not valid-object(inst) then 
+            undo, throw new NotFoundError("Granted Role " + quoter(pcGrantId) + " not found").  
+        
+        return DeleteElement(pcGrantId, inst, ContextFactory:GrantedRoleContext).    
+    end method.
+
+    method public logical DeleteDomain(domainName as character):
         define variable response as ISaveRequest no-undo.       
         define variable inst as IDomain no-undo.    
        
@@ -384,10 +414,10 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
         if not valid-object(inst) then 
             undo, throw new NotFoundError("Domain " + quoter(domainName) + " not found").  
         
-        return DeleteElement(domainName,inst,ContextFactory:DomainContext).    
+        return DeleteElement(domainName, inst, ContextFactory:DomainContext).    
     end method.
      
-    method public logical DeleteAuthenticationSystem(authenticationsystemName as char):
+    method public logical DeleteAuthenticationSystem(authenticationsystemName as character):
         define variable response as ISaveRequest no-undo.       
         define variable inst as IAuthenticationSystem no-undo.    
        
@@ -395,50 +425,68 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
         if not valid-object(inst) then 
             undo, throw new NotFoundError("AuthenticationSystem " + quoter(authenticationsystemName) + " not found").  
         
-        return DeleteElement(authenticationsystemName,inst,ContextFactory:AuthenticationSystemContext).    
+        return DeleteElement(authenticationsystemName, inst, ContextFactory:AuthenticationSystemContext).    
     end method.
     
         /** Delete PartitionPolicy 
         @param policyName name of policy to delete. 
         @throws NotFoundError if policy does not exist. */
-    method public logical DeletePartitionPolicy(policyName as char).
+    method public logical DeletePartitionPolicy(policyName as character).
         define variable response as ISaveRequest no-undo.       
         define variable inst as IPartitionPolicy no-undo.       
         inst = GetPartitionPolicy(policyName).
         if not valid-object(inst) then 
             undo, throw new NotFoundError("PartitionPolicy " + quoter(policyName) + " not found").  
               
-        return DeleteElement(policyName,inst,ContextFactory:PartitionPolicyContext). 
+        return DeleteElement(policyName, inst, ContextFactory:PartitionPolicyContext). 
     end method.
     
-    method public logical DeleteCdcTablePolicy(policyName as char).
+    method public logical DeleteCdcTablePolicy(policyName as character).
         define variable response as ISaveRequest no-undo.       
         define variable inst as ICdcTablePolicy no-undo.       
         inst = GetCdcTablePolicy(policyName).
         if not valid-object(inst) then 
             undo, throw new NotFoundError("CdcTablePolicy " + quoter(policyName) + " not found").  
               
-        return DeleteElement(policyName,inst,ContextFactory:CdcTablePolicyContext). 
+        return DeleteElement(policyName, inst, ContextFactory:CdcTablePolicyContext). 
     end method.
-       
-    method public logical DeleteTenant(tenantName as char):
+
+    method public logical DeleteRole(roleName as character):
+        define variable inst as IRole no-undo.       
+
+        inst = GetRole(roleName).
+
+        if not valid-object(inst) then 
+            undo, throw new NotFoundError("Role " + quoter(roleName) + " not found").  
+              
+        return DeleteElement(roleName, inst, ContextFactory:RoleContext).
+    end method.
+
+    method public logical DeleteRole(role as IRole):
+        if not valid-object(role) then 
+            undo, throw new NotFoundError("Role not found").  
+              
+        return DeleteElement(role:Name, role, ContextFactory:RoleContext).
+    end method.
+
+    method public logical DeleteTenant(tenantName as character):
         define variable response as ISaveRequest no-undo.       
         define variable inst as ITenant no-undo.       
         inst = GetTenant(tenantName).
         if not valid-object(inst) then 
             undo, throw new NotFoundError("Tenant " + quoter(tenantName) + " not found").  
               
-        return DeleteElement(tenantName,inst,ContextFactory:TenantContext).    
+        return DeleteElement(tenantName, inst, ContextFactory:TenantContext).    
     end method.
     
-    method public logical DeleteTenantGroup(groupName as char):
+    method public logical DeleteTenantGroup(groupName as character):
         define variable response as ISaveRequest no-undo.       
         define variable inst as ITenantGroup no-undo.       
         inst = GetTenantGroup(groupName).
         if not valid-object(inst) then 
              undo, throw new NotFoundError("Partition group " + quoter(groupName) + " not found").  
               
-        return DeleteElement(groupName,inst,ContextFactory:TenantGroupContext).    
+        return DeleteElement(groupName, inst, ContextFactory:TenantGroupContext).    
  
         catch e as Progress.Lang.Error:
             ErrorHandler(e).          
@@ -451,7 +499,7 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
         end finally.
     end method.
     
-    method public logical DeleteSequence(seqname as char):
+    method public logical DeleteSequence(seqname as character):
         define variable response as ISaveRequest no-undo.       
         define variable inst as ISequence no-undo.    
        
@@ -459,10 +507,10 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
         if not valid-object(inst) then 
             undo, throw new NotFoundError("Sequence " + quoter(seqname) + " not found").  
         
-        return DeleteElement(seqName,inst,ContextFactory:SequenceContext).    
+        return DeleteElement(seqName, inst, ContextFactory:SequenceContext).    
     end method.
     
-    method public logical DeleteUser(usrId as char):
+    method public logical DeleteUser(usrId as character):
         define variable response as ISaveRequest no-undo.       
         define variable inst as IUser no-undo.    
        
@@ -470,11 +518,28 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
         if not valid-object(inst) then 
             undo, throw new NotFoundError("User " + quoter(usrId) + " not found").  
         
-        return DeleteElement(usrId,inst,ContextFactory:UserContext).    
+        return DeleteElement(usrId, inst, ContextFactory:UserContext).    
     end method.
-    
+
+    method private void AssertNotRequested(pcList as character, preq as IRequestInfo):
+        define variable extentReq as IRequestInfo no-undo. 
+        define variable i as integer no-undo.
+        define variable cCollection as character no-undo.
+         /** the AreaNumExtents require all data on client, since it is using Count
+            (would need to count created  ) */
+        if valid-object(pReq) then
+        do i = 1 to num-entries(pcList):
+            cCollection = entry(i, pcList).
+            extentReq = pReq:Get(cCollection).
+            if valid-object(extentReq) then
+            do:
+                undo, throw new IllegalOperationError("Filter on " + quoter(cCollection) + " collection is not allowed.").
+            end.
+        end.    
+    end method.
+
     /** Get a collection of the specified serializename, entity name or physical database filename  */
-    method public IDataAdminCollection GetCollection(pcType as char):
+    method public IDataAdminCollection GetCollection(pcType as character):
         define variable cntxt as IDataAdminModel no-undo.
         cntxt = ContextFactory:GetContextByAnyName(pcType).
         if not valid-object(cntxt) then 
@@ -492,61 +557,59 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
     end method.
     
     method public IAdministrator GetAdministrator():
-        return cast(ContextFactory:AdministratorContext:GetEntity(""),IAdministrator). 
+        return cast(ContextFactory:AdministratorContext:GetEntity(""), IAdministrator). 
     end method.
     
     method public ISecurityOptions GetSecurityOptions():
-        return cast(ContextFactory:SecurityOptionsContext:GetEntity(""),ISecurityOptions). 
+        return cast(ContextFactory:SecurityOptionsContext:GetEntity(""), ISecurityOptions). 
     end method.
     
-    method public IArea GetArea(areaName as char):
-        return cast(ContextFactory:AreaContext:GetEntity(areaName),IArea). 
+    method public IArea GetArea(areaName as character):
+        return cast(ContextFactory:AreaContext:GetEntity(areaName), IArea). 
     end method.
     
     method public IArea GetArea(pReq as IRequestInfo):
-        AssertNotRequested("extents",pReq).
-        return cast(ContextFactory:AreaContext:GetEntity(pReq),IArea). 
+        AssertNotRequested("extents", pReq).
+        return cast(ContextFactory:AreaContext:GetEntity(pReq), IArea). 
     end method.
      
-    method public IArea GetArea(areaNum as int):
-        return cast(ContextFactory:AreaContext:GetEntity(areaNum),IArea). 
+    method public IArea GetArea(areaNum as integer):
+        return cast(ContextFactory:AreaContext:GetEntity(areaNum), IArea). 
     end method.
        
     method public IAreaSet GetAreas():
-        return cast(ContextFactory:AreaContext:GetCollection(),IAreaSet).
+        return cast(ContextFactory:AreaContext:GetCollection(), IAreaSet).
     end method.
     
-    method public IAreaSet GetAreas(filter as char):
-        return cast(ContextFactory:AreaContext:GetCollection(filter),IAreaSet).
+    method public IAreaSet GetAreas(filter as character):
+        return cast(ContextFactory:AreaContext:GetCollection(filter), IAreaSet).
     end method.
-    
-    method private void AssertNotRequested(pcList as char,preq as IRequestInfo):
-        define variable extentReq as IRequestInfo no-undo. 
-        define variable i as integer no-undo.
-        define variable cCollection as character no-undo.
-         /** the AreaNumExtents require all data on client, since it is using Count
-            (would need to count created  ) */
-        if valid-object(pReq) then
-        do i = 1 to num-entries(pcList):
-            cCollection = entry(i,pcList).
-            extentReq = pReq:Get(cCollection).
-            if valid-object(extentReq) then
-            do:
-                undo, throw new IllegalOperationError("Filter on " + quoter(cCollection) + " collection is not allowed.").
-            end.
-        end.    
-    end method.
-    
     
     method public IAreaSet GetAreas(preq as IRequestInfo):
-        AssertNotRequested("extents",pReq).
-        return cast(ContextFactory:AreaContext:GetCollection(preq),IAreaSet).
+        AssertNotRequested("extents", pReq).
+        return cast(ContextFactory:AreaContext:GetCollection(preq), IAreaSet).
     end method.
-     
-    method public IDataSecurity GetDataSecurity(pcKey as char):
-        return cast(ContextFactory:DataSecurityContext:GetEntity(pcKey),IDataSecurity). 
+
+    method public IAuthTag GetAuthTag(rolename as character, authtag as character):
+        define variable oTags as IAuthTagSet no-undo.
+        define variable oIter as IIterator no-undo.
+
+        // We must use the filtered search as this table needs a compound key for uniqueness.
+        oTags = GetAuthTags(substitute("where RoleName eq '&1' and Name eq '&2'", rolename, authtag)).
+        oIter = oTags:Iterator().
+        if oIter:HasNext() then
+            return cast(oIter:Next(), IAuthTag). // Just return the first match, which should be unique.
+
+        return ?.
     end method.
-    
+
+    method public IAuthTagSet GetAuthTags(filter as character):
+        return cast(ContextFactory:AuthTagContext:GetCollection(filter), IAuthTagSet).
+    end method.
+
+    method public IDataSecurity GetDataSecurity(pcKey as character):
+        return cast(ContextFactory:DataSecurityContext:GetEntity(pcKey), IDataSecurity). 
+    end method.
     
     /** Get a granted role
           
@@ -554,8 +617,7 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
     method public IGrantedRole GetGrantedRole(input pcGrantId as character):
         return cast(ContextFactory:GrantedRoleContext:GetEntity(pcGrantId), IGrantedRole).
     end method.
-        
-        
+
     /* Get a collection of all role grants in the database 
        
        @return IGrantedRoleSet A set of grants */
@@ -613,116 +675,116 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
         return cast(ContextFactory:RoleContext:GetCollection(poRequestInfo), IRoleSet).
     end method.
         
-    method public IDomain GetDomain(domainName as char):
-        return cast(ContextFactory:DomainContext:GetEntity(domainName),IDomain). 
+    method public IDomain GetDomain(domainName as character):
+        return cast(ContextFactory:DomainContext:GetEntity(domainName), IDomain). 
     end method.
     
     method public IDomain GetDomain(req as IRequestInfo):
-        return cast(ContextFactory:DomainContext:GetEntity(req),IDomain). 
+        return cast(ContextFactory:DomainContext:GetEntity(req), IDomain). 
     end method.
     
     method public IDomainSet GetDomains():
         define variable inst as IDomainSet no-undo.
-        inst = cast(ContextFactory:DomainContext:GetCollection(),IDomainSet).
+        inst = cast(ContextFactory:DomainContext:GetCollection(), IDomainSet).
         return inst.
     end method.
    
-    method public IDomainSet GetDomains(filter as char):
-        return cast(ContextFactory:DomainContext:GetCollection(filter),IDomainSet).
+    method public IDomainSet GetDomains(filter as character):
+        return cast(ContextFactory:DomainContext:GetCollection(filter), IDomainSet).
     end method.
     
     method public IDomainSet GetDomains(pRequestInfo as IRequestInfo):
-        return cast(ContextFactory:DomainContext:GetCollection(pRequestInfo),IDomainSet).
+        return cast(ContextFactory:DomainContext:GetCollection(pRequestInfo), IDomainSet).
     end method.
        
-    method public IAuthenticationSystem GetAuthenticationSystem(name as char):
-        return cast(ContextFactory:AuthenticationSystemContext:GetEntity(name),IAuthenticationSystem).
+    method public IAuthenticationSystem GetAuthenticationSystem(name as character):
+        return cast(ContextFactory:AuthenticationSystemContext:GetEntity(name), IAuthenticationSystem).
     end method.
     
     method public IAuthenticationSystemSet GetAuthenticationSystems():
-        return cast(ContextFactory:AuthenticationSystemContext:GetCollection(),IAuthenticationSystemSet).
+        return cast(ContextFactory:AuthenticationSystemContext:GetCollection(), IAuthenticationSystemSet).
     end method.
     
-    method public IAuthenticationSystemSet GetAuthenticationSystems(filter as char):
-        return cast(ContextFactory:AuthenticationSystemContext:GetCollection(filter),IAuthenticationSystemSet).
+    method public IAuthenticationSystemSet GetAuthenticationSystems(filter as character):
+        return cast(ContextFactory:AuthenticationSystemContext:GetCollection(filter), IAuthenticationSystemSet).
     end method.
    
     method public IAuthenticationSystemSet GetAuthenticationSystems(req as IRequestInfo):
-        return cast(ContextFactory:AuthenticationSystemContext:GetCollection(req),IAuthenticationSystemSet).
+        return cast(ContextFactory:AuthenticationSystemContext:GetCollection(req), IAuthenticationSystemSet).
     end method.
       
     method public ITenantGroupSet GetTenantGroups():
         define variable inst as ITenantGroupSet no-undo.
-        inst = cast(ContextFactory:TenantGroupContext:GetCollection(),ITenantGroupSet).   
+        inst = cast(ContextFactory:TenantGroupContext:GetCollection(), ITenantGroupSet).   
         return inst.
     end method.
     
-    method public ITenantGroupSet GetTenantGroups(filter as char):
+    method public ITenantGroupSet GetTenantGroups(filter as character):
         define variable inst as ITenantGroupSet no-undo.
-        inst = cast(ContextFactory:TenantGroupContext:GetCollection(filter),ITenantGroupSet).   
+        inst = cast(ContextFactory:TenantGroupContext:GetCollection(filter), ITenantGroupSet).   
         return inst.
     end method.
     
     method public ITenantGroupSet GetTenantGroups(pRequestInfo as IRequestInfo):
         define variable inst as ITenantGroupSet no-undo.
-        inst = cast(ContextFactory:TenantGroupContext:GetCollection(pRequestInfo),ITenantGroupSet).   
+        inst = cast(ContextFactory:TenantGroupContext:GetCollection(pRequestInfo), ITenantGroupSet).   
         return inst.
     end method.
     
-    method public ITenantGroup GetTenantGroup(groupName as char):
+    method public ITenantGroup GetTenantGroup(groupName as character):
         define variable inst as ITenantGroup no-undo.
-        inst = cast(ContextFactory:TenantGroupContext:GetEntity(groupName),ITenantGroup). 
+        inst = cast(ContextFactory:TenantGroupContext:GetEntity(groupName), ITenantGroup). 
         return inst.
     end method.
     
-    method public ITenantGroup GetTenantGroup(groupId as int):
+    method public ITenantGroup GetTenantGroup(groupId as integer):
         define variable inst as ITenantGroup no-undo.
-        inst = cast(ContextFactory:TenantGroupContext:GetEntity(groupId),ITenantGroup). 
+        inst = cast(ContextFactory:TenantGroupContext:GetEntity(groupId), ITenantGroup). 
         return inst.
     end method.
    
     method public ITenantGroup GetTenantGroup(pRequestInfo as IRequestInfo):
-        return cast(ContextFactory:TenantGroupContext:GetEntity(pRequestInfo),ITenantGroup). 
+        return cast(ContextFactory:TenantGroupContext:GetEntity(pRequestInfo), ITenantGroup). 
     end method.
        
-    method public ISequence GetSequence(SeqName as char):
-        return cast(ContextFactory:SequenceContext:GetEntity(SeqName),ISequence). 
+    method public ISequence GetSequence(SeqName as character):
+        return cast(ContextFactory:SequenceContext:GetEntity(SeqName), ISequence). 
     end method.
    
     method public ISequence GetSequence(reqInfo as IRequestInfo):
-        return cast(ContextFactory:SequenceContext:GetEntity(reqInfo),ISequence). 
+        return cast(ContextFactory:SequenceContext:GetEntity(reqInfo), ISequence). 
     end method.
    
     method public ISequenceSet GetSequences():
-        return cast(ContextFactory:SequenceContext:GetCollection(),ISequenceSet).
+        return cast(ContextFactory:SequenceContext:GetCollection(), ISequenceSet).
     end method.
         
-    method public ISequenceSet GetSequences(filter as char):
-        return cast(ContextFactory:SequenceContext:GetCollection(filter),ISequenceSet).   
+    method public ISequenceSet GetSequences(filter as character):
+        return cast(ContextFactory:SequenceContext:GetCollection(filter), ISequenceSet).   
     end method.   
    
     method public ISequenceSet GetSequences(reqInfo as IRequestInfo):
-        return cast(ContextFactory:SequenceContext:GetCollection(reqInfo),ISequenceSet).   
+        return cast(ContextFactory:SequenceContext:GetCollection(reqInfo), ISequenceSet).   
     end method.    
    
     /* the service only supports "pub" schema so no key parameter */
     method public ISchema GetSchema():
         define variable req as IRequestInfo no-undo.
-        return cast(ContextFactory:SchemaContext:GetEntity("PUB"),ISchema). 
+        return cast(ContextFactory:SchemaContext:GetEntity("PUB"), ISchema). 
     end method.
     
     /* the service only supports "pub" schema so no key parameter */
     method public ISchema GetSchema(pRequestInfo as IRequestInfo):
-        return cast(ContextFactory:SchemaContext:GetEntity(pRequestInfo),ISchema). 
+        return cast(ContextFactory:SchemaContext:GetEntity(pRequestInfo), ISchema). 
     end method.
     
     /* the service only supports "pub" schema so no key parameter */
-    method public ISchema GetSchema(collectionFilter as char):
-        return cast(ContextFactory:SchemaContext:GetEntity("PUB"),ISchema). 
+    method public ISchema GetSchema(collectionFilter as character):
+        return cast(ContextFactory:SchemaContext:GetEntity("PUB"), ISchema). 
     end method.
     
     /* the service only supports "pub" schema so no key parameter */
-    method public ISchema GetSchemaChanges(pcFile as char):
+    method public ISchema GetSchemaChanges(pcFile as character):
         define variable schemaobj as ISchema no-undo.
         define variable msg as FetchDefinitions no-undo.
         /*
@@ -736,13 +798,13 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
         CurrentSchemaChanges = ContextFactory:GetSchemaDefinitionContext(pcFile).      
 /*      CurrentSchemaChanges:TestData().*/
    
-        schemaobj = cast(CurrentSchemaChanges:GetEntity("PUB"),ISchema).
+        schemaobj = cast(CurrentSchemaChanges:GetEntity("PUB"), ISchema).
       
 
         return schemaobj.  
     end method.
     
-    method public logical LoadSchemaChanges(pcFile as char):
+    method public logical LoadSchemaChanges(pcFile as character):
         define variable msg as LoadDefinitions no-undo.
         msg = new LoadDefinitions().
         msg:FileName = pcfile.
@@ -752,23 +814,23 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
         return true.   
     end method.
       
-    method public ITable GetTable(tableName as char):
-        return cast(ContextFactory:TableContext:GetEntity(tableName),ITable). 
+    method public ITable GetTable(tableName as character):
+        return cast(ContextFactory:TableContext:GetEntity(tableName), ITable). 
     end method.
     
     /* id mapped to field-number */
     method public ITable GetTable(id as integer):
-        return cast(ContextFactory:TableContext:GetEntity(id),ITable). 
+        return cast(ContextFactory:TableContext:GetEntity(id), ITable). 
     end method.
     /* This method is introduced to support retrieval of PUB and non-PUB tables as part of CDC feature */
-	method public ITable GetTable(tableName as char,owner as char):
+	method public ITable GetTable(tableName as character, owner as character):
         define variable tabSet    as ITableSet                                     no-undo.
         define variable nonPUBTbl as ITable                                        no-undo.         
         define variable iter      as OpenEdge.DataAdmin.Lang.Collections.IIterator no-undo.
         
         if owner ne "PUB" and owner ne "" then do:
             /* find the table based on given schema and table name */               
-            tabSet = cast(ContextFactory:AllTableContext:GetCollection("SchemaName eq " + quoter(owner) + " and Name eq " + quoter(tableName)),ITableset).
+            tabSet = cast(ContextFactory:AllTableContext:GetCollection("SchemaName eq " + quoter(owner) + " and Name eq " + quoter(tableName)), ITableset).
             iter = tabset:Iterator(). 
             do while iter:HasNext(): 
                 nonPUBTbl = cast(iter:Next(), ITable). 
@@ -778,256 +840,264 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
                 return nonPUBTbl.
             else undo, throw new IllegalArgumentError("GetTable method without corresponding Table and Owner Name").
 	    end.
-        else return cast(ContextFactory:TableContext:GetEntity(tableName),ITable). 
+        else return cast(ContextFactory:TableContext:GetEntity(tableName), ITable). 
 	end method. 
     
     method public ITable GetTable(pRequestInfo as IRequestInfo):
-        return cast(ContextFactory:TableContext:GetEntity(pRequestInfo),ITable). 
+        return cast(ContextFactory:TableContext:GetEntity(pRequestInfo), ITable). 
     end method.
       
     method public ITableSet GetTables():
-        return cast(ContextFactory:TableContext:GetCollection(),ITableSet).
+        return cast(ContextFactory:TableContext:GetCollection(), ITableSet).
     end method.
     
-    method public ITableSet GetTables(filter as char):
-        return cast(ContextFactory:TableContext:GetCollection(filter),ITableSet).
+    method public ITableSet GetTables(filter as character):
+        return cast(ContextFactory:TableContext:GetCollection(filter), ITableSet).
     end method.
     
     method public ITableSet GetTables(pRequestInfo as IRequestInfo):
-        return cast(ContextFactory:TableContext:GetCollection(prequestInfo),ITableSet).
+        return cast(ContextFactory:TableContext:GetCollection(prequestInfo), ITableSet).
     end method.
     
-    method public ITablePermission GetTablePermission(pcName as char ):
-        return cast(ContextFactory:TablePermissionContext:GetEntity(pcName),ITablePermission).
+    method public ITablePermission GetTablePermission(pcName as character ):
+        return cast(ContextFactory:TablePermissionContext:GetEntity(pcName), ITablePermission).
     end method.
     
     method public ITablePermissionSet GetTablePermissions( ):
-        return cast(ContextFactory:TablePermissionContext:GetCollection(),ITablePermissionSet).
+        return cast(ContextFactory:TablePermissionContext:GetCollection(), ITablePermissionSet).
     end method.
     
-    method public ITablePermissionSet GetTablePermissions(filter as char):
-        return cast(ContextFactory:TablePermissionContext:GetCollection(filter),ITablePermissionSet).
+    method public ITablePermissionSet GetTablePermissions(filter as character):
+        return cast(ContextFactory:TablePermissionContext:GetCollection(filter), ITablePermissionSet).
     end method.
     
-    method public ITenant GetTenantByExternalId(extId as char):
-        return cast(ContextFactory:TenantContext:GetTenantByExternalId(extId),ITenant). 
+    method public ITenant GetTenantByExternalId(extId as character):
+        return cast(ContextFactory:TenantContext:GetTenantByExternalId(extId), ITenant). 
     end method.
  
-    method public ITenant GetTenant(tenantId as int):
-        return cast(ContextFactory:TenantContext:GetEntity(tenantId),ITenant). 
+    method public ITenant GetTenant(tenantId as integer):
+        return cast(ContextFactory:TenantContext:GetEntity(tenantId), ITenant). 
     end method.
     
-    method public ITenant GetTenant(tenantName as char):
-        return cast(ContextFactory:TenantContext:GetEntity(tenantName),ITenant). 
+    method public ITenant GetTenant(tenantName as character):
+        return cast(ContextFactory:TenantContext:GetEntity(tenantName), ITenant). 
     end method.
     
     method public ITenant GetTenant(req as IRequestInfo):
-        return cast(ContextFactory:TenantContext:GetEntity(req),ITenant). 
+        return cast(ContextFactory:TenantContext:GetEntity(req), ITenant). 
     end method.
     
-    method public ITenantSet GetTenants(filter as char):
-        return cast(ContextFactory:TenantContext:GetCollection(filter),ITenantSet).
+    method public ITenantSet GetTenants(filter as character):
+        return cast(ContextFactory:TenantContext:GetCollection(filter), ITenantSet).
     end method.
     
     method public ITenantSet GetTenants(pRequestInfo as IRequestInfo):
-        return cast(ContextFactory:TenantContext:GetCollection(pRequestInfo),ITenantSet).
+        return cast(ContextFactory:TenantContext:GetCollection(pRequestInfo), ITenantSet).
     end method.
         
     method public ITenantSet GetTenants( ):
-        return cast(ContextFactory:TenantContext:GetCollection(),ITenantSet).
+        return cast(ContextFactory:TenantContext:GetCollection(), ITenantSet).
     end method.
     
-    method public IUser GetUser(usrID as char):
-        return cast(ContextFactory:UserContext:GetEntity(usrID),IUser). 
+    method public IUser GetUser(usrID as character):
+        return cast(ContextFactory:UserContext:GetEntity(usrID), IUser). 
     end method.
     
-    method public IPartitionPolicy GetPartitionPolicy(pname as char).
-        return cast(ContextFactory:PartitionPolicyContext:GetEntity(pname),IPartitionPolicy). 
+    method public IPartitionPolicy GetPartitionPolicy(pname as character).
+        return cast(ContextFactory:PartitionPolicyContext:GetEntity(pname), IPartitionPolicy). 
     end method. 
      
-    method public IPartitionPolicy GetPartitionPolicy(pid as int).
-        return cast(ContextFactory:PartitionPolicyContext:GetEntity(pid),IPartitionPolicy). 
+    method public IPartitionPolicy GetPartitionPolicy(pid as integer).
+        return cast(ContextFactory:PartitionPolicyContext:GetEntity(pid), IPartitionPolicy). 
     end method. 
      
     method public IPartitionPolicy GetPartitionPolicy(pRequestInfo as IRequestInfo).
-        AssertNotRequested("fields",pRequestInfo).
-        return cast(ContextFactory:PartitionPolicyContext:GetEntity(pRequestInfo),IPartitionPolicy). 
+        AssertNotRequested("fields", pRequestInfo).
+        return cast(ContextFactory:PartitionPolicyContext:GetEntity(pRequestInfo), IPartitionPolicy). 
     end method.
     
      /** Get a collection of allpartition policies  in the database   
         @param  name char of PartitionPolicy*/ 
     method public IPartitionPolicySet GetPartitionPolicies().
-        return cast(ContextFactory:PartitionPolicyContext:GetCollection(),IPartitionPolicySet).
+        return cast(ContextFactory:PartitionPolicyContext:GetCollection(), IPartitionPolicySet).
     end method.
     
     /** Get a collection of partition policies 
         @param  request IRequestInfo*/ 
     method public IPartitionPolicySet GetPartitionPolicies(pRequestInfo as IRequestInfo):
-        AssertNotRequested("fields",pRequestInfo).
-        return cast(ContextFactory:PartitionPolicyContext:GetCollection(pRequestInfo),IPartitionPolicySet).
+        AssertNotRequested("fields", pRequestInfo).
+        return cast(ContextFactory:PartitionPolicyContext:GetCollection(pRequestInfo), IPartitionPolicySet).
     end method.
     
     /** Get a collection of partition policies 
          @param  filter  */ 
-    method public IPartitionPolicySet GetPartitionPolicies(pFilter as char):
-        return cast(ContextFactory:PartitionPolicyContext:GetCollection(pFilter),IPartitionPolicySet).
+    method public IPartitionPolicySet GetPartitionPolicies(pFilter as character):
+        return cast(ContextFactory:PartitionPolicyContext:GetCollection(pFilter), IPartitionPolicySet).
     end method.
   
      /** Get a collection of all partition policies details in the database   */
     method public IPartitionPolicyDetailSet GetPartitionPolicyDetails().
-        return cast(ContextFactory:PartitionPolicyDetailContext:GetCollection(),IPartitionPolicyDetailSet).
+        return cast(ContextFactory:PartitionPolicyDetailContext:GetCollection(), IPartitionPolicyDetailSet).
     end method.
    
     /** Get a collection of  partition policies details   
          @param  request IRequestInfo*/ 
     method public IPartitionPolicyDetailSet GetPartitionPolicyDetails(pRequestInfo as IRequestInfo).
-/*     ??    AssertNotRequested("values",pRequestInfo).*/
+/*     ??    AssertNotRequested("values", pRequestInfo).*/
    
-        return cast(ContextFactory:PartitionPolicyDetailContext:GetCollection(pRequestInfo),IPartitionPolicyDetailSet).
+        return cast(ContextFactory:PartitionPolicyDetailContext:GetCollection(pRequestInfo), IPartitionPolicyDetailSet).
     end method.
    
     /** Get a collection of  partition policies details   
        @param  filter  */ 
-    method public IPartitionPolicyDetailSet GetPartitionPolicyDetails(pFilter as char).
-        return cast(ContextFactory:PartitionPolicyDetailContext:GetCollection(pFilter),IPartitionPolicyDetailSet).
+    method public IPartitionPolicyDetailSet GetPartitionPolicyDetails(pFilter as character).
+        return cast(ContextFactory:PartitionPolicyDetailContext:GetCollection(pFilter), IPartitionPolicyDetailSet).
     end method.
     
-    method public ICdcTablePolicy GetCdcTablePolicy(pname as char).
-        return cast(ContextFactory:CdcTablePolicyContext:GetEntity(pname),ICdcTablePolicy). 
+    method public ICdcTablePolicy GetCdcTablePolicy(pname as character).
+        return cast(ContextFactory:CdcTablePolicyContext:GetEntity(pname), ICdcTablePolicy). 
     end method. 
      
     method public ICdcTablePolicy GetCdcTablePolicy(pRequestInfo as IRequestInfo).
-        AssertNotRequested("fields",pRequestInfo).
-        return cast(ContextFactory:CdcTablePolicyContext:GetEntity(pRequestInfo),ICdcTablePolicy). 
+        AssertNotRequested("fields", pRequestInfo).
+        return cast(ContextFactory:CdcTablePolicyContext:GetEntity(pRequestInfo), ICdcTablePolicy). 
     end method.
     
      /** Get a collection of allpartition policies  in the database   
         @param  name char of PartitionPolicy*/ 
     method public ICdcTablePolicySet GetCdcTablePolicies().
-        return cast(ContextFactory:CdcTablePolicyContext:GetCollection(),ICdcTablePolicySet).
+        return cast(ContextFactory:CdcTablePolicyContext:GetCollection(), ICdcTablePolicySet).
     end method.
     
     /** Get a collection of partition policies 
         @param  request IRequestInfo*/ 
     method public ICdcTablePolicySet GetCdcTablePolicies(pRequestInfo as IRequestInfo):
-        AssertNotRequested("fields",pRequestInfo).
-        return cast(ContextFactory:CdcTablePolicyContext:GetCollection(pRequestInfo),ICdcTablePolicySet).
+        AssertNotRequested("fields", pRequestInfo).
+        return cast(ContextFactory:CdcTablePolicyContext:GetCollection(pRequestInfo), ICdcTablePolicySet).
     end method.
     
     /** Get a collection of partition policies 
          @param  filter  */ 
-    method public ICdcTablePolicySet GetCdcTablePolicies(pFilter as char):
-        return cast(ContextFactory:CdcTablePolicyContext:GetCollection(pFilter),ICdcTablePolicySet).
+    method public ICdcTablePolicySet GetCdcTablePolicies(pFilter as character):
+        return cast(ContextFactory:CdcTablePolicyContext:GetCollection(pFilter), ICdcTablePolicySet).
     end method.
   
      /** Get a collection of all partition policies details in the database   */
     method public ICdcFieldPolicySet GetCdcFieldPolicies().
-        return cast(ContextFactory:CdcFieldPolicyContext:GetCollection(),ICdcFieldPolicySet).
+        return cast(ContextFactory:CdcFieldPolicyContext:GetCollection(), ICdcFieldPolicySet).
     end method.
    
     /** Get a collection of  partition policies details   
          @param  request IRequestInfo*/ 
     method public ICdcFieldPolicySet GetCdcFieldPolicies(pRequestInfo as IRequestInfo).
-/*     ??    AssertNotRequested("values",pRequestInfo).*/
+/*     ??    AssertNotRequested("values", pRequestInfo).*/
    
-        return cast(ContextFactory:CdcFieldPolicyContext:GetCollection(pRequestInfo),ICdcFieldPolicySet).
+        return cast(ContextFactory:CdcFieldPolicyContext:GetCollection(pRequestInfo), ICdcFieldPolicySet).
     end method.
    
     /** Get a collection of  partition policies details   
        @param  filter  */ 
-    method public ICdcFieldPolicySet GetCdcFieldPolicies(pFilter as char).
-        return cast(ContextFactory:CdcFieldPolicyContext:GetCollection(pFilter),ICdcFieldPolicySet).
+    method public ICdcFieldPolicySet GetCdcFieldPolicies(pFilter as character).
+        return cast(ContextFactory:CdcFieldPolicyContext:GetCollection(pFilter), ICdcFieldPolicySet).
     end method.
    
-    method public IUserTablePermissionSet GetPermissions(pccollections as char):
-        return cast(ContextFactory:PermissionContext:GetCollection(pcCollections),IUserTablePermissionSet).
+    method public IUserTablePermissionSet GetPermissions(pccollections as character):
+        return cast(ContextFactory:PermissionContext:GetCollection(pcCollections), IUserTablePermissionSet).
     end method.
     
-    method public IUserPermission GetUserPermission(usrID as char):
-        return cast(ContextFactory:UserPermissionContext:GetEntity(usrID),IUserPermission). 
+    method public IUserPermission GetUserPermission(usrID as character):
+        return cast(ContextFactory:UserPermissionContext:GetEntity(usrID), IUserPermission). 
     end method.
     
     method public IUserPermissionSet GetUserPermissions():
-        return cast(ContextFactory:UserPermissionContext:GetCollection(),IUserPermissionSet).
+        return cast(ContextFactory:UserPermissionContext:GetCollection(), IUserPermissionSet).
     end method.
     
-    method public IUserPermissionSet GetUserPermissions(filter as char):
-        return cast(ContextFactory:UserPermissionContext:GetCollection(filter),IUserPermissionSet).
+    method public IUserPermissionSet GetUserPermissions(filter as character):
+        return cast(ContextFactory:UserPermissionContext:GetCollection(filter), IUserPermissionSet).
     end method.
     
     /* todo - use UserContext somehow  */
-    method private void ValidUserId(id as char, output pdomain as char,output puser as char): 
-        if num-entries(id,"@") > 1 then 
-            pdomain = entry(2,id,"@").
+    method private void ValidUserId(id as character, output pdomain as character, output puser as character): 
+        if num-entries(id, "@") > 1 then 
+            pdomain = entry(2, id, "@").
             
-        puser   = entry(1,id,"@").
+        puser   = entry(1, id, "@").
              
     end method.
     
     method public IUserSet GetUsers():
-        return cast(ContextFactory:UserContext:GetCollection(),IUserSet).
+        return cast(ContextFactory:UserContext:GetCollection(), IUserSet).
     end method.
     
-    method public IUserSet GetUsers(pcfilter as char):
-        return cast(ContextFactory:UserContext:GetCollection(pcfilter),IUserSet).
+    method public IUserSet GetUsers(pcfilter as character):
+        return cast(ContextFactory:UserContext:GetCollection(pcfilter), IUserSet).
     end method.   
     
     method public IUserSet GetUsers(pReq as IRequestInfo):
-        return cast(ContextFactory:UserContext:GetCollection(pReq),IUserSet).
+        return cast(ContextFactory:UserContext:GetCollection(pReq), IUserSet).
     end method.  
     
-    method public  IArea NewArea(pname as char):
-        return cast(NewEntity("Area",pname),IArea). 
+    method public IArea NewArea(pname as character):
+        return cast(NewEntity("Area":u, pname), IArea). 
     end method.
     
-    method public  IAreaSet NewAreas():
-        return cast(NewCollection("Area"),IAreaSet). 
+    method public IAreaSet NewAreas():
+        return cast(NewCollection("Area":u), IAreaSet). 
+    end method.
+
+    method public IAuthTag NewAuthTag(tagname as character):
+        return cast(NewEntity("AuthTag":u, tagname), IAuthTag).
     end method.
     
+    method public IAuthTagSet NewAuthTags():
+        return cast(NewCollection("AuthTag":u), IAuthTagSet).
+    end method.
+
     method public IExtent NewExtent():
         return new Extent().
         /*  To use context the ExtentContext Copy need to handle defaulting the number  
             to the next in the list 
-            return cast(ContextFactory:GetLocalContext("Extent"):CreateRootEntity(),IExtent).*/
+            return cast(ContextFactory:GetLocalContext("Extent"):CreateRootEntity(), IExtent).*/
     end method.
  
     method public IIndex NewIndex().
         undo, throw new AppError("Not implemented").
     end method. 
       
-    method public IPartitionPolicy NewPartitionPolicy(pname as char).
-        return cast(NewEntity("PartitionPolicy",pname),IPartitionPolicy). 
+    method public IPartitionPolicy NewPartitionPolicy(pname as character).
+        return cast(NewEntity("PartitionPolicy":u, pname), IPartitionPolicy). 
     end method. 
     
     method public IPartitionPolicySet NewPartitionPolicies().
-        return cast(NewCollection("PartitionPolicy"),IPartitionPolicySet). 
+        return cast(NewCollection("PartitionPolicy":u), IPartitionPolicySet). 
         
     end method. 
     
          /** Get an empty partition policy detail  */ 
      /*  Expected to be added to IPartitionPolicy:Details collection to be submitted to the database*/
      /*        using the service's UpdateTable() or UpdateTables() methods.*/
-    method public IPartitionPolicyDetail NewPartitionPolicyDetail(pName as char).
-        return cast(NewEntity("PartitionPolicyDetail",pname),IPartitionPolicyDetail). 
+    method public IPartitionPolicyDetail NewPartitionPolicyDetail(pName as character).
+        return cast(NewEntity("PartitionPolicyDetail":u, pname), IPartitionPolicyDetail). 
     end method.  
     
-    method public ICdcTablePolicy NewCdcTablePolicy(pname as char).
-        return cast(NewEntity("CdcTablePolicy",pname),ICdcTablePolicy). 
+    method public ICdcTablePolicy NewCdcTablePolicy(pname as character).
+        return cast(NewEntity("CdcTablePolicy":u, pname), ICdcTablePolicy). 
     end method. 
     
     method public ICdcTablePolicySet NewCdcTablePolicies().
-        return cast(NewCollection("CdcTablePolicy"),ICdcTablePolicySet). 
+        return cast(NewCollection("CdcTablePolicy":u), ICdcTablePolicySet). 
         
     end method. 
              
     method public ICdcFieldPolicy NewCdcFieldPolicy().
-        return cast(NewEntity("CdcFieldPolicy","cdcField"),ICdcFieldPolicy).
+        return cast(NewEntity("CdcFieldPolicy":u, "cdcField":u), ICdcFieldPolicy).
     end method. 
    
     method public ITenantGroupMember NewTenantGroupMember():
         return new TenantGroupMember().
         /*  this does work but we do not need context before added to service or collection   
-            return cast(ContextFactory:GetLocalContext("Extent"):CreateRootEntity(),IExtent).*/
+            return cast(ContextFactory:GetLocalContext("Extent"):CreateRootEntity(), IExtent).*/
     end method.
 
     /** Get a new granted role
@@ -1066,55 +1136,55 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
         return cast(NewCollection("Role":u), IRoleSet).
     end method.    
     
-    method public IDomain NewDomain(pname as char):
-        return cast(NewEntity("Domain",pname),IDomain). 
+    method public IDomain NewDomain(pname as character):
+        return cast(NewEntity("Domain":u, pname), IDomain). 
     end method.
     
     method public  IDomainSet NewDomains():
-        return cast(NewCollection("Domain"),IDomainSet). 
+        return cast(NewCollection("Domain":u), IDomainSet). 
     end method.
     
-    method public IAuthenticationSystem NewAuthenticationSystem(pname as char):
-        return cast(NewEntity("AuthenticationSystem",pname),IAuthenticationSystem). 
+    method public IAuthenticationSystem NewAuthenticationSystem(pname as character):
+        return cast(NewEntity("AuthenticationSystem":u, pname), IAuthenticationSystem). 
     end method.
     
     method public IAuthenticationSystemSet NewAuthenticationSystems():
-        return cast(NewCollection("AuthenticationSystem"),IAuthenticationSystemSet). 
+        return cast(NewCollection("AuthenticationSystem":u), IAuthenticationSystemSet). 
     end method.
     
-    method public ITenant NewTenant(pname as char):
-        return cast(NewEntity("Tenant",pname),ITenant). 
+    method public ITenant NewTenant(pname as character):
+        return cast(NewEntity("Tenant":u, pname), ITenant). 
     end method.
     
     method public ITenantSet NewTenants():
-        return cast(NewCollection("Tenant"),ITenantSet). 
+        return cast(NewCollection("Tenant":u), ITenantSet). 
     end method.
     
-    method public ITenantGroup NewTenantGroup(pname as char):
-        return cast(NewEntity("TenantGroup",pname),ITenantGroup). 
+    method public ITenantGroup NewTenantGroup(pname as character):
+        return cast(NewEntity("TenantGroup":u, pname), ITenantGroup). 
     end method.
     
     method public ITenantGroupSet NewTenantGroups():
-        return cast(NewCollection("TenantGroup"),ITenantGroupSet). 
+        return cast(NewCollection("TenantGroup":u), ITenantGroupSet). 
     end method.
     
-    method public ISequence NewSequence(pname as char):
-        return cast(NewEntity("Sequence",pname),ISequence). 
+    method public ISequence NewSequence(pname as character):
+        return cast(NewEntity("Sequence":u, pname), ISequence). 
     end method.
     
     method public ISequenceSet NewSequences():
-        return cast(NewCollection("Sequence"),ISequenceSet). 
+        return cast(NewCollection("Sequence":u), ISequenceSet). 
     end method.
     
-    method public IUser NewUser(pname as char):
-        return cast(NewEntity("User",pname),IUser). 
+    method public IUser NewUser(pname as character):
+        return cast(NewEntity("User":u, pname), IUser). 
     end method.
     
     method public IUserSet NewUsers():
-        return cast(NewCollection("User"),IUserSet). 
+        return cast(NewCollection("User":u), IUserSet). 
     end method.
     
-    method protected IDataAdminElement NewEntity(pcType as char,pname as char):
+    method protected IDataAdminElement NewEntity(pcType as character, pname as character):
         /* NOTE - must define context variable here or else the 
                   context gets garbage collected when NewEntity ends 
                   before the entity is returned  - 
@@ -1122,12 +1192,11 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
         define variable cntxt as IDataAdminContext no-undo.
         cntxt = ContextFactory:GetLocalContext(pcType).
    
-        return  cntxt:CreateRootEntity(pname). 
-    
+        return  cntxt:CreateRootEntity(pname).
     end method.
      
     /** returns a new collection of the specified serializename, entity name or physical database filename  */
-    method public IDataAdminCollection NewCollection(pcType as char):
+    method public IDataAdminCollection NewCollection(pcType as character):
         /* NOTE - must define context variable here or else the 
                   context gets garbage collected when NewEntity ends 
                   before the entity is returned */          
@@ -1137,22 +1206,32 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
     end method.
     
     method public logical UpdateArea(area as IArea):
-        return UpdateElement(area:name,area,ContextFactory:AreaContext).
+        return UpdateElement(area:name, area, ContextFactory:AreaContext).
     end method.
     
     method public logical UpdateAreas(areas as IAreaSet):
-        return UpdateCollection(areas,ContextFactory:AreaContext).
+        return UpdateCollection(areas, ContextFactory:AreaContext).
     end method.
-   
+
+    method public logical UpdateAuthTag(authTag as IAuthTag):
+        return UpdateElement(authTag:name, authTag, ContextFactory:AuthTagContext).
+    end method.
+    
+    method public logical UpdateAuthTags(authTags as IAuthTagSet):
+        return UpdateCollection(authTags, ContextFactory:AuthTagContext).
+    end method.
+
     /* base update method (not used by all) */
-    method protected logical DeleteElement(pkey as char,inst as IDataAdminElement,cntxt as IDataAdminModel):
+    method protected logical DeleteElement(pkey as character, inst as IDataAdminElement, cntxt as IDataAdminModel):
         define variable saverequest as ISaveRequest no-undo.
         define variable requestinfo as IRequestinfo no-undo.
         define variable rowinfo as IRow no-undo.
         define variable lok as logical no-undo.
-        AssertUpdate(inst,cntxt).
+
+        AssertUpdate(inst, cntxt).
         requestinfo = inst:Requestinfo.
-        rowinfo = GetRowInfo(inst,cntxt).
+        rowinfo = GetRowInfo(inst, cntxt).
+
         /** @todo use keyvalues always - 
             added late must check if there are Delete(char) overrides before removal.
             of single key
@@ -1161,9 +1240,10 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
             lok = cntxt:Delete(rowinfo:KeyValues[1]).
         else
             lok = cntxt:Delete(rowinfo:KeyValues). 
+
         if lok then
         do:
-            saverequest = cast(cntxt,IDataAdminModel):GetDeleteRowRequest(rowinfo,requestinfo).
+            saverequest = cast(cntxt, IDataAdminModel):GetDeleteRowRequest(rowinfo, requestinfo).
             if not valid-object(saverequest) then 
                 return false.
             saverequest = SaveData(saverequest).
@@ -1172,7 +1252,9 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
             cntxt:MergeChanges(saverequest). 
             return true.
         end.
+
         return false.
+
         catch e as Progress.Lang.Error:
             ErrorHandler(e).          
             return false.
@@ -1183,26 +1265,14 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
             i = i no-error.
         end finally.
     end method.    
-    
-/*    /* base update method (not used by all) */                                                                */
-/*    method protected logical UpdateElement(pkey as char,inst as IDataAdminElement,cntxt as IDataAdminContext):*/
-/*        define variable saverequest as ISaveRequest no-undo.                                                  */
-/*        AssertUpdate(inst,cntxt).                                                                             */
-/*                                                                                                              */
-/*        return true.                                                                                          */
-/*        catch e as Progress.Lang.Error:                                                                       */
-/*            ErrorHandler(e).                                                                                  */
-/*            return false.                                                                                     */
-/*        end catch.                                                                                            */
-/*    end method.                                                                                               */
-    
+
     /* base update method (not used by all) */
-    method protected logical UpdateElement(pkey as char,inst as IDataAdminElement,cntxt as IDataAdminContext):
+    method protected logical UpdateElement(pkey as character, inst as IDataAdminElement, cntxt as IDataAdminContext):
         define variable req as IRequestInfo no-undo.
         define variable response as ISaveRequest no-undo.
-        AssertUpdate(inst,cntxt).
+        AssertUpdate(inst, cntxt).
         req = inst:RequestInfo.
-        response = cast(cntxt,IDataAdminModel):GetSaveRowRequest(pKey,req).
+        response = cast(cntxt, IDataAdminModel):GetSaveRowRequest(pKey, req).
         if valid-object(response) then 
         do:
             response = SaveData(response).
@@ -1225,17 +1295,17 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
     end method.    
     
      /* base update method (not used by all) */
-    method protected logical UpdateElement(inst as IDataAdminElement,cntxt as IDataAdminModel):
+    method protected logical UpdateElement(inst as IDataAdminElement, cntxt as IDataAdminModel):
         define variable req as IRequestInfo no-undo.
         define variable rowinfo as IRow no-undo.
         define variable response as ISaveRequest no-undo.
         
         define variable i          as integer no-undo.
         define variable cfield as character no-undo.
-        AssertUpdate(inst,cntxt).
+        AssertUpdate(inst, cntxt).
         req = inst:RequestInfo.
-        rowinfo = GetRowInfo(inst,cntxt).
-        response = cast(cntxt,IDataAdminModel):GetSaveRowRequest(rowinfo,req).
+        rowinfo = GetRowInfo(inst, cntxt).
+        response = cast(cntxt, IDataAdminModel):GetSaveRowRequest(rowinfo, req).
         if not valid-object(response) then 
             return false.
         response = SaveData(response).
@@ -1258,22 +1328,22 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
         define variable cntxt as IDataAdminContext no-undo. 
         cntxt = ContextFactory:GetContextBySerializeName(pccol:SerializeName).
         /* tables have special code */
-        if type-of(pccol,ITableSet) then 
-            return UpdateTables(cast(pccol,ITableSet)).
-        return UpdateCollection(pccol,cntxt).
+        if type-of(pccol, ITableSet) then 
+            return UpdateTables(cast(pccol, ITableSet)).
+        return UpdateCollection(pccol, cntxt).
     end method.  
         
     /* base update method  */
-    method protected logical UpdateCollection(inst as IDataAdminCollection,cntxt as IDataAdminContext):
+    method protected logical UpdateCollection(inst as IDataAdminCollection, cntxt as IDataAdminContext):
         define variable response as ISaveRequest no-undo.
-        AssertUpdate(inst,cntxt).
-        return UpdateContext(cntxt,inst:SourceId).
+        AssertUpdate(inst, cntxt).
+        return UpdateContext(cntxt, inst:SourceId).
     end method.    
     
     /* base update method  */
-    method protected logical UpdateContext(cntxt as IDataAdminContext,pSourceId as char):
+    method protected logical UpdateContext(cntxt as IDataAdminContext, pSourceId as character):
         define variable response as ISaveRequest no-undo.
-        response = cast(cntxt,IDataAdminModel):GetSaveRequest(pSourceId).
+        response = cast(cntxt, IDataAdminModel):GetSaveRequest(pSourceId).
         response = SaveData(response).
         if not valid-object(response) then 
             return false.
@@ -1314,63 +1384,63 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
     end method.    
      
     method public logical UpdateDataSecurity(pinst as IDataSecurity ):
-        return UpdateElement(pinst:name,pinst,ContextFactory:DataSecurityContext).
+        return UpdateElement(pinst:name, pinst, ContextFactory:DataSecurityContext).
     end method.
        
     method public logical UpdateDomain(domain as IDomain):
-        return UpdateElement(domain:name,domain,ContextFactory:DomainContext).
+        return UpdateElement(domain:name, domain, ContextFactory:DomainContext).
     end method.
     
     method public logical UpdateDomains(domains as IDomainSet):
-        return UpdateCollection(domains,ContextFactory:DomainContext).
+        return UpdateCollection(domains, ContextFactory:DomainContext).
     end method.
     
     method public logical UpdateAuthenticationSystem(authenticationsystem as IAuthenticationSystem):
-        return UpdateElement(authenticationsystem:name,authenticationsystem,ContextFactory:AuthenticationSystemContext).
+        return UpdateElement(authenticationsystem:name, authenticationsystem, ContextFactory:AuthenticationSystemContext).
     end method.
     
     method public logical UpdateAuthenticationSystems(authenticationsystems as IAuthenticationSystemSet):
-        return UpdateCollection(authenticationsystems,ContextFactory:AuthenticationSystemContext).
+        return UpdateCollection(authenticationsystems, ContextFactory:AuthenticationSystemContext).
     end method.
     
       /** Update the database with partition policy changes  
        @param policy IPartitionPolicy to be created */
     method public logical UpdatePartitionPolicy(policy as IPartitionPolicy).
-        return UpdateElement(policy,ContextFactory:PartitionPolicyContext).
+        return UpdateElement(policy, ContextFactory:PartitionPolicyContext).
     end method.
     
     /** Update the database with partition policies with changes   
         @param policies IPartitionPolicySet with policies to be updated */
     method public logical UpdatePartitionPolicies(policy as IPartitionPolicySet).
-        return UpdateCollection(policy,ContextFactory:PartitionPolicyContext).
+        return UpdateCollection(policy, ContextFactory:PartitionPolicyContext).
     end method.
     
      method public logical UpdateCdcTablePolicy(policy as ICdcTablePolicy).
-        return UpdateElement(policy,ContextFactory:CdcTablePolicyContext).
+        return UpdateElement(policy, ContextFactory:CdcTablePolicyContext).
     end method.
         
     method public logical UpdateCdcTablePolicies(policy as ICdcTablePolicySet).
-        return UpdateCollection(policy,ContextFactory:CdcTablePolicyContext).
+        return UpdateCollection(policy, ContextFactory:CdcTablePolicyContext).
     end method.
     
     method public logical UpdateSequence(seq as ISequence):
-        return UpdateElement(seq,ContextFactory:SequenceContext).
+        return UpdateElement(seq, ContextFactory:SequenceContext).
     end method.
     
     method public logical UpdateSequences(sequences as ISequenceSet):
-        return UpdateCollection(sequences,ContextFactory:SequenceContext).
+        return UpdateCollection(sequences, ContextFactory:SequenceContext).
     end method.
     
     method public logical UpdateTable(tableimpl as ITable):
-        return UpdateElement(tableimpl:name,tableimpl,ContextFactory:TableContext).        
+        return UpdateElement(tableimpl:name, tableimpl, ContextFactory:TableContext).        
     end method.
     
     method public logical UpdateAdministrator(admin as IAdministrator):
-        return UpdateElement("",admin,ContextFactory:AdministratorContext).        
+        return UpdateElement("", admin, ContextFactory:AdministratorContext).        
     end method.
    
     method public logical UpdateSecurityOptions(secopt as ISecurityOptions):
-        return UpdateElement("",secopt,ContextFactory:SecurityOptionsContext).        
+        return UpdateElement("", secopt, ContextFactory:SecurityOptionsContext).        
     end method.
    
     method public logical UpdateTables(Tables as ITableSet):
@@ -1398,7 +1468,7 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
                 ContextFactory:TableContext:MergeChanges(response).
             end.
             catch e2 as Progress.Lang.AppError:
-                e2:AddMessage("Note that all Partition changes were undone while Table changes were successfully completed",?).
+                e2:AddMessage("Note that all Partition changes were undone while Table changes were successfully completed", ?).
                 undo, throw e2.
             end. 
         end.
@@ -1416,35 +1486,35 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
     end method.
     
     method public logical UpdateTablePermission(tableperm as ITablePermission):
-        return UpdateElement(tableperm:name,tableperm,ContextFactory:TablePermissionContext).
+        return UpdateElement(tableperm:name, tableperm, ContextFactory:TablePermissionContext).
     end method.
     
     method public logical UpdateTablePermissions(tableperms as ITablePermissionSet)  .  
-        return UpdateCollection(tableperms,ContextFactory:TablePermissionContext).
+        return UpdateCollection(tableperms, ContextFactory:TablePermissionContext).
     end method.
     
     method public logical UpdateTenantGroup(tenantGroup as ITenantGroup):
-        return UpdateElement(tenantGroup:name,tenantGroup,ContextFactory:TenantGroupContext).
+        return UpdateElement(tenantGroup:name, tenantGroup, ContextFactory:TenantGroupContext).
     end method.
     
     method public logical UpdateTenantGroups(tenantGroups as ITenantGroupSet):
-        return UpdateCollection(tenantGroups,ContextFactory:TenantGroupContext).
+        return UpdateCollection(tenantGroups, ContextFactory:TenantGroupContext).
     end method.  
     
     method public logical UpdateTenant(ptnt as ITenant):
-        return UpdateElement(ptnt:name,ptnt,ContextFactory:TenantContext).
+        return UpdateElement(ptnt:name, ptnt, ContextFactory:TenantContext).
     end method.
     
     method public logical UpdateTenants(tenants as ITenantSet):
-        return UpdateCollection(tenants,ContextFactory:TenantContext).
+        return UpdateCollection(tenants, ContextFactory:TenantContext).
     end method.
      
     method public logical UpdateSchemaChanges(pschema as ISchema):
         define variable msg as LoadDefinitions no-undo.
-        AssertUpdate(pSchema,CurrentSchemaChanges).
+        AssertUpdate(pSchema, CurrentSchemaChanges).
         
         CurrentSchemaChanges:Find(pschema:Name). 
-        msg = cast(pschema:LoadOptions,LoadDefinitions).
+        msg = cast(pschema:LoadOptions, LoadDefinitions).
         
         if pschema:LoadOptions:FileName > "" then
         do:    
@@ -1455,7 +1525,7 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
     end method.
     
     method public logical UpdateSchema(pschema as ISchema):
-        return UpdateElement(pschema:name,pschema,ContextFactory:SchemaContext).
+        return UpdateElement(pschema:name, pschema, ContextFactory:SchemaContext).
     end method.
     
     /** Get a new, empty db option
@@ -1574,7 +1644,7 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
     
     /*   
     method public logical UpdateSchema(pschema as ISchema):
-        AssertUpdate(pSchema,ContextFactory:SchemaContext). 
+        AssertUpdate(pSchema, ContextFactory:SchemaContext). 
         ContextFactory:SchemaContext:Find(pschema:Name). 
         
         UpdatePartitions(). 
@@ -1618,11 +1688,106 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
     end method.
   */ 
     method public logical UpdateUser(usr as IUser):
-        return UpdateElement(usr:id,usr,ContextFactory:UserContext).
+        return UpdateElement(usr:id, usr, ContextFactory:UserContext).
     end method.
     
     method public logical UpdateUsers(users as IUserSet):
-         return UpdateCollection(users,ContextFactory:UserContext).
+         return UpdateCollection(users, ContextFactory:UserContext).
+    end method.
+	
+	/* method to get DDM config for a field */
+	method public void GetFieldDDMConfig(input tablename as character,
+                                         input fieldname as character,
+                                         output maskval  as character,
+                                         output authtag  as character):
+       define var rConfig as DBConfig no-undo. 
+
+       if tablename <> "" AND fieldname <> "" then
+       do on error undo, throw:
+          rConfig = NEW DBConfig("DICTDB").
+          rConfig:getFieldDDMConfig (tablename, fieldname, maskval, authtag).
+              
+          catch e as Progress.Lang.Error:
+            ErrorHandler(e).
+			return error.
+          end catch. 
+	   end.	  
+       finally:
+          
+       end finally.     
+
+    end method.
+    
+    /* method to set DDM config for a Specific table & field which includes mask value and authorization tag */
+    method public logical setDDMConfig(tablename as character, 
+                                       fieldname as character, 
+                                       maskval   as character, 
+                                       authtag   as character):
+       define variable rConfig as DBConfig no-undo.        
+       
+       do on error undo, throw:
+          rConfig = new DBConfig("DICTDB").
+                                                                      
+          rConfig:SetFieldDDMConfig (tablename, fieldname, maskval, authtag).                       
+              
+          catch e as Progress.Lang.Error:          
+             ErrorHandler(e). 
+             return false.           
+          end catch. 
+          
+       end.
+       return true.
+       finally:
+            /* clean error-status */
+            define variable i as integer no-undo.       
+            i = i no-error.
+        end finally.                  
+    end method.
+    
+    /* method to reset mask value for a Specific table & field */
+    method public logical unsetDDMMask(tablename as character, 
+                                       fieldname as character):
+       define variable rConfig as DBConfig no-undo.        
+       
+       do on error undo, throw:
+          rConfig = new DBConfig("DICTDB").
+             
+          rConfig:SetFieldDDMMask(tablename, fieldname, ?). 
+                                 
+          catch e as Progress.Lang.Error:          
+             ErrorHandler(e). 
+             return false.           
+          end catch.       
+       end.
+       return true. 
+       finally:
+            /* clean error-status */
+            define variable i as integer no-undo.       
+            i = i no-error.
+        end finally.       
+    end method.
+    
+    /* method to reset authorization tag for a Specific table & field.
+       Whenever user will reset tag value, then corresponding mask value also needs to be reset */
+    method public logical unsetDDMAuthTag(tablename as character, 
+                                          fieldname as character):
+       define variable rConfig as DBConfig no-undo.        
+       
+       do on error undo, throw:
+          rConfig = new DBConfig("DICTDB").
+                                   
+          rConfig:SetFieldDDMConfig (tablename, fieldname, ?, ?).            
+          catch e as Progress.Lang.Error:          
+             ErrorHandler(e). 
+             return false.           
+          end catch.       
+       end.
+       return true. 
+       finally:
+            /* clean error-status */
+            define variable i as integer no-undo.       
+            i = i no-error.
+        end finally.       
     end method.
     
     method public void ExecuteUtility(putility as IDataAdminUtility):
@@ -1643,7 +1808,7 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
     end method.
       
     method protected void ErrorHandler(e as Error):    
-        if not ThrowDataErrors and type-of(e,DataError) then
+        if not ThrowDataErrors and type-of(e, DataError) then
         do: 
             if not valid-object(Error) then
                 Error = new OperationError("Operation error in Service " +  Name).
@@ -1655,9 +1820,9 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
         end.    
     end method.   
     
-    method protected void AssertUpdate(entity as IDataAdminElement,context as IDataAdminContext):
+    method protected void AssertUpdate(entity as IDataAdminElement, context as IDataAdminContext):
         if not valid-object(entity) then 
-            undo, throw new UnknownValueError("Update" + context:name,context:name).    
+            undo, throw new UnknownValueError("Update" + context:name, context:name).    
         if entity:ContextId = "" or not valid-object(entity:Service) then
             undo, throw new IllegalArgumentError("The " + context:name 
             + " passed to Update" + context:name +  " is new and and must be created before it can be updated.").     
@@ -1666,11 +1831,11 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
             + " passed to Update" + context:name +  " belongs in a different service.").
     end.
     
-    method protected void AssertUpdate(coll as IDataAdminCollection,serviceContext as IDataAdminContext):
+    method protected void AssertUpdate(coll as IDataAdminCollection, serviceContext as IDataAdminContext):
         define variable cname as character no-undo.
         cname = serviceContext:name + "Set".
         if not valid-object(coll) then 
-            undo, throw new UnknownValueError("Update" + serviceContext:name + "s",cname).  
+            undo, throw new UnknownValueError("Update" + serviceContext:name + "s", cname).  
         if coll:ContextId = ""  or coll:Service = ? then
             undo, throw new IllegalArgumentError("The " + cname + " is not created in the service").     
         if serviceContext:Id <> coll:ContextId then
@@ -1678,9 +1843,9 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
         
     end.    
         
-    method protected void AssertCreate(entity as IDataAdminElement,context as IDataAdminContext):
+    method protected void AssertCreate(entity as IDataAdminElement, context as IDataAdminContext):
          if not valid-object(entity) then 
-            undo, throw new UnknownValueError("Create" + context:name,context:name).  
+            undo, throw new UnknownValueError("Create" + context:name, context:name).  
          if entity:Attached then 
             undo, throw new IllegalArgumentError("The " + context:name + " passed to Create" + context:name + " already belongs in a collection or service.").           
          if context:Id = entity:ContextId then
@@ -1689,11 +1854,11 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
 /*            undo, throw new IllegalArgumentError("The " + context:name + " already belongs in a collection or service").*/
     end method.
     
-    method protected void AssertCreate(coll as IDataAdminCollection,serviceContext as IDataAdminContext):
+    method protected void AssertCreate(coll as IDataAdminCollection, serviceContext as IDataAdminContext):
         define variable cname as character no-undo.
         cname = serviceContext:name + "Set".
         if not valid-object(coll) then 
-            undo, throw new UnknownValueError("Create" + serviceContext:name + "s",cname).  
+            undo, throw new UnknownValueError("Create" + serviceContext:name + "s", cname).  
         if serviceContext:Id = coll:ContextId then
             undo, throw new IllegalArgumentError("The " + cname + " already exists in this service").
         if valid-object(coll:Service) then
@@ -1710,49 +1875,34 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
         msg = ServiceAdapter:SaveData(msg).    
         if valid-object(TransactionLogger) then
             TransactionLogger:Log("Save " + msg:serializename + " complete").
-/*        RequestCompleted:Publish(msg:SerializeName,msg:ContextId).*/
+/*        RequestCompleted:Publish(msg:SerializeName, msg:ContextId).*/
         return msg.
     end method.
     
-    method protected IRow GetRowInfo(inst as IDataAdminElement,cntxt as IDataAdminModel):
+    method protected IRow GetRowInfo(inst as IDataAdminElement, cntxt as IDataAdminModel):
         define variable cKeyValues as character extent no-undo .
-        cKeyValues = GetPropertyValues(inst,cntxt:KeyFields).
-        return new RowImpl(cntxt,cntxt:SerializeName,?,cntxt:KeyFields,cKeyValues).
+        cKeyValues = GetPropertyValues(inst, cntxt:KeyFields).
+        return new RowImpl(cntxt, cntxt:SerializeName, ?, cntxt:KeyFields, cKeyValues).
     end method.
         
-    method protected char extent GetPropertyValues(inst as IDataAdminElement,pcKeyFields as char):
+    method protected character extent GetPropertyValues(inst as IDataAdminElement, pcKeyFields as character):
         define variable cKeyValues as character extent no-undo.  
         define variable i          as integer no-undo.
         define variable cField     as character no-undo.
         define variable obj        as Object no-undo.
         extent(cKeyValues) = num-entries(pcKeyFields).
         do i = 1 to num-entries(pcKeyFields):
-            cfield = entry(i,pcKeyFields).
+            cfield = entry(i, pcKeyFields).
             if cfield = "schemaname" then
             do: 
                 cfield = "schema".
-                obj  = inst:GetClass():GetPropertyValue (inst,cfield).
-                cKeyValues[i] = obj:GetClass():GetPropertyValue (obj,"name").
+                obj  = inst:GetClass():GetPropertyValue (inst, cfield).
+                cKeyValues[i] = obj:GetClass():GetPropertyValue (obj, "name").
             end.
             else
-                cKeyValues[i] = inst:GetClass():GetPropertyValue (inst,cfield). 
+                cKeyValues[i] = inst:GetClass():GetPropertyValue (inst, cfield). 
         end.
         return cKeyValues.
     end method.     
-    
-    
-	/*------------------------------------------------------------------------------
-			Purpose:  																	  
-			Notes:  																	  
-	------------------------------------------------------------------------------*/
-	
-	destructor public DataAdminService ( ):
-         /* service adapter holds dataservice whihc holds datacessfactory */
-         delete object ServiceAdapter no-error.
-         /* contextfactory hold all context objects */
-         delete object ContextFactory no-error.
-         
-         ServiceDeleted:Publish().
-	end destructor.
-    
+
 end class.

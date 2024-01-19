@@ -1,5 +1,5 @@
 /*************************************************************************
-Copyright (c) 2021 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2021, 2023 by Progress Software Corporation. All rights reserved.
 **************************************************************************/
 /*------------------------------------------------------------------------
     File        : EncodedString
@@ -21,11 +21,15 @@ using Ccs.Common.Support.ILongcharHolder.
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.EncodingTypeEnum.
 using OpenEdge.Core.EncodedString.
+using Progress.Collections.IHashable.
 using Progress.Lang.AppError.
+using Progress.Lang.Object.
 
 class OpenEdge.Core.EncodedString
-implements ILongcharHolder  
+implements ILongcharHolder
+         , IHashable
 final:
+
     /* A private list of the encoding names. Cached once per session, on demand. Used by the Value getter */
     // needs the preprocessor due to https://github.com/Riverside-Software/sonar-openedge/issues/865
     {&_proparse_ prolint-nowarn(varusage)}
@@ -127,7 +131,7 @@ final:
         set.
     
     /* Default constructor. */
-    constructor public EncodedString():
+    constructor public EncodedString ( ):
         assign this-object:Value = ?.
         fix-codepage(this-object:Value) = 'utf-8'.
     end constructor.
@@ -135,14 +139,14 @@ final:
     /* Constructor.
        
        @param EncodingTypeEnum The encoding to use */
-    constructor public EncodedString(input pEncoding as EncodingTypeEnum):
+    constructor public EncodedString (input pEncoding as EncodingTypeEnum):
         this-object().
         
         assign this-object:Encoding = pEncoding.
     end constructor.
     
     /* Destructor */
-    destructor EncodedString():
+    destructor EncodedString ( ):
         var memptr data.
         var int64 loop.
         
@@ -162,12 +166,12 @@ final:
         end finally.
     end destructor.
     
-    method override public logical Equals(input pRef as Progress.Lang.Object ):
+    method override public logical Equals (input pRef as Progress.Lang.Object ):
         return (type-of(pRef, ILongcharHolder)
                 and this-object:Value eq cast(pRef, ILongcharHolder):Value).
     end method.
-    
-    method override public character ToString():
+
+    method override public character ToString ():
         {&_proparse_ prolint-nowarn(overflow)}
         return string(this-object:Value).
         
@@ -177,5 +181,17 @@ final:
             return super:ToString().
         end catch.
     end method.
+
+    /* Hashing method for creating a proper index for use with Progress.Collections.HashMap
+
+        @return integer Result of the hash-code method using this object's comparable value(s) */
+    method public integer HashCode ( ):
+        // In order to create a meaningful hash for an object instance,
+        // we should follow suite with how the Equals() logic works.
+        // By using the full class name plus the object's comparable value(s)
+        // this should be consistent for any instance of this object type.
+        return hash-code(this-object:GetClass():TypeName, this-object:Value).
+    end method.
+
 end class.
  

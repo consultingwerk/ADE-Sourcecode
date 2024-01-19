@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2023 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+************************************************************************/
 
 /*
 
@@ -22,6 +22,7 @@ History:
                        compile lists of specific data not to dump.  Added
                        code to prevent system owned _sec-role records from
                        being dumped.
+  tmasood    07/28/23  Dump specific fields of _sec-role, requirement for DDM roles
                        
 */                       
 /* _rundump.i - Data Dictionary file dump module */
@@ -80,9 +81,13 @@ for each DICTDB2.{1} {2}:
   &IF "{1}" = "_aud-event" &THEN
     IF DICTDB2._aud-event._event-id < 32000 THEN NEXT.
   &ENDIF
- 
+  
   assign recs = recs + 1.
-  export stream dump DICTDB2.{1} {4} {3}.
+  &IF "{1}" = "_sec-role" &THEN /* Role-type needs to be dump for DDM support */
+    export stream dump DICTDB2.{1}._role-name DICTDB2.{1}._role-description DICTDB2.{1}._role-creator DICTDB2.{1}._custom-role-detail DICTDB2.{1}._role-type {4} {3}.
+  &ELSE
+    export stream dump DICTDB2.{1} {4} {3}.
+  &ENDIF
   
   if   terminal       <> ""
    and recs modulo 100 = 0

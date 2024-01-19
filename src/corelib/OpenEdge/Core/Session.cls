@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2013, 2018-2019, 2021 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2013, 2018-2019, 2021, 2023 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : Session
@@ -69,7 +69,7 @@ class OpenEdge.Core.Session:
         representation of an object reference. This method is analogous to the WIDGET-HANDLE()
         function.
         
-        Notes: * Based on http://msdn.microsoft.com/en-us/library/ms404247(v=VS.90).aspx
+        Notes: * Based on https://learn.microsoft.com/en-us/previous-versions/visualstudio/visual-studio-2008/ms404247(v=vs.90)
                * Performance of ResolveWeakReference() will probably suck.
                * An ABL statement "OBJECT-REFERENCE(int)" would entirely replace this method.    
         @param int64 A weak reference to an object.

@@ -226,7 +226,7 @@ DO WITH FRAME {&FRAME-NAME}:
 
  IF NOT SESSION:WINDOW-SYSTEM BEGINS "TTY":u THEN
   AboutText2 = AboutText2 +
-        "OpenEdge includes Infragistics Ultimate UI for Windows Forms 2022 Vol. 2. " +  
+        "OpenEdge includes Infragistics Ultimate UI for Windows Forms 2023 Vol. 1. " +  
         cCopyright + " 2023 Infragistics, Inc. " +  
         "All rights reserved." +
         CHR(10) + CHR(10).

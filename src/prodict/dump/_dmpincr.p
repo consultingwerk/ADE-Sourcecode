@@ -104,6 +104,7 @@ History:
 	tmasood     04/14/2022  Changed the code to dump index mode as per the DUMP_INC_INDEXMODE value in case of Unique index only
 	tmasood     08/08/2022  Added the availability check to fix the error 91
 	tmasood     01/27/2023  Added check for blank & space comparison for CATEGORY field
+	tmasood     04/28/2023  Re-initialize variable after index drop & add statement
 */
 
 using Progress.Lang.*.
@@ -2059,7 +2060,8 @@ DO ON STOP UNDO, LEAVE
              PUT STREAM-HANDLE hOfflineStream UNFORMATTED
                'UPDATE PRIMARY INDEX "' DICTDB2._Index._Index-name
                '" ON "' DICTDB2._File._File-name '"' SKIP(1).
-        END.       
+        END. 
+        ASSIGN isindexdel = NO. /* we won't come into this block for an index that hasn't changed */	
     END.
     /* build index component match list */
     

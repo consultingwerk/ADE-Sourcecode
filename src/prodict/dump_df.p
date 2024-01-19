@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2007,2009,2011,2016,2017 by Progress Software        *
+* Copyright (C) 2007,2009,2011,2016,2017,2023 by Progress Software   *
 * Corporation. All rights reserved.  Prior versions of this work may *
 * contain portions contributed by participants of Possenet.          *
 *                                                                    *
@@ -34,7 +34,8 @@ Other-settings:
     rcode-position           : yes or no
     
 History
-    fernando  05/14/09  Support for encryption/alternate buffer pool
+    tmasood   07/24/23  Support for DDM schema dump
+	fernando  05/14/09  Support for encryption/alternate buffer pool
     fernando  10/12/06  Allow this to be called persistently
     fernando  03/14/06  Handle case with too many tables selected - bug 20050930-006.    
     McMann    10/17/03  Add NO-LOCK statement to _Db find in support of on-line schema add
@@ -117,6 +118,7 @@ DEFINE VARIABLE rcode-position      AS LOGICAL   NO-UNDO INIT YES.
 DEFINE VARIABLE dumpPol             AS LOGICAL   NO-UNDO.
 DEFINE VARIABLE dumpAltBuf          AS LOGICAL   NO-UNDO.
 DEFINE VARIABLE setdmpSilent        AS LOGICAL   NO-UNDO INIT NO.
+DEFINE VARIABLE dumpDDMSection      AS LOGICAL   NO-UNDO.
 
 { prodict/user/uservar.i NEW }
 { prodict/dictvar.i NEW }
@@ -441,6 +443,9 @@ PROCEDURE doDump:
 
         IF LOOKUP("bufpool", user_filename) > 0 THEN
            dumpAltBuf = YES.
+		   
+		IF OS-GETENV("DUMP_DDM":U) = "Yes" OR OS-GETENV("DUMP_DDM":U) = "Both" THEN
+           dumpDDMSection = YES.
       END.
       
       OS-APPEND value(l_tmp-file) VALUE(df-file-name).
@@ -456,7 +461,9 @@ PROCEDURE doDump:
             &entries = "IF dumpPol THEN PUT STREAM ddl UNFORMATTED
                         ""encpolicy=yes"" SKIP.
                         IF dumpAltBuf THEN PUT STREAM ddl UNFORMATTED
-                        ""bufpool=yes"" SKIP."            
+                        ""bufpool=yes"" SKIP.
+						IF dumpDDMSection THEN PUT STREAM ddl UNFORMATTED
+                        ""ddm=yes"" SKIP."            
             &seek-stream  = "ddl"
             &stream       = "stream ddl"
             }  /* adds trailer with code-page-entrie to end of file */

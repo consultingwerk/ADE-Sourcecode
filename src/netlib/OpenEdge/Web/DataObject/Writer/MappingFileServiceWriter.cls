@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2018, 2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2018, 2021, 2023 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : MappingFileServiceWriter
@@ -645,12 +645,16 @@ class OpenEdge.Web.DataObject.Writer.MappingFileServiceWriter inherits DataObjec
         assign cnt     = extent(pParam:InputElement)
                elemArr = new JsonArray()
                .
+
+        ELEMENTLOOP:
         do loop = 1 to cnt:
             assign elemObj = new JsonObject()
                    msgElem = pParam:InputElement[loop]
                    .
             elemArr:Add(elemObj).
             
+            if not valid-object(msgElem) then next ELEMENTLOOP.
+
             elemObj:Add(string(ServiceMappingFileSchemaEnum:type),   caps(string(msgElem:ElementType))).
             elemObj:Add(string(ServiceMappingFileSchemaEnum:name),   msgElem:ElementName).
             elemObj:Add(string(ServiceMappingFileSchemaEnum:ioMode), string(IoModeEnum:Input)).
@@ -659,12 +663,15 @@ class OpenEdge.Web.DataObject.Writer.MappingFileServiceWriter inherits DataObjec
         end.
         
         assign cnt = extent(pParam:OutputElement).
+        ELEMENTLOOP:
         do loop = 1 to cnt:
             assign elemObj = new JsonObject()
                    msgElem = pParam:OutputElement[loop]
                    .
             elemArr:Add(elemObj).
-            
+
+            if not valid-object(msgElem) then next ELEMENTLOOP.
+
             elemObj:Add(string(ServiceMappingFileSchemaEnum:type),   caps(string(msgElem:ElementType))).
             elemObj:Add(string(ServiceMappingFileSchemaEnum:name),   msgElem:ElementName).
             elemObj:Add(string(ServiceMappingFileSchemaEnum:ioMode), string(IoModeEnum:Output)).

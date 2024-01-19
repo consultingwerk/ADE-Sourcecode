@@ -1,24 +1,21 @@
- /*************************************************************/
-  /* Copyright (c) 2011-2016 by progress Software Corporation. */
-  /*                                                           */
-  /* all rights reserved.  no part of this program or document */
-  /* may be  reproduced in  any form  or by  any means without */
-  /* permission in writing from progress Software Corporation. */
-  /*************************************************************/
- /*------------------------------------------------------------------------
-     Purpose     : 
+/***********************************************************************************
+Copyright (c) 2011-2016,2023 by Progress Software Corporation. All rights reserved.
+***********************************************************************************/
+/*------------------------------------------------------------------------
+    Purpose     : 
     Syntax      : 
     Description : 
     Author(s)   : hdaniels
     Created     : Wed Aug 18 14:19:53 EDT 2010
     Notes       : 
-  ----------------------------------------------------------------------*/
+------------------------------------------------------------------------*/
 
 block-level on error undo, throw.
 
 using OpenEdge.DataAdmin.Binding.AllFieldContext.
 using OpenEdge.DataAdmin.Binding.AllTableContext.
 using OpenEdge.DataAdmin.Binding.AreaContext.
+using OpenEdge.DataAdmin.Binding.AuthTagContext.
 using OpenEdge.DataAdmin.Binding.AuthenticationSystemContext.
 using OpenEdge.DataAdmin.Binding.CdcFieldPolicyContext.
 using OpenEdge.DataAdmin.Binding.CdcTablePolicyContext.
@@ -77,6 +74,16 @@ class OpenEdge.DataAdmin.Binding.Factory.AbstractContextFactory abstract impleme
                 AreaContext = new AreaContext(this-object).       
             end.
             return AreaContext.   
+        end. 
+        set.
+
+    define public property AuthTagContext as AuthTagContext no-undo 
+        get():
+            if not valid-object(AuthTagContext) then 
+            do:
+                AuthTagContext = new AuthTagContext(this-object).       
+            end.
+            return AuthTagContext.   
         end. 
         set.
         
@@ -440,6 +447,8 @@ class OpenEdge.DataAdmin.Binding.Factory.AbstractContextFactory abstract impleme
         case pname:
             when "Area" then
                 return AreaContext.
+            when "AuthTag" then
+                return AuthTagContext.
             when "Domain" then
                 return DomainContext.
             when "AuthenticationSystem" then

@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2014, 2017, 2020-2022 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014, 2017, 2020-2023 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : MathUtil
@@ -32,12 +32,14 @@ class OpenEdge.Core.Util.MathUtil:
         @param decimal  The value to adjust
         @return integer The ceiling value   */
     method static public integer Ceiling (input pdVal as decimal):
-        var decimal truncVal = truncate(pdVal,0).
+        var decimal truncVal = truncate(pdVal, 0).
         
         if truncVal eq pdVal then
+            {&_proparse_ prolint-nowarn(overflow)}
             return integer(pdVal).
         else
-            return integer(truncate(pdVal,0) + 1).
+            {&_proparse_ prolint-nowarn(overflow)}
+            return integer(truncate(pdVal, 0) + 1).
     end method.
     
     /** Converts hex to integer values

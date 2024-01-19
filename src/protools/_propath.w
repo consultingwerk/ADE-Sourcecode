@@ -3,12 +3,12 @@
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &Scoped-define FRAME-NAME f
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS f 
-/***********************************************************************
-* Copyright (C) 2000,2008 by Progress Software Corporation. All rights *
-* reserved. Prior versions of this work may contain portions           *
-* contributed by participants of Possenet.                             *
-*                                                                      *
-***********************************************************************/
+/************************************************************************
+* Copyright (C) 2000,2008,2023 by Progress Software Corporation.        *
+* All rights reserved. Prior versions of this work may contain portions *
+* contributed by participants of Possenet.                              *
+*                                                                       *
+*************************************************************************/
 /*------------------------------------------------------------------------
 
   File: _propath.w
@@ -27,6 +27,7 @@
   
   Modified by Gerry Seidl
               GFS on 11/06/98 - Made deleting directory items smarter
+			  tmasood on 10/23/23 - Allowed addition of .apl files
 ------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress UIB.             */
 /*----------------------------------------------------------------------*/
@@ -240,7 +241,7 @@ l_ok = NO.
     DO:
         RUN adecomm/_osfext.p (INPUT new_dir:SCREEN-VALUE, OUTPUT file_ext).
         MESSAGE new_dir:SCREEN-VALUE SKIP
-                IF file_ext <> ".pl" THEN
+                IF file_ext <> ".pl" AND file_ext <> ".apl" THEN
                     "Cannot find this directory."
                 ELSE
                     "Cannot find this r-code library."
@@ -254,7 +255,7 @@ l_ok = NO.
     IF ( NOT FILE-INFO:FILE-TYPE BEGINS "D" ) THEN
     DO:
         RUN adecomm/_osfext.p (INPUT new_dir:SCREEN-VALUE, OUTPUT file_ext).
-        IF file_ext <> ".pl":U THEN
+        IF file_ext <> ".pl":U AND file_ext <> ".apl":U THEN
         DO ON STOP UNDO, RETRY:
           IF NOT RETRY THEN
           MESSAGE new_dir:SCREEN-VALUE SKIP

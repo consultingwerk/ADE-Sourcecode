@@ -27,20 +27,22 @@ interface OpenEdge.DataAdmin.IRoleSet inherits IDataAdminCollection:
        @return logical TRUE if the role was added from the set */
     method public logical Add(input poRole as IRole).
     
-    /* Return true if a Role  with the specified Name is in the collection 
+    /* Return true if a Role with the specified Name is in the collection 
         
-       @param character The name of the role
+       @param character The name of the role to find
        @return logical TRUE if a role with the given name exists in the collection */
     method public logical CanFind(input pcName as character).
     
     /* Return true if the Role is in the collection
        
-       @param character The name of the role
+       @param IRole The role to find
        @return logical TRUE if a role with the given name exists in the collection */
-    method public logical Contains(input poRole  as IRole).
+    method public logical Contains(input poRole as IRole).
     
     /** Return the Role with the specified Name from the collection.
-        Returns unknown if not found. */
+
+        @param character The name of the role to find
+        @return IRole The role object found, otherwise returns unknown */
     method public IRole Find(input pcName as character).
     
 end interface.

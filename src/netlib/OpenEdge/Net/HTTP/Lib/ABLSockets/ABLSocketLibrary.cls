@@ -61,9 +61,9 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
         end get.
         set.
 
-    /* Error numbers for errors returned in this class. Private since this class
-       alone will use them and read only to avoid anyone messing with them.
-       A property to prevent changes. */
+    /** Error numbers for errors returned in this class. Private since this class
+        alone will use them and read only to avoid anyone messing with them.
+        This uses a property to prevent changes (no set method provided). */
     {&_proparse_ prolint-nowarn(varusage)}
     define private property miErrorNo_RequestTimeout        as integer initial 100 no-undo get.
     define private property miErrorNo_ConnectionTimeout     as integer initial 101 no-undo get.
@@ -74,6 +74,12 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
     define private property miErrorNo_RequestReadTerminated as integer initial 105 no-undo get.
     define private property miErrorNo_BadRequest            as integer initial 106 no-undo get.
     define private property miErrorNo_MissingTlsCredentials as integer initial 107 no-undo get.
+
+    /** Header names for OpenTelemetry tracing, when enabled by the AVM. Made private
+        since this class alone will use them and read only to avoid anyone messing
+        with them. This uses a property to prevent changes (no set method provided). */
+    define private property mcHeader_TraceParent as character initial "traceparent":U no-undo get.
+    define private property mcHeader_TraceState  as character initial "tracestate":U  no-undo get.
 
     /** (mandatory) A free-text name for this library. Used for the USER-AGENT
         string. */
@@ -526,6 +532,7 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
         define variable traceRequest as ITraceableRequest no-undo.
         define variable timer as datetime extent 2 no-undo.
         define variable rawRequest as RawMessage no-undo.
+        define variable oSpanContext as Progress.OpenTelemetry.SpanContext no-undo. 
 
         Assert:NotNull(poRequest,  'Http request').
         Assert:NotNull(poResponse, 'Http response').
@@ -540,12 +547,48 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
             assign cUserAgent = poRequest:GetHeader('User-Agent':u):Value.
 
         assign cUserAgent = substitute('&1 &2/&3':u,
-                                cUserAgent,
-                                this-object:LibraryName,
-                                this-object:LibraryVersion).
+                                       cUserAgent,
+                                       this-object:LibraryName,
+                                       this-object:LibraryVersion).
         poRequest:SetHeader(HttpHeaderBuilder:Build('User-Agent':u):Value(cUserAgent):Header).
 
-        // are we tracing this request?
+        /**
+            Add any OpenTelemetry tracing data for pass-through (aka. context propagation).
+            This simply looks to see if we have existing span context indicating that OTel tracing
+            has been enabled for either the calling parent program or the OpenEdge.* class package.  
+
+            The SpanContext class provides the information that identifies the context for the span
+            in the Trace and must be propagated to all child spans and across process boundaries.
+            There are 2 specific headers that need to be sent in the HTTP request, when you want to
+            propagate tracing to a remote process: traceparent and tracestate.
+           
+            The traceparent is a string that follows a specific format, and it contains some versioning
+            information, the trace id and the span id. The tracestate can contain vendor-specific
+            information in a key-value pair format that can be passed around for the use of the specific
+            vendor implementation. These are examples of what the traceparent and tracestate look like:
+               traceparent: 00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01
+               tracestate: key=t61rcWkgMzE
+         */
+        assign oSpanContext = Progress.OpenTelemetry.Tracer:GetSpanContext().
+        if valid-object(oSpanContext) then do:
+            // SpanContext object may be valid, but only send values which are non-empty/not-unknown.
+
+            if (oSpanContext:TraceParent gt "") eq true then do:
+                poRequest:SetHeader(HttpHeaderBuilder:Build(this-object:mcHeader_TraceParent)
+                                                     :Value(oSpanContext:TraceParent)
+                                                     :Header).
+                Logger:Debug(substitute("Telemetry TraceParent [&1]", oSpanContext:TraceParent)).
+            end. // TraceParent
+
+            if (oSpanContext:TraceState gt "") eq true then do:
+                poRequest:SetHeader(HttpHeaderBuilder:Build(this-object:mcHeader_TraceState)
+                                                     :Value(oSpanContext:TraceState)
+                                                     :Header).
+                Logger:Debug(substitute("Telemetry TraceState [&1]", oSpanContext:TraceState)).
+            end. // TraceState
+        end. // valid-object
+       
+        /* Are we using HttpClient Tracing for this request? */
         if type-of(poRequest, IAdaptable) then
             assign traceRequest = cast(cast(poRequest, IAdaptable):GetAdapter(get-class(ITraceableRequest)), ITraceableRequest).
         else

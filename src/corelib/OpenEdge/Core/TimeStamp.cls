@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013, 2016, 2018, 2021-2022 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2013, 2016, 2018, 2021-2023 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : TimeStamp
@@ -18,9 +18,14 @@ using OpenEdge.Core.Assert.
 using OpenEdge.Core.TimeStamp.
 using OpenEdge.Core.TimeStampConstants.
 using Progress.Collections.IComparable.
+using Progress.Collections.IHashable.
 using Progress.Lang.Object.
 
-class OpenEdge.Core.TimeStamp serializable implements IComparable<TimeStamp>:
+class OpenEdge.Core.TimeStamp
+serializable
+implements IComparable<TimeStamp>
+         , IHashable
+:
     
     /* (mandatory) The format of the data as passed into the constructor. One of DATE, DATETIME or DATETIME-TZ */
     define public property Format as character no-undo get. private set.
@@ -79,17 +84,17 @@ class OpenEdge.Core.TimeStamp serializable implements IComparable<TimeStamp>:
     end constructor.
     
     /* Default Constructor */
-    constructor public TimeStamp():
+    constructor public TimeStamp ( ):
         this-object(now).
     end constructor.
     
-    method override public logical Equals(input p0 as Object):
+    method override public logical Equals (input p0 as Object):
         if type-of(p0, TimeStamp) then
         case this-object:Format:
-            when 'Integer' then return (ToTime() eq cast(p0, TimeStamp):ToTime()).
-            when 'Date' then return (ToDate() eq cast(p0, TimeStamp):ToDate()).
-            when 'DateTime' then return (ToDateTime() eq cast(p0, TimeStamp):ToDateTime()).
-            when 'DateTime-TZ' then return (ToDateTimeTz() eq cast(p0, TimeStamp):ToDateTimeTz()).
+            when 'Integer' then return (this-object:ToTime() eq cast(p0, TimeStamp):ToTime()).
+            when 'Date' then return (this-object:ToDate() eq cast(p0, TimeStamp):ToDate()).
+            when 'DateTime' then return (this-object:ToDateTime() eq cast(p0, TimeStamp):ToDateTime()).
+            when 'DateTime-TZ' then return (this-object:ToDateTimeTz() eq cast(p0, TimeStamp):ToDateTimeTz()).
         end case.
         else
             return super:Equals(p0).
@@ -98,7 +103,7 @@ class OpenEdge.Core.TimeStamp serializable implements IComparable<TimeStamp>:
     /** Converts an ABL datetime into a correct ISO date.
         
         @return character An ISO date.      */
-    method public character ToISODate():
+    method public character ToISODate ( ):
         return iso-date(ToDateTimeTz()).
     end method.
     
@@ -106,7 +111,7 @@ class OpenEdge.Core.TimeStamp serializable implements IComparable<TimeStamp>:
         
         @param date The date value to convert
         @return character An ISO date.      */
-    method static public character ToISODateFromABL(input ptValue as date):
+    method static public character ToISODateFromABL (input ptValue as date):
         return iso-date(datetime-tz(ptValue)).
     end method.
     
@@ -114,7 +119,7 @@ class OpenEdge.Core.TimeStamp serializable implements IComparable<TimeStamp>:
         
         @param datetime The date value to convert
         @return character An ISO date.      */
-    method static public character ToISODateFromABL(input ptValue as datetime):
+    method static public character ToISODateFromABL (input ptValue as datetime):
         return iso-date(datetime-tz(ptValue)).
     end method.
     
@@ -122,7 +127,7 @@ class OpenEdge.Core.TimeStamp serializable implements IComparable<TimeStamp>:
         
         @param datetime-tz The date value to convert
         @return character An ISO date.      */
-    method static public character ToISODateFromABL(input ptValue as datetime-tz):
+    method static public character ToISODateFromABL (input ptValue as datetime-tz):
         return iso-date(ptValue).
     end method.
     
@@ -132,7 +137,7 @@ class OpenEdge.Core.TimeStamp serializable implements IComparable<TimeStamp>:
         
         @param character An ISO date
         @return datetime-tz The date value to convert.      */
-    method static public date ToABLDateFromISO(input pcValue as character):
+    method static public date ToABLDateFromISO (input pcValue as character):
         return date(TimeStamp:ToABLDateTimeTzFromISO(pcValue)).
     end method.
     
@@ -142,7 +147,7 @@ class OpenEdge.Core.TimeStamp serializable implements IComparable<TimeStamp>:
         
         @param character An ISO date
         @return datetime The date value to convert.      */
-    method static public datetime ToABLDateTimeFromISO(input pcValue as character):
+    method static public datetime ToABLDateTimeFromISO (input pcValue as character):
         define variable tDateTimeTz as datetime-tz no-undo.
         
         tDateTimeTz = TimeStamp:ToABLDateTimeTzFromISO(pcValue).
@@ -156,7 +161,7 @@ class OpenEdge.Core.TimeStamp serializable implements IComparable<TimeStamp>:
         
         @param character An ISO date
         @return datetime-tz The date value to convert.      */
-    method static public datetime-tz ToABLDateTimeTzFromISO(input pcValue as character):
+    method static public datetime-tz ToABLDateTimeTzFromISO (input pcValue as character):
         define variable cDateFormat as character no-undo.
         
         cDateFormat = session:date-format.
@@ -188,7 +193,7 @@ class OpenEdge.Core.TimeStamp serializable implements IComparable<TimeStamp>:
        
        @param character The timestamp string
        @return datetime-tz A valid timestamp, or the unknown value if the string cannot be parsed. */
-    method static public datetime-tz TryParseTimestamp(input pValue as character):
+    method static public datetime-tz TryParseTimestamp (input pValue as character):
         define variable dtz as datetime-tz no-undo.
         define variable tz as integer no-undo.
         
@@ -295,7 +300,7 @@ class OpenEdge.Core.TimeStamp serializable implements IComparable<TimeStamp>:
         
         @param character An ISO date
         @return datetime-tz The date value to convert.      */
-    method static public datetime-tz ToABLDateTimeTzFromHttp(input pcValue as character):
+    method static public datetime-tz ToABLDateTimeTzFromHttp (input pcValue as character):
         define variable cTime as character no-undo.
         define variable iYear as integer no-undo.
         define variable iMonth as integer no-undo.
@@ -343,7 +348,7 @@ class OpenEdge.Core.TimeStamp serializable implements IComparable<TimeStamp>:
         
         @param character An ISO date
         @return datetime-tz The date value to convert.      */
-    method static public character ToHttpDateFromABL(input ptValue as datetime-tz):
+    method static public character ToHttpDateFromABL (input ptValue as datetime-tz):
         /* Always English month names. Use the CSV to convert from name to number */
         define variable cMonthList as character extent 12 no-undo
             initial ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].
@@ -374,35 +379,35 @@ class OpenEdge.Core.TimeStamp serializable implements IComparable<TimeStamp>:
             Sun, 06 Nov 1994 08:49:37 GMT  ; RFC 822, updated by RFC 1123
         
         @return datetime-tz The date value to convert.      */
-    method public character ToHttpDate():
+    method public character ToHttpDate ( ):
         return TimeStamp:ToHttpDateFromABL(ToDateTimeTz()).
     end method.
     
     /* Converts the current TimeStamp to an ABL datetime-tz value
        
        @return datetime-tz The datetime-tz represented by this TimeStamp */
-    method public datetime-tz ToDateTimeTz():
+    method public datetime-tz ToDateTimeTz ( ):
         return datetime-tz(mtDate, miTime, miTZOffset).
     end method.
     
     /* Converts the current TimeStamp to an ABL datetime value
        
        @return datetime The datetime represented by this TimeStamp */
-    method public datetime ToDateTime():
+    method public datetime ToDateTime ( ):
         return datetime(mtDate, miTime).
     end method.
 
     /* Converts the current TimeStamp to an ABL date value
        
        @return date The datetime-tz represented by this TimeStamp */
-    method public date ToDate():
+    method public date ToDate ( ):
         return mtDate.
     end method.
 
     /* Returns the current TimeStamp's time in milliseconds since midnight.
        
        @return integer The milliseconds represented by this TimeStamp */
-    method public integer ToTime():
+    method public integer ToTime ( ):
         return miTime.
     end method.
     
@@ -411,7 +416,7 @@ class OpenEdge.Core.TimeStamp serializable implements IComparable<TimeStamp>:
                 datetime(1,1,1970,0,0,0,0)
        
        @return int64 The seconds since the unix epoch  */
-    method public int64 SecondsSinceUnixEpoch():
+    method public int64 SecondsSinceUnixEpoch ( ):
         define variable thisDate as datetime-tz no-undo.
          
         assign thisDate = this-object:ToDateTimeTz().
@@ -423,7 +428,7 @@ class OpenEdge.Core.TimeStamp serializable implements IComparable<TimeStamp>:
                 datetime(1,1,1970,0,0,0,0)
        
        @return int64 The number of milliseconds since the unix epoch  */
-    method public int64 MillisecondsSinceUnixEpoch():
+    method public int64 MillisecondsSinceUnixEpoch ( ):
         define variable thisDate as datetime-tz no-undo.
          
         assign thisDate = this-object:ToDateTimeTz().
@@ -441,7 +446,7 @@ class OpenEdge.Core.TimeStamp serializable implements IComparable<TimeStamp>:
         @return integer  0 = same object
                         +1 = sorts after
                         -1 = sorts before   */
-    method public integer CompareTo(input pOther as TimeStamp):
+    method public integer CompareTo (input pOther as TimeStamp):
         Assert:NotNull(pOther, 'CompareTo object').
         
         if this-object:ToDateTimeTz() eq pOther:ToDateTimeTz() then
@@ -461,5 +466,16 @@ class OpenEdge.Core.TimeStamp serializable implements IComparable<TimeStamp>:
         // this will raise an error in the Comparer; we should never get here though.
         return ?.
     end method.
-    
+
+    /* Hashing method for creating a proper index for use with Progress.Collections.HashMap
+
+        @return integer Result of the hash-code method using this object's comparable value(s) */
+    method public integer HashCode ( ):
+        // In order to create a meaningful hash for an object instance,
+        // we should follow suite with how the Equals() logic works.
+        // By using the full class name plus the object's comparable value(s)
+        // this should be consistent for any instance of this object type.
+        return hash-code(this-object:GetClass():TypeName, this-object:Format, mtDate, miTime, miTZOffset).
+    end method.
+
 end class.

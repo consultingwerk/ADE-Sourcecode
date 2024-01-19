@@ -1,21 +1,24 @@
 /************************************************
-Copyright (c) 2013, 2020 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2013, 2020, 2023 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------------
     File        : ValueCollection
     Purpose     : ICollection implementation over values in an IMap (also TT based) 
                   object that needs collection capabilities.. 
                   used to return Values IMap 
-    Syntax      : 
     Description : 
-    @author hdaniels
+    Author(s)   : hdaniels
     Created     : 2010
-    Notes       : no empty constructor, specialized for IMap 
-                 - Changes to the map are reflected here, and vice-versa. 
-                 - Supports removal and removes the corresponding map entry from the map
-                   (Iterator.remove, Collection.remove, removeAll, retainAll and clear) .
-                 - Do not support add and addAll.   
-                 - no empty constructor, specialised for IMap 
+    Notes       : DEPRECATED: Uses the MapBackedCollection which used a temp-table
+                  to store the name-value pairs. Instead, use another ICollection
+                  class such as OE.Core.Collections.Set.
+
+                  No empty constructor, specialized for IMap 
+                  - Changes to the map are reflected here, and vice-versa. 
+                  - Supports removal and removes the corresponding map entry from the map
+                    (Iterator.remove, Collection.remove, removeAll, retainAll and clear) .
+                  - Do not support add and addAll.   
+                  - no empty constructor, specialised for IMap 
 ----------------------------------------------------------------------------------------------*/
 block-level on error undo, throw.
 
@@ -25,7 +28,10 @@ using OpenEdge.Core.Collections.IMap.
 using OpenEdge.Core.Collections.MapBackedCollection.
 using Progress.Lang.Object.
 
-class OpenEdge.Core.Collections.ValueCollection serializable inherits MapBackedCollection:
+@deprecated(from='12.8.0', reason='Use OpenEdge.Core.Collections.Set').
+class OpenEdge.Core.Collections.ValueCollection
+serializable
+inherits MapBackedCollection:
     
     constructor public ValueCollection(poMap as IMap,phTT as handle, pcValuefield as char):
         super (poMap, phTT, pcValuefield).
