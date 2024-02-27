@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2006,2008-2009,2011,2016,2021 by Progress Software Corporation.*
-* All rights reserved.  Prior versions of this work may contain                *
-* portions contributed by participants of Possenet.                            *
-*                                                                              *
-********************************************************************************/
+/************************************************************************************
+* Copyright (C) 2006,2008-2009,2011,2016,2021,2023 by Progress Software Corporation.*
+* All rights reserved.  Prior versions of this work may contain                     *
+* portions contributed by participants of Possenet.                                 *
+*                                                                                   *
+*************************************************************************************/
 /*
 
   History: D. McMann 07/09/98 Added AND (DICTDB._File._Owner = "PUB" OR DICTDB._File._Owner = "_FOREIGN")
@@ -20,6 +20,7 @@
 
            rkumar    04/13/16 CDC Support- Dont display CDC Change tables in D/L
            kberlia   04/06/21 Fixed data exceeding issue.  
+           tmasood   11/15/23 Reduced check value by 1000 to fix error 12371 while loading df
 */
 
 { prodict/dictvar.i }
@@ -125,7 +126,7 @@ PROCEDURE addEntry:
           Check the size of the array to leave some room for other things
           as the var is compiled as undo.
        */
-       IF totlen > 24000 OR ERROR-STATUS:ERROR THEN DO:
+       IF totlen > 23000 OR ERROR-STATUS:ERROR THEN DO:
            /* if an error occurred, it could be because there are too many
               tables, or we hit the limit on the character variable size
               (cache_file), so we will use a temp-table to hold the table
