@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005-2009 by Progress Software Corporation. All rights *
+* Copyright (C) 2005-2024 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -66,7 +66,8 @@
      05/12/08 Handle duplicate field names being added - OE00166402
      12/08/08 Handle case where index is re-added - OE00177558
      04/14/09 Handle update of new object
-     09/25/11 Delta sql support for constraint feature by kmayur               
+     09/25/11 Delta sql support for constraint feature by kmayur  
+     02/08/24 Fixed issue for not considering width option in DSRVR-PRECISION value While generating DF using delta SQL utility (OCTA-57941).             
 If the user wants to have a DEFAULT value of blank for VARCHAR2 fields, 
 an environmental variable BLANKDEFAULT can be set to "YES" and the code will
 put the DEFAULT ' ' syntax on the definition for a new field. D. McMann 11/27/02                 
@@ -2445,7 +2446,13 @@ PROCEDURE process-fld-width:
     FIND df-info WHERE df-info.df-tbl = tablename
                    AND df-info.df-fld = fieldname
                    AND df-info.df-line BEGINS "  FOREIGN-MAXIMUM".
-    ASSIGN df-info.df-line = "  FOREIGN-MAXIMUM " + fsize.                  
+    ASSIGN df-info.df-line = "  FOREIGN-MAXIMUM " + fsize.  
+    
+    FIND df-info WHERE df-info.df-tbl = tablename
+                   AND df-info.df-fld = fieldname
+                   AND df-info.df-line BEGINS "  DSRVR-PRECISION " NO-ERROR.
+    IF AVAILABLE df-info THEN
+       ASSIGN df-info.df-line = "  DSRVR-PRECISION " + fsize.                 
 
 END PROCEDURE.
 
@@ -3618,6 +3625,7 @@ DO ON STOP UNDO, LEAVE:
                 ASSIGN df-info.df-seq = dfseq
                        dfseq = dfseq + 1
                        df-info.df-tbl = tablename
+                       df-info.df-fld = fieldname
                        df-line = "  DSRVR-PRECISION " + STRING(all_digits).
                 CREATE df-info.
                 ASSIGN df-info.df-seq = dfseq

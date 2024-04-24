@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013-2015,2020 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2013-2015,2020,2024 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
    File        : TestConfig
@@ -13,16 +13,17 @@ Copyright (c)  2013-2015,2020 by Progress Software Corporation. All rights reser
         {
             "options": {
                 "output": {
-                    "location": "<path-to-results>", // default: present working directory
+                    "location": "<path-to-results>", // default: present working directory (PWD)
                     "fileName": "<file-name>", // default: results
                     "format": "<file-extension>" // default: xml
                 },
+                "debug": <boolean>, // enable debug options for ABLUnit, default: false
                 "quitOnEnd": <boolean>, // default: true
-                "writeLog": <boolean>, // default: false
                 "showErrorMessage": <boolean>, // default: true
                 "throwError": <boolean>, // default: false
+                "writeLog": <boolean>, // default: false
                 "xref": {
-                    "useXref": <boolean>, // default false
+                    "useXref": <boolean>, // use XREF files from a specified location, default: false
                     "xrefLocation": "<path-to-xref-files>", // default: same as source file (PWD/SRC)
                     "xrefExtension": "<file-extension>", // default: xref (PDSOE uses <file>.xref.xml)
                     "xrefThrowError": <boolean> // default: false
@@ -48,7 +49,7 @@ Copyright (c)  2013-2015,2020 by Progress Software Corporation. All rights reser
         }
 
         Current documentation can be found at the following location:
-        https://docs.progress.com/bundle/developer-studio-olh/page/Run-test-cases-from-the-command-prompt.html
+        https://docs.progress.com/bundle/openedge-developer-studio-help/page/Run-test-cases-from-the-command-prompt.html
  ----------------------------------------------------------------------*/
 
 USING Progress.Json.ObjectModel.JsonArray.
@@ -73,13 +74,15 @@ CLASS OpenEdge.ABLUnit.Runner.TestConfig:
         PRIVATE SET.
 
     /* General options for ABLUnit tests. */
-    DEFINE PUBLIC PROPERTY quitOnEnd AS LOGICAL NO-UNDO INITIAL TRUE GET.
+    DEFINE PUBLIC PROPERTY debugEnabled AS LOGICAL NO-UNDO INITIAL FALSE GET.
         PRIVATE SET.
-    DEFINE PUBLIC PROPERTY writeLog AS LOGICAL NO-UNDO INITIAL FALSE GET.
+    DEFINE PUBLIC PROPERTY quitOnEnd AS LOGICAL NO-UNDO INITIAL TRUE GET.
         PRIVATE SET.
     DEFINE PUBLIC PROPERTY showErrorMessage AS LOGICAL NO-UNDO INITIAL TRUE GET.
         PRIVATE SET.
     DEFINE PUBLIC PROPERTY throwError AS LOGICAL INITIAL FALSE NO-UNDO GET.
+        PRIVATE SET.
+    DEFINE PUBLIC PROPERTY writeLog AS LOGICAL NO-UNDO INITIAL FALSE GET.
         PRIVATE SET.
 
     /* XREF options for ABLUnit tests. */
@@ -114,7 +117,7 @@ CLASS OpenEdge.ABLUnit.Runner.TestConfig:
     ------------------------------------------------------------------------------*/
     METHOD PUBLIC CHARACTER GetResultsFile ( ):
         DEFINE VARIABLE resFileName AS CHARACTER NO-UNDO.
-         IF outputLocation = "PWD" THEN
+        IF outputLocation = "PWD" THEN
             resFileName = ResultsFileName + ".xml".
         ELSE
             resFileName = outputLocation + "/" + ResultsFileName + ".xml".
@@ -153,11 +156,11 @@ CLASS OpenEdge.ABLUnit.Runner.TestConfig:
                 END.
             END. /* output */
 
+            IF optionsJson:Has("debug") AND optionsJson:GetType("debug") EQ JsonDataType:BOOLEAN THEN
+                THIS-OBJECT:debugEnabled = optionsJson:GetLogical('debug').
+
             IF optionsJson:Has("quitOnEnd") AND optionsJson:GetType("quitOnEnd") EQ JsonDataType:BOOLEAN THEN
                 THIS-OBJECT:quitOnEnd = optionsJson:GetLogical('quitOnEnd').
-
-            IF optionsJson:Has("writeLog") AND optionsJson:GetType("writeLog") EQ JsonDataType:BOOLEAN THEN
-                THIS-OBJECT:writeLog = optionsJson:GetLogical('writeLog').
 
             IF optionsJson:Has("showErrorMessage") AND optionsJson:GetType("showErrorMessage") EQ JsonDataType:BOOLEAN THEN
                 THIS-OBJECT:showErrorMessage = optionsJson:GetLogical('showErrorMessage').
@@ -165,10 +168,15 @@ CLASS OpenEdge.ABLUnit.Runner.TestConfig:
             IF optionsJson:Has("throwError") AND optionsJson:GetType("throwError") EQ JsonDataType:BOOLEAN THEN
                 THIS-OBJECT:throwError = optionsJson:GetLogical('throwError').
 
+            IF optionsJson:Has("writeLog") AND optionsJson:GetType("writeLog") EQ JsonDataType:BOOLEAN THEN
+                THIS-OBJECT:writeLog = optionsJson:GetLogical('writeLog').
+
             /* Process the XREF options, which will use pre-existing XREF files instead of compiling on the fly. */
             IF optionsJson:Has("xref") AND optionsJson:GetType("xref") EQ JsonDataType:OBJECT THEN
             DO:
-                xrefJson = optionsJson:GetJsonObject("xref").
+                xrefJson = optionsJson:GetJsonObject("xref"). // Get reference to the "xref" config object.
+
+                // Directs ABLUnit to find XREF files in a specific location.
                 IF xrefJson:Has("useXref") AND xrefJson:GetType("useXref") EQ JsonDataType:BOOLEAN THEN
                     THIS-OBJECT:useXref = xrefJson:GetLogical("useXref").
 
