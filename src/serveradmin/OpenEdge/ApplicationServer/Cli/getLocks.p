@@ -1,5 +1,5 @@
 /**************************************************************************
-Copyright (c) 2023 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2023-2024 by Progress Software Corporation. All rights reserved.
 **************************************************************************/
 /**
  * Author(s): Dustin Grau (dugrau@progress.com)
@@ -254,6 +254,10 @@ procedure getAblApplications:
         if oApp:Has("name") and oApp:Has("type") and oApp:GetCharacter("type") eq "OPENEDGE" then
             oAblApps:Add(new OpenEdge.Core.String(oApp:GetCharacter("name"))).
     end. /* iLoop - Application */
+
+    catch err as Progress.Lang.Error:
+        put unformatted substitute("~nUnable to get application list from PASOE instance: &1", err:GetMessage(1)) skip.
+    end catch.
 end procedure.
 
 procedure getAblAppAgents:

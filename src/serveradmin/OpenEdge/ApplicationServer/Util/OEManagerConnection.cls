@@ -1,5 +1,5 @@
 /**************************************************************************
-Copyright (c) 2022-2023 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2022-2024 by Progress Software Corporation. All rights reserved.
 **************************************************************************/
 /*------------------------------------------------------------------------
     File        : OEManagerConnection
@@ -267,34 +267,69 @@ class OpenEdge.ApplicationServer.Util.OEManagerConnection implements ISupportLog
                 case true:
                     when type-of(oResp:Entity, OpenEdge.Core.Memptr) then
                         undo, throw new Progress.Lang.AppError(substitute("Response is a memptr of size &1",
-                                                                          string(cast(oResp:Entity, OpenEdge.Core.Memptr):Size)), 0).
+                                                                          string(cast(oResp:Entity, OpenEdge.Core.Memptr):Size)), oResp:StatusCode).
 
                     when type-of(oResp:Entity, OpenEdge.Core.String) then
-                        undo, throw new Progress.Lang.AppError(string(cast(oResp:Entity, OpenEdge.Core.String):Value), 0).
+                        undo, throw new Progress.Lang.AppError(string(cast(oResp:Entity, OpenEdge.Core.String):Value), oResp:StatusCode).
 
                     when type-of(oResp:Entity, JsonObject) then
                         {&_proparse_ prolint-nowarn(overflow)}
-                        undo, throw new Progress.Lang.AppError(string(cast(oResp:Entity, JsonObject):GetJsonText()), 0).
+                        undo, throw new Progress.Lang.AppError(string(cast(oResp:Entity, JsonObject):GetJsonText()), oResp:StatusCode).
 
                     otherwise
                         undo, throw new Progress.Lang.AppError(substitute("Unknown type of response object: &1 [HTTP-&2]",
-                                                                          oResp:Entity:GetClass():TypeName, oResp:StatusCode), 0).
+                                                                          oResp:Entity:GetClass():TypeName, oResp:StatusCode), oResp:StatusCode).
                 end case.
             else if valid-object(oResp) then
                 /* Response is available, but entity is not. Just report the HTTP status code. */
-                undo, throw new Progress.Lang.AppError(substitute("Unsuccessful status from server: HTTP-&1", oResp:StatusCode), 0).
+                undo, throw new Progress.Lang.AppError(substitute("Unsuccessful status from server: HTTP-&1", oResp:StatusCode), oResp:StatusCode).
             else
                 /* Response is not even available (valid) so report that as an explicit case. */
-                undo, throw new Progress.Lang.AppError("Invalid response from server, ", 0).
+                undo, throw new Progress.Lang.AppError("Invalid or unknown response from server", 500).
         end. /* failure */
 
         catch err as Progress.Lang.Error:
+            define variable oReturnObj as JsonObject.
+            assign oReturnObj = new JsonObject().
+
             /* Always report any errors during the API requests, and return an empty JSON object allowing remaining logic to continue. */
-            this-object:Logger:Error(substitute("Error executing remote request: &1 [URL: &2]", err:GetMessage(1), cURL)).
-            return new JsonObject().
+            case err:GetMessageNum(1):
+                when 401 then do:
+                    /**
+                     * Return of a 401 indicates the server is running and that the webapp exists,
+                     * but either no credentials were given or were rejected as incorrect.
+                     */
+                    this-object:Logger:Error(substitute("Error executing remote request: Invalid Credentials [URL: &1]", cURL)).
+                    oReturnObj:Add("error", "Invalid Credentials").
+                end.
+                when 403 then do:
+                    /**
+                     * Return of a 403 indicates the server is running but the oemanager webapp was most likely not deployed,
+                     * as the default response for an unknown URI is to make it forbidden.
+                     */
+                    this-object:Logger:Error(substitute("Error executing remote request: Management WebApp(s) Not Deployed [URL: &1]", cURL)).
+                    oReturnObj:Add("error", "Management WebApp(s) Not Deployed").
+                end.
+                when 500 then do:
+                    /**
+                     * Anything explicitly returned as a 500 error indicates a server error and no further details need be given.
+                     */
+                    this-object:Logger:Error(substitute("Error executing remote request: Invalid Server Response [URL: &1]", cURL)).
+                    oReturnObj:Add("error", "Invalid Server Response").
+                end.
+                otherwise do:
+                    /**
+                     * All other errors would be out of the norm and should be reported for troubleshooting.
+                     */
+                    this-object:Logger:Error(substitute("Error executing remote request: &1 [URL: &2]", err:GetMessage(1), cURL)).
+                    oReturnObj:Add("error", err:GetMessage(1)).
+                end.
+            end case.
+
+            return oReturnObj.
         end catch.
         finally:
-            delete object oReq no-error.
+            delete object oReq  no-error.
             delete object oResp no-error.
         end finally.
     end method. /* MakeRequest */
@@ -359,6 +394,10 @@ class OpenEdge.ApplicationServer.Util.OEManagerConnection implements ISupportLog
         define variable oJsonResp as JsonObject no-undo.
 
         assign oJsonResp = this-object:GetData(OEManagerEndpoint:Applications).
+
+        if JsonPropertyHelper:HasTypedProperty(oJsonResp, "error", JsonDataType:String) then
+            undo, throw new Progress.Lang.AppError(oJsonResp:GetCharacter("error"), 0).
+
         if JsonPropertyHelper:HasTypedProperty(oJsonResp, "result", JsonDataType:Object) then do:
             if JsonPropertyHelper:HasTypedProperty(oJsonResp:GetJsonObject("result"), "Application", JsonDataType:Array) then
                 return oJsonResp:GetJsonObject("result"):GetJsonArray("Application").
@@ -380,6 +419,10 @@ class OpenEdge.ApplicationServer.Util.OEManagerConnection implements ISupportLog
         define variable cOutMsg   as character  no-undo.
 
         assign oJsonResp = this-object:PostData(substitute(OEManagerEndpoint:AddAgent, pcAblApp)).
+
+        if JsonPropertyHelper:HasTypedProperty(oJsonResp, "error", JsonDataType:String) then
+            undo, throw new Progress.Lang.AppError(oJsonResp:GetCharacter("error"), 0).
+
         if valid-object(oJsonResp) and JsonPropertyHelper:HasTypedProperty(oJsonResp, "result", JsonDataType:Object) then do:
             oAgent = oJsonResp:GetJsonObject("result").
 
@@ -391,10 +434,7 @@ class OpenEdge.ApplicationServer.Util.OEManagerConnection implements ISupportLog
             assign cOutMsg = cOutMsg + this-object:GetOpOutcome(oJsonResp).
         end. /* result */
 
-        finally:
-            {&_proparse_ prolint-nowarn(returnfinally)}
-            return cOutMsg. // Always return available content.
-        end finally.
+        return cOutMsg. // Always return available content.
     end method. /* AddAgent */
 
     /* Get a listing of available MSAgents for an ABL Application
@@ -406,6 +446,10 @@ class OpenEdge.ApplicationServer.Util.OEManagerConnection implements ISupportLog
         define variable oJsonResp as JsonObject no-undo.
 
         assign oJsonResp = this-object:GetData(substitute(OEManagerEndpoint:Agents, pcAblApp)).
+
+        if JsonPropertyHelper:HasTypedProperty(oJsonResp, "error", JsonDataType:String) then
+            undo, throw new Progress.Lang.AppError(oJsonResp:GetCharacter("error"), 0).
+
         if JsonPropertyHelper:HasTypedProperty(oJsonResp, "result", JsonDataType:Object) then do:
             if JsonPropertyHelper:HasTypedProperty(oJsonResp:GetJsonObject("result"), "agents", JsonDataType:Array) then
                 return oJsonResp:GetJsonObject("result"):GetJsonArray("agents").
@@ -425,6 +469,10 @@ class OpenEdge.ApplicationServer.Util.OEManagerConnection implements ISupportLog
         define variable oJsonResp as JsonObject no-undo.
 
         assign oJsonResp = this-object:GetData(substitute(OEManagerEndpoint:AgentSessCombined, pcAblApp)).
+
+        if JsonPropertyHelper:HasTypedProperty(oJsonResp, "error", JsonDataType:String) then
+            undo, throw new Progress.Lang.AppError(oJsonResp:GetCharacter("error"), 0).
+
         if JsonPropertyHelper:HasTypedProperty(oJsonResp, "result", JsonDataType:Object) then do:
             if JsonPropertyHelper:HasTypedProperty(oJsonResp:GetJsonObject("result"), "agents", JsonDataType:Array) then
                 return oJsonResp:GetJsonObject("result"):GetJsonArray("agents").
@@ -444,6 +492,10 @@ class OpenEdge.ApplicationServer.Util.OEManagerConnection implements ISupportLog
         define variable oJsonResp as JsonObject no-undo.
 
         assign oJsonResp = this-object:GetData(substitute(OEManagerEndpoint:AgentManagerProperties, pcAblApp)).
+
+        if JsonPropertyHelper:HasTypedProperty(oJsonResp, "error", JsonDataType:String) then
+            undo, throw new Progress.Lang.AppError(oJsonResp:GetCharacter("error"), 0).
+
         if JsonPropertyHelper:HasTypedProperty(oJsonResp, "result", JsonDataType:Object) then
             return oJsonResp:GetJsonObject("result").
         else
@@ -460,6 +512,10 @@ class OpenEdge.ApplicationServer.Util.OEManagerConnection implements ISupportLog
         define variable oJsonResp as JsonObject no-undo.
 
         assign oJsonResp = this-object:GetData(substitute(OEManagerEndpoint:AgentMetrics, pcAblApp, piPID)).
+
+        if JsonPropertyHelper:HasTypedProperty(oJsonResp, "error", JsonDataType:String) then
+            undo, throw new Progress.Lang.AppError(oJsonResp:GetCharacter("error"), 0).
+
         if JsonPropertyHelper:HasTypedProperty(oJsonResp, "result", JsonDataType:Object) then do:
             if JsonPropertyHelper:HasTypedProperty(oJsonResp:GetJsonObject("result"), "AgentStatHist", JsonDataType:Array) then
                 return oJsonResp:GetJsonObject("result"):GetJsonArray("AgentStatHist").
@@ -481,6 +537,10 @@ class OpenEdge.ApplicationServer.Util.OEManagerConnection implements ISupportLog
         define variable oJsonResp as JsonObject no-undo.
 
         assign oJsonResp = this-object:GetData(substitute(OEManagerEndpoint:AgentSessions, pcAblApp, piPID)).
+
+        if JsonPropertyHelper:HasTypedProperty(oJsonResp, "error", JsonDataType:String) then
+            undo, throw new Progress.Lang.AppError(oJsonResp:GetCharacter("error"), 0).
+
         if JsonPropertyHelper:HasTypedProperty(oJsonResp, "result", JsonDataType:Object) then do:
             if JsonPropertyHelper:HasTypedProperty(oJsonResp:GetJsonObject("result"), "AgentSession", JsonDataType:Array) then
                 return oJsonResp:GetJsonObject("result"):GetJsonArray("AgentSession").
@@ -504,6 +564,10 @@ class OpenEdge.ApplicationServer.Util.OEManagerConnection implements ISupportLog
         define variable oJsonResp as JsonObject no-undo.
 
         assign oJsonResp = this-object:GetData(substitute(OEManagerEndpoint:AgentSessionStacks, pcAblApp, piPID, piSession)).
+
+        if JsonPropertyHelper:HasTypedProperty(oJsonResp, "error", JsonDataType:String) then
+            undo, throw new Progress.Lang.AppError(oJsonResp:GetCharacter("error"), 0).
+
         if JsonPropertyHelper:HasTypedProperty(oJsonResp, "result", JsonDataType:Object) then do:
             if JsonPropertyHelper:HasTypedProperty(oJsonResp:GetJsonObject("result"), "ABLStacks", JsonDataType:Array) then
                 return oJsonResp:GetJsonObject("result"):GetJsonArray("ABLStacks").
@@ -527,6 +591,10 @@ class OpenEdge.ApplicationServer.Util.OEManagerConnection implements ISupportLog
         define variable oJsonResp as JsonObject no-undo.
 
         assign oJsonResp = this-object:GetData(substitute(OEManagerEndpoint:AgentSessionStacks, pcAblApp, piPID, pcSession)).
+
+        if JsonPropertyHelper:HasTypedProperty(oJsonResp, "error", JsonDataType:String) then
+            undo, throw new Progress.Lang.AppError(oJsonResp:GetCharacter("error"), 0).
+
         if JsonPropertyHelper:HasTypedProperty(oJsonResp, "result", JsonDataType:Object) then do:
             if JsonPropertyHelper:HasTypedProperty(oJsonResp:GetJsonObject("result"), "ABLStacks", JsonDataType:Array) then
                 return oJsonResp:GetJsonObject("result"):GetJsonArray("ABLStacks").
@@ -547,6 +615,10 @@ class OpenEdge.ApplicationServer.Util.OEManagerConnection implements ISupportLog
         define variable oJsonResp as JsonObject no-undo.
 
         assign oJsonResp = this-object:GetData(substitute(OEManagerEndpoint:AgentStacks, pcAblApp, piPID)).
+
+        if JsonPropertyHelper:HasTypedProperty(oJsonResp, "error", JsonDataType:String) then
+            undo, throw new Progress.Lang.AppError(oJsonResp:GetCharacter("error"), 0).
+
         if JsonPropertyHelper:HasTypedProperty(oJsonResp, "result", JsonDataType:Object) then do:
             if JsonPropertyHelper:HasTypedProperty(oJsonResp:GetJsonObject("result"), "ABLStacks", JsonDataType:Array) then
                 return oJsonResp:GetJsonObject("result"):GetJsonArray("ABLStacks").
@@ -568,6 +640,10 @@ class OpenEdge.ApplicationServer.Util.OEManagerConnection implements ISupportLog
         define variable oJsonResp as JsonObject no-undo.
 
         assign oJsonResp = this-object:GetData(substitute(OEManagerEndpoint:AgentThreads, pcAblApp, piPID)).
+
+        if JsonPropertyHelper:HasTypedProperty(oJsonResp, "error", JsonDataType:String) then
+            undo, throw new Progress.Lang.AppError(oJsonResp:GetCharacter("error"), 0).
+
         if JsonPropertyHelper:HasTypedProperty(oJsonResp, "result", JsonDataType:Object) then do:
             if JsonPropertyHelper:HasTypedProperty(oJsonResp:GetJsonObject("result"), "AgentThread", JsonDataType:Array) then
                 return oJsonResp:GetJsonObject("result"):GetJsonArray("AgentThread").
@@ -588,6 +664,10 @@ class OpenEdge.ApplicationServer.Util.OEManagerConnection implements ISupportLog
         define variable oJsonResp as JsonObject no-undo.
 
         assign oJsonResp = this-object:GetData(substitute(OEManagerEndpoint:ClientSessions, pcAblApp)).
+
+        if JsonPropertyHelper:HasTypedProperty(oJsonResp, "error", JsonDataType:String) then
+            undo, throw new Progress.Lang.AppError(oJsonResp:GetCharacter("error"), 0).
+
         if JsonPropertyHelper:HasTypedProperty(oJsonResp, "result", JsonDataType:Object) then do:
             if JsonPropertyHelper:HasTypedProperty(oJsonResp:GetJsonObject("result"), "OEABLSession", JsonDataType:Array) then
                 return oJsonResp:GetJsonObject("result"):GetJsonArray("OEABLSession").
@@ -609,6 +689,10 @@ class OpenEdge.ApplicationServer.Util.OEManagerConnection implements ISupportLog
         define variable oJsonResp as JsonObject no-undo.
 
         assign oJsonResp = this-object:GetData(substitute(OEManagerEndpoint:DynamicSessionLimit, pcAblApp, piPID)).
+
+        if JsonPropertyHelper:HasTypedProperty(oJsonResp, "error", JsonDataType:String) then
+            undo, throw new Progress.Lang.AppError(oJsonResp:GetCharacter("error"), 0).
+
         if JsonPropertyHelper:HasTypedProperty(oJsonResp, "result", JsonDataType:Object) then do:
             if JsonPropertyHelper:HasTypedProperty(oJsonResp:GetJsonObject("result"), "AgentSessionInfo", JsonDataType:Array) then
                 return oJsonResp:GetJsonObject("result"):GetJsonArray("AgentSessionInfo").
@@ -628,6 +712,10 @@ class OpenEdge.ApplicationServer.Util.OEManagerConnection implements ISupportLog
         define variable oJsonResp as JsonObject no-undo.
 
         assign oJsonResp = this-object:GetData(substitute(OEManagerEndpoint:SessionManagerProperties, pcAblApp)).
+
+        if JsonPropertyHelper:HasTypedProperty(oJsonResp, "error", JsonDataType:String) then
+            undo, throw new Progress.Lang.AppError(oJsonResp:GetCharacter("error"), 0).
+
         if JsonPropertyHelper:HasTypedProperty(oJsonResp, "result", JsonDataType:Object) then
             return oJsonResp:GetJsonObject("result").
         else
@@ -643,6 +731,10 @@ class OpenEdge.ApplicationServer.Util.OEManagerConnection implements ISupportLog
         define variable oJsonResp as JsonObject no-undo.
 
         assign oJsonResp = this-object:GetData(substitute(OEManagerEndpoint:SessionMetrics, pcAblApp)).
+
+        if JsonPropertyHelper:HasTypedProperty(oJsonResp, "error", JsonDataType:String) then
+            undo, throw new Progress.Lang.AppError(oJsonResp:GetCharacter("error"), 0).
+
         if JsonPropertyHelper:HasTypedProperty(oJsonResp, "result", JsonDataType:Object) then
             return oJsonResp:GetJsonObject("result").
         else
@@ -657,7 +749,14 @@ class OpenEdge.ApplicationServer.Util.OEManagerConnection implements ISupportLog
        @return JsonObject Object as server response */
     method public JsonObject FlushDeferredLog ( input pcAblApp as character,
                                                 input piPID    as integer ):
-        return this-object:GetData(substitute(OEManagerEndpoint:FlushDeferredLog, pcAblApp, piPID)).
+        define variable oJsonResp as JsonObject no-undo.
+
+        assign oJsonResp = this-object:GetData(substitute(OEManagerEndpoint:FlushDeferredLog, pcAblApp, piPID)).
+
+        if JsonPropertyHelper:HasTypedProperty(oJsonResp, "error", JsonDataType:String) then
+            undo, throw new Progress.Lang.AppError(oJsonResp:GetCharacter("error"), 0).
+        else
+            return oJsonResp.
     end method. /* FlushDeferredLog */
 
     /* Trigger a refresh (termination) of all sessions of an MSAgent for an ABL Application
@@ -668,7 +767,14 @@ class OpenEdge.ApplicationServer.Util.OEManagerConnection implements ISupportLog
        @return JsonObject Object as server response */
     method public JsonObject RefreshAgent ( input pcAblApp  as character,
                                             input pcAgentID as character ):
-        return this-object:DeleteData(substitute(OEManagerEndpoint:AgentSessions, pcAblApp, pcAgentID)).
+        define variable oJsonResp as JsonObject no-undo.
+
+        assign oJsonResp = this-object:DeleteData(substitute(OEManagerEndpoint:AgentSessions, pcAblApp, pcAgentID)).
+
+        if JsonPropertyHelper:HasTypedProperty(oJsonResp, "error", JsonDataType:String) then
+            undo, throw new Progress.Lang.AppError(oJsonResp:GetCharacter("error"), 0).
+        else
+            return oJsonResp.
     end method. /* RefreshAgent */
 
     /* Clear (reset) any accumulated agent stat data of an MSAgent for an ABL Application
@@ -678,7 +784,14 @@ class OpenEdge.ApplicationServer.Util.OEManagerConnection implements ISupportLog
        @return JsonObject Object as server response */
     method public JsonObject ResetAgentStats ( input pcAblApp as character,
                                                input piPID    as integer ):
-        return this-object:DeleteData(substitute(OEManagerEndpoint:AgentStatData, pcAblApp, piPID)).
+        define variable oJsonResp as JsonObject no-undo.
+
+        assign oJsonResp = this-object:DeleteData(substitute(OEManagerEndpoint:AgentStatData, pcAblApp, piPID)).
+
+        if JsonPropertyHelper:HasTypedProperty(oJsonResp, "error", JsonDataType:String) then
+            undo, throw new Progress.Lang.AppError(oJsonResp:GetCharacter("error"), 0).
+        else
+            return oJsonResp.
     end method. /* ResetAgentStats */
 
     /* Clear (reset) any accumulated deferred log data of an MSAgent for an ABL Application
@@ -689,7 +802,14 @@ class OpenEdge.ApplicationServer.Util.OEManagerConnection implements ISupportLog
        @return JsonObject Object as server response */
     method public JsonObject ResetDeferredLog ( input pcAblApp as character,
                                                 input piPID    as integer ):
-        return this-object:DeleteData(substitute(OEManagerEndpoint:ResetDeferredLog, pcAblApp, piPID)).
+        define variable oJsonResp as JsonObject no-undo.
+
+        assign oJsonResp = this-object:DeleteData(substitute(OEManagerEndpoint:ResetDeferredLog, pcAblApp, piPID)).
+
+        if JsonPropertyHelper:HasTypedProperty(oJsonResp, "error", JsonDataType:String) then
+            undo, throw new Progress.Lang.AppError(oJsonResp:GetCharacter("error"), 0).
+        else
+            return oJsonResp.
     end method. /* ResetDeferredLog */
 
     /* Terminate an agent (ABL) session for an ABL Application
@@ -703,7 +823,14 @@ class OpenEdge.ApplicationServer.Util.OEManagerConnection implements ISupportLog
                                                    input piPID     as integer,
                                                    input piSession as integer,
                                                    input piTermOpt as integer ):
-        return this-object:DeleteData(substitute(OEManagerEndpoint:AgentSession, pcAblApp, piPID, piSession, piTermOpt)).
+        define variable oJsonResp as JsonObject no-undo.
+
+        assign oJsonResp = this-object:DeleteData(substitute(OEManagerEndpoint:AgentSession, pcAblApp, piPID, piSession, piTermOpt)).
+
+        if JsonPropertyHelper:HasTypedProperty(oJsonResp, "error", JsonDataType:String) then
+            undo, throw new Progress.Lang.AppError(oJsonResp:GetCharacter("error"), 0).
+        else
+            return oJsonResp.
     end method. /* TerminateAblSession */
 
     /* Terminate a client (HTTP) session for an ABL Application
@@ -716,12 +843,18 @@ class OpenEdge.ApplicationServer.Util.OEManagerConnection implements ISupportLog
     method public JsonObject TerminateClientSession ( input pcAblApp  as character,
                                                       input piTermOpt as integer,
                                                       input pcSession as character ):
-        define variable cHttpUrl as character no-undo.
+        define variable cHttpUrl  as character  no-undo.
+        define variable oJsonResp as JsonObject no-undo.
 
         assign cHttpUrl = substitute(OEManagerEndpoint:ClientSession, pcAblApp, piTermOpt) + "&sessionID".
         assign cHttpUrl = substitute("&1=&2", cHttpUrl, pcSession).
 
-        return this-object:DeleteData(cHttpUrl).
+        assign oJsonResp = this-object:DeleteData(cHttpUrl).
+
+        if JsonPropertyHelper:HasTypedProperty(oJsonResp, "error", JsonDataType:String) then
+            undo, throw new Progress.Lang.AppError(oJsonResp:GetCharacter("error"), 0).
+        else
+            return oJsonResp.
     end method. /* TerminateClientSession */
 
     /* Stop (terminate) a single MSAgent for an ABL Application
@@ -736,13 +869,19 @@ class OpenEdge.ApplicationServer.Util.OEManagerConnection implements ISupportLog
                                          input pcAgentID    as character,
                                          input piWaitFinish as character,
                                          input piWaitAfter  as character ):
-        define variable cHttpUrl as character no-undo.
+        define variable cHttpUrl  as character  no-undo.
+        define variable oJsonResp as JsonObject no-undo.
 
         /* For security reasons, we use the internal AgentID to identify the MSAgent to be stopped. */
         assign cHttpUrl = substitute(OEManagerEndpoint:AgentStop, pcAblApp, pcAgentID)
                         + "?waitToFinish=" + piWaitFinish + "&waitAfterStop=" + piWaitAfter.
 
-        return this-object:DeleteData(cHttpUrl).
+        assign oJsonResp = this-object:DeleteData(cHttpUrl).
+
+        if JsonPropertyHelper:HasTypedProperty(oJsonResp, "error", JsonDataType:String) then
+            undo, throw new Progress.Lang.AppError(oJsonResp:GetCharacter("error"), 0).
+        else
+            return oJsonResp.
     end method. /* StopAgent */
 
 end class.

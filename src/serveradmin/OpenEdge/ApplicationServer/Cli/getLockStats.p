@@ -1,5 +1,5 @@
 /**************************************************************************
-Copyright (c) 2023 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2023-2024 by Progress Software Corporation. All rights reserved.
 **************************************************************************/
 /*------------------------------------------------------------------------
     File        : getLockStats.p
@@ -76,9 +76,9 @@ repeat:
 
     // As of OE 12.5 a new field _Connect-Details was added to hold a unique string to identify connections from a PAS instance.
     // https://docs.progress.com/bundle/openedge-whats-new/page/Whats-New-in-OpenEdge-12.5.html#ariaid-title15
-	assign hConnDetFld = hConnBuffer:buffer-field("_Connect-Details") no-error. // Purposeful no-error here.
-	if error-status:error then
-		error-status:error = false. // Ignore any generated error from above.
+    assign hConnDetFld = hConnBuffer:buffer-field("_Connect-Details") no-error. // Purposeful no-error here.
+    if error-status:error then
+        error-status:error = false. // Ignore any generated error from above.
     if valid-object(hConnDetFld) then do:
         // The format of the data in this field should be "Container:Host:AgentPID:SessID"
         assign cConnDetail = hConnDetFld:buffer-value().

@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2022 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2022,2024 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : UriEncoder
@@ -17,24 +17,24 @@ Copyright (c) 2022 by Progress Software Corporation. All rights reserved.
                                     "!" / "$" / "&" / "'" / "(" / ")" / "*" / "+" / "," / ";" / "=" /
                                     ":" / "@"
                     unreserved  = ALPHA / DIGIT / "-" / "." / "_" / "~"
-                    
+
                     Default  : unreserved
-                    
+
                     Query    : query         = *( pchar / "/" / "?" )
                                   ALPHA / DIGIT / "-" / "." / "_" / "~" /
                                     "!" / "$" / "&" / "'" / "(" / ")" / "*" / "+" / "," / ";" / "=" /
                                     ":" / "@" /
                                     "/" / "?"
-                    
+
                     Scheme   : scheme        = ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )
-                    
+
                     Fragment : fragment      = *( pchar / "/" / "?" )
-                    
+
                     Path     : path-abempty  = *( "/" segment )
                                segment       = *pchar
-                        
+
                     UserInfo : userinfo    = *( unreserved / pct-encoded / sub-delims / ":" )
-                    
+
                     Host     : host          = IP-literal / IPv4address / reg-name
                                reg-name      = *( unreserved / pct-encoded / sub-delims )
                                IP-literal    = "[" ( IPv6address / IPvFuture  ) "]"
@@ -78,7 +78,7 @@ class OpenEdge.Net.UriEncoder:
     // Because ABL arrays are 1-based, the first item is asc=0 (ie null). "A" is item 66 (65+1)
     // use logical[128] variables with initial values, because these values are in rcode, and don't need to
     // be calculated even once per session.
-    
+
     // Default = unreserved    = ALPHA / DIGIT / "-" / "." / "_" / "~"
     var private logical[128] mFlags_Default = [ // NUL SOH STX ETX EOT ENQ ACK BEL
                                                    yes,yes,yes,yes,yes,yes,yes,yes,
@@ -180,13 +180,13 @@ class OpenEdge.Net.UriEncoder:
                                                     no ,no ,no ,yes,yes,yes,no ,yes].
     // Host = reg-name      = *( unreserved / pct-encoded / sub-delims )
     // Also IP addresses allowed
-    
+
     // host        = IP-literal / IPv4address / reg-name
     //IPv4address = dec-octet "." dec-octet "." dec-octet "." dec-octet
     //IP-literal = "[" ( IPv6address / IPvFuture  ) "]"
     //IPvFuture  = "v" 1*HEXDIG "." 1*( unreserved / sub-delims / ":" )
     //reg-name    = *( unreserved / pct-encoded / sub-delims )
-    
+
     var private logical[128] mFlags_Host = [ // NUL SOH STX ETX EOT ENQ ACK BEL
                                                 yes,yes,yes,yes,yes,yes,yes,yes,
                                              // BS  HT  LF  VT  FF  CR  SO  SI
@@ -353,11 +353,11 @@ class OpenEdge.Net.UriEncoder:
                                                   no ,no ,no ,no ,no ,no ,no ,no ,
                                                // x   y   z   {   |   }   ~   DEL
                                                   no ,no ,no ,no ,no ,no ,no ,yes].
-    
+
     // Instances that can encode various parts of the URI
     var private PercentEncoder mEncoder_Default, mEncoder_Scheme, mEncoder_Userinfo, mEncoder_Host,
                                mEncoder_Path,    mEncoder_Query,  mEncoder_Fragment, mEncoder_Cookie.
-    
+
     /* Default constructor */
     constructor public UriEncoder():
         // Build the encoder instances
@@ -371,10 +371,10 @@ class OpenEdge.Net.UriEncoder:
                mEncoder_Cookie   = new PercentEncoder(mFlags_Cookie)
                .
     end constructor.
-    
+
     /** Encodes a string for a particular purpose. Usage of Encode<encoding-type> is recommended.
         The method does NOT re-encode % characters.
-        
+
         @param character The string to encode
         @param EncondingTypeEnum The type of encoding to apply
         @return character the encoded string */
@@ -382,10 +382,10 @@ class OpenEdge.Net.UriEncoder:
                                    input pEncodingType as UriEncodingTypeEnum):
         return this-object:Encode(pString, pEncodingType, false).
     end method.
-    
+
     /** Encodes a string for a particular purpose. Usage of Encode<encoding-type> is recommended,
         unless the re-encoding of % characters is desired.
-        
+
         @param character The string to encode
         @param EncondingTypeEnum The type of encoding to apply
         @param logical TRUE if any percent characters should  be encoded as %25
@@ -396,23 +396,26 @@ class OpenEdge.Net.UriEncoder:
         /* Don't bother with blank or unknown  */
         if length(pString) eq 0 or pString eq ? then
             return '':u.
-        
+
         /* What kind of encoding should be used? */
         case pEncodingType:
+            when UriEncodingTypeEnum:Default  then return mEncoder_Default:Encode(pString, pReEncode).
             when UriEncodingTypeEnum:Scheme   then return mEncoder_Scheme:Encode(pString, pReEncode).
+            when UriEncodingTypeEnum:Userinfo then return mEncoder_Userinfo:Encode(pString, pReEncode).
             when UriEncodingTypeEnum:Host     then return mEncoder_Host:Encode(pString, pReEncode).
             when UriEncodingTypeEnum:Path     then return mEncoder_Path:Encode(pString, pReEncode).
             when UriEncodingTypeEnum:Query    then return mEncoder_Query:Encode(pString, pReEncode).
             when UriEncodingTypeEnum:Fragment then return mEncoder_Fragment:Encode(pString, pReEncode).
             when UriEncodingTypeEnum:Cookie   then return mEncoder_Cookie:Encode(pString, pReEncode).
-            otherwise                              return mEncoder_Scheme:Encode(pString, pReEncode).
+            // This will cover the case where a new enum may be added but isn't dealt with explicitly.
+            otherwise                              return mEncoder_Default:Encode(pString, pReEncode).
         end case.
     end method.
-    
+
     /* Encodes a string per Cookie encoding rules. This method is here for historical reasons.
-       
+
        Cookie US-ASCII characters excluding CTLs, whitespace (32) DQUOTE (34), comma (44), semicolon (59), and backslash (92)
-       
+
        @param character A string to encode
        @return character An encoded string */
     method public character EncodeCookie(input pString as character):
@@ -420,9 +423,9 @@ class OpenEdge.Net.UriEncoder:
     end method.
 
     /* Encodes a string per Cookie encoding rules. This method is here for historical reasons.
-       
+
        Cookie US-ASCII characters excluding CTLs, whitespace (32) DQUOTE (34), comma (44), semicolon (59), and backslash (92)
-       
+
        @param String A string to encode
        @return character An encoded string */
     method public character EncodeCookie(input pString as String):
@@ -430,14 +433,14 @@ class OpenEdge.Net.UriEncoder:
     end method.
 
     /* Encodes a string per URI Fragment encoding rules
-        
+
         https://tools.ietf.org/html/rfc3986#page-11
-        
+
         unreserved    = ALPHA / DIGIT / "-" / "." / "_" / "~"
         sub-delims  = "!" / "$" / "&" / "'" / "(" / ")" / "*" / "+" / "," / ";" / "="
         pchar        = unreserved / pct-encoded / sub-delims / ":" / "@"
         Fragment : fragment      = *( pchar / "/" / "?" )
-       
+
        @param character A string to encode
        @return character An encoded string */
     method public character EncodeFragment(input pcString as character):
@@ -445,14 +448,14 @@ class OpenEdge.Net.UriEncoder:
     end method.
 
     /* Encodes a string per URI Fragment encoding rules
-        
+
         https://tools.ietf.org/html/rfc3986#page-11
-        
+
         unreserved    = ALPHA / DIGIT / "-" / "." / "_" / "~"
         sub-delims  = "!" / "$" / "&" / "'" / "(" / ")" / "*" / "+" / "," / ";" / "="
         pchar        = unreserved / pct-encoded / sub-delims / ":" / "@"
         Fragment : fragment      = *( pchar / "/" / "?" )
-       
+
        @param String A string to encode
        @return character An encoded string */
     method public character EncodeFragment(input pString as String):
@@ -460,43 +463,43 @@ class OpenEdge.Net.UriEncoder:
     end method.
 
     /* Encodes a string per URI Host encoding rules
-       
+
        https://tools.ietf.org/html/rfc3986#page-11
-        
+
        sub-delims = "!" / "$" / "&" / "'" / "(" / ")" / "*" / "+" / "," / ";" / "="
        unreserved = ALPHA / DIGIT / "-" / "." / "_" / "~"
        Host       = *( unreserved / pct-encoded / sub-delims )
-       
+
        @param character A string to encode
        @return character An encoded string */
     method public character EncodeHost(input pcString as character):
         var longchar inStr = pcString.
         return this-object:EncodeHost(inStr, ?).
     end method.
-    
+
     /* Encodes a string per URI Host encoding rules
-       
+
        https://tools.ietf.org/html/rfc3986#page-11
-        
+
        sub-delims = "!" / "$" / "&" / "'" / "(" / ")" / "*" / "+" / "," / ";" / "="
        unreserved = ALPHA / DIGIT / "-" / "." / "_" / "~"
        Host       = *( unreserved / pct-encoded / sub-delims )
-       
+
        @param String A string to encode
        @return character An encoded string */
     method public character EncodeHost(input pString as String):
         return this-object:EncodeHost(pString:Value, false).
     end method.
-    
+
     /* Encodes a host value. This method knows how to deal with IPv6 hosts.
-       
+
        @parameter longchar The host name
        @param logical TRUE if any % values should be encoded
        @return character An encoded value. */
     method protected character EncodeHost(input pHost as longchar,
                                           input pReencode as logical):
         var character ipv6Host.
-        
+
         // if this is an ipv6 host, don't encode - it should be in hex form already.
         // We don't check this - just assume
         if pHost begins '[':u then
@@ -509,19 +512,19 @@ class OpenEdge.Net.UriEncoder:
                 {&_proparse_ prolint-nowarn(overflow)}
                 return string(pHost).
         end.
-        
+
         // non-ipv6 address
         return mEncoder_Host:Encode(pHost, pReencode).
     end method.
 
     /* Encodes a string per URI Path encoding rules
-       
+
        https://tools.ietf.org/html/rfc3986#page-11
-        
+
        sub-delims  = "!" / "$" / "&" / "'" / "(" / ")" / "*" / "+" / "," / ";" / "="
        unreserved = ALPHA / DIGIT / "-" / "." / "_" / "~"
        Path       = 1*( unreserved / pct-encoded / sub-delims / "@" )
-       
+
        @param character A string to encode
        @return character An encoded string */
     method public character EncodePath(input pcString as character):
@@ -529,13 +532,13 @@ class OpenEdge.Net.UriEncoder:
     end method.
 
     /* Encodes a string per URI Path encoding rules
-       
+
        https://tools.ietf.org/html/rfc3986#page-11
-        
+
        sub-delims  = "!" / "$" / "&" / "'" / "(" / ")" / "*" / "+" / "," / ";" / "="
        unreserved = ALPHA / DIGIT / "-" / "." / "_" / "~"
        Path       = 1*( unreserved / pct-encoded / sub-delims / "@" )
-       
+
        @param String A string to encode
        @return character An encoded string */
     method public character EncodePath(input pString as String):
@@ -545,11 +548,11 @@ class OpenEdge.Net.UriEncoder:
     /* Encodes a string per URI Query encoding rules
 
        https://tools.ietf.org/html/rfc3986#page-11
-        
+
        sub-delims = "!" / "$" / "&" / "'" / "(" / ")" / "*" / "+" / "," / ";" / "="
        pchar      = unreserved / pct-encoded / sub-delims / ":" / "@"
        Query      = *( pchar / "/" / "?" )
-       
+
        @param character A string to encode
        @return character An encoded string */
     method public character EncodeQuery(input pcString as character):
@@ -559,19 +562,19 @@ class OpenEdge.Net.UriEncoder:
     /* Encodes a string per URI Query encoding rules
 
        https://tools.ietf.org/html/rfc3986#page-11
-        
+
        sub-delims = "!" / "$" / "&" / "'" / "(" / ")" / "*" / "+" / "," / ";" / "="
        pchar      = unreserved / pct-encoded / sub-delims / ":" / "@"
        Query      = *( pchar / "/" / "?" )
-       
+
        @param String A string to encode
        @return character An encoded string */
     method public character EncodeQuery(input pString as String):
         return mEncoder_Query:Encode(pString:Value, false).
     end method.
-    
+
     /* Encodes a URI's Query string per URI query encoding rules.
-       
+
        @param IStringStringMap
        @return character An encoded query string */
     method public character EncodeQuery (input pQueryMap as IStringStringMap):
@@ -589,14 +592,14 @@ class OpenEdge.Net.UriEncoder:
                .
         do while iter:HasNext():
             assign me = cast(iter:Next(), MapEntry).
-            
+
             if not valid-object(me:Value)
             or string(me:Value) eq ?
             then
                 assign qryString = string(me:Key).
             else
                 assign qryString = string(me:Key) + '=':u + string(me:Value).
-            
+
             // Not sure why this Encode() is necessary, since the values are already encoded, but
             // it has been here for a while and seems to do no harm (since encoded values are not re-encoded)
             // this will also encode the query name if needed
@@ -604,12 +607,12 @@ class OpenEdge.Net.UriEncoder:
                    qryDelim      = '&':u
                    .
         end.
-        
+
         return encodedQuery.
     end method.
 
     /* Encodes a URI's Query string per URI query encoding rules.
-       
+
        @param IStringKeyedMap
        @return character An encoded query string */
     method public character EncodeQuery (input pQueryMap as IStringKeyedMap):
@@ -619,7 +622,7 @@ class OpenEdge.Net.UriEncoder:
         var List<String> sl.
         var integer iCount, iLoop.
         var character paramVal.
-               
+
         Assert:NotNull(pQueryMap, 'Query map').
 
         // encode the query strings, which will be part of a List<String>
@@ -650,116 +653,117 @@ class OpenEdge.Net.UriEncoder:
                 assign qryDelim = '&':u.
             end. // do iLoop
         end. // do while
-        
+
         return encodedQuery.
     end method.
 
     /* Encodes a string per URI Scheme encoding rules
-       
+
        https://tools.ietf.org/html/rfc3986#page-11
-       
+
        Scheme = ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )
-       
+
        @param character A string to encode
        @return character An encoded string */
     method public character EncodeScheme(input pcString as character):
         return mEncoder_Scheme:Encode(pcString).
     end method.
-    
+
     /* Encodes a string per URI Scheme encoding rules
-       
+
        https://tools.ietf.org/html/rfc3986#page-11
-       
+
        Scheme = ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )
-       
+
        @param String A string to encode
        @return character An encoded string */
     method public character EncodeScheme(input pString as String):
         return mEncoder_Scheme:Encode(pString:Value, false).
     end method.
-    
+
     /* Encodes a string per URI Default encoding rules
-       
+
        https://tools.ietf.org/html/rfc3986#page-11
        Default  = unreserved = ALPHA / DIGIT / "-" / "." / "_" / "~"
-       
+
        @param character A string to encode
        @return character An encoded string */
     method public character EncodeDefault(input pcString as character):
         return mEncoder_Default:Encode(pcString).
     end method.
-    
+
     /* Encodes a string per URI Default encoding rules
-       
+
        https://tools.ietf.org/html/rfc3986#page-11
        Default  = unreserved = ALPHA / DIGIT / "-" / "." / "_" / "~"
-       
+
        @param String A string to encode
        @return character An encoded string */
     method public character EncodeDefault(input pString as String):
         return mEncoder_Default:Encode(pString:Value, false).
     end method.
-    
+
     /* Encodes a string per URI userinfo encoding rules
-       
+
        https://tools.ietf.org/html/rfc3986#page-11
-        
+
        sub-delims = "!" / "$" / "&" / "'" / "(" / ")" / "*" / "+" / "," / ";" / "="
        unreserved = ALPHA / DIGIT / "-" / "." / "_" / "~"
        Host       = *( unreserved / pct-encoded / sub-delims / ":" )
-       
+
        @param character A string to encode
        @return character An encoded string */
     method public character EncodeUserinfo(input pcString as character):
         return mEncoder_Userinfo:Encode(pcString).
     end method.
-    
+
     /* Encodes a string per URI userinfo encoding rules
-       
+
        https://tools.ietf.org/html/rfc3986#page-11
-       
+
        sub-delims = "!" / "$" / "&" / "'" / "(" / ")" / "*" / "+" / "," / ";" / "="
        unreserved = ALPHA / DIGIT / "-" / "." / "_" / "~"
        Host       = *( unreserved / pct-encoded / sub-delims / ":" )
-       
+
        @param String A string to encode
        @return character An encoded string */
     method public character EncodeUserinfo(input pString as String):
         return mEncoder_Userinfo:Encode(pString:Value, false).
     end method.
-    
+
     /* Encodes this uri's Host per URI Host encoding rules
-       
+
        @param URI The URI whose info to encode
        @return character An encoded string */
     method public character EncodeUserinfo(input pURI as URI):
         var character authority.
-        
+
         Assert:NotNull(pURI, 'URI').
-        
+
         // authority: host, user, pw
         if pURI:User eq ? then
             return '':u.
-        
+
         assign authority = mEncoder_Host:Encode(pURI:User).
         if pURI:Password ne ? then
             assign authority += ':':u + mEncoder_Host:Encode(pURI:Password).
         return authority.
     end method.
-    
+
     /* Decodes an encoded string
-       
+
        Uses OpenEdge.Net.HTTP.PercentEncoder:Decode() to perform the decoding
-       
+
        @param character An encoded string
        @return character A decoded string    */
     method public character Decode(input pData as character):
         // decoding is all the same, we can use any of the instances
+        {&_proparse_ prolint-nowarn(overflow)}
         return string(mEncoder_Default:Decode(pData)).
     end method.
-    
+
     /** Attempts to decode a previously-encoded string.
-        
+
         @param  character The string to decode
         @param  character The target codepage to encode into. Defaults to CPINTERNAL
         @return character A decoded URL
@@ -767,6 +771,7 @@ class OpenEdge.Net.UriEncoder:
     method public character Decode(input pEncodedString as character,
                                    input pTargetCodepage as character):
         // decoding is all the same, we can use any of the instances
+        {&_proparse_ prolint-nowarn(overflow)}
         return string(mEncoder_Default:Decode(pEncodedString, pTargetCodepage)).
     end method.
 end class.

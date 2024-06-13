@@ -1,5 +1,5 @@
 /**************************************************************************
-Copyright (c) 2023 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2023-2024 by Progress Software Corporation. All rights reserved.
 **************************************************************************/
 /**
  * Author(s): Dustin Grau (dugrau@progress.com)
@@ -104,6 +104,7 @@ oMgrConn:LogCommand("RUN", this-procedure:name).
 /* Create an easy lookup of alphanumeric AgentID's to a matching PID. */
 assign oAgentMap = new StringStringMap().
 assign oAgents = oMgrConn:GetAgents(cAblApp).
+
 if oAgents:Length gt 0 then
 do iLoop = 1 to oAgents:Length:
     oAgentMap:Put(oAgents:GetJsonObject(iLoop):GetCharacter("agentId"), oAgents:GetJsonObject(iLoop):GetCharacter("pid")).
@@ -149,7 +150,7 @@ on stop undo, next SESSIONBLK:
             if oStacks:Length gt 0 then do:
                 message substitute("Saving stack information for MSAgent PID &1, Session &2...", integer(cPID), cSession).
                 assign cOutFile = substitute("agentSessionStacks_&1_&2_&3.json", integer(cPID), cSession, replace(iso-date(now), ":", "_")).
-                oStacks:WriteFile(cOutFile, true). /* Write entire response to disk. */
+                oStacks:WriteFile(session:temp-directory + cOutFile, true). /* Write entire response to disk. */
                 message substitute("~tStack data written to &1", cOutFile).
             end.
 
@@ -199,6 +200,9 @@ if (cSessID gt "") ne true then do:
     end. /* oJsonResp - Tomcat */
 end. /* sessions */
 
+catch err as Progress.Lang.Error:
+    put unformatted substitute("~nError while communicating with PASOE instance: &1", err:GetMessage(1)) skip.
+end catch.
 finally:
     /* Return value expected by PCT Ant task. */
     {&_proparse_ prolint-nowarn(returnfinally)}

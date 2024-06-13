@@ -170,10 +170,7 @@ class OpenEdge.DataAdmin.Binding.GrantedRoleContext inherits DataAdminContext :
                .
         if valid-object(oService) then
             assign hCurrentUser          = get-db-client(oService:Name)
-                   ttGrantedRole.Grantor = substitute('&1@&2':u,
-                                                hCurrentUser:user-id,
-                                                hCurrentUser:domain-name)
-                   .
+                   ttGrantedRole.Grantor = substitute('&1@&2':u, hCurrentUser:user-id, hCurrentUser:domain-name).
         /* Use a GUID for the Id if not is supplied. */
         if ttGrantedRole.Id eq '':u or ttGrantedRole.Id eq ? then
             assign ttGrantedRole.Id = guid.

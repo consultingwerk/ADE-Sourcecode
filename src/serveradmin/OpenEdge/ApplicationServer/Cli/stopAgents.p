@@ -1,5 +1,5 @@
 /**************************************************************************
-Copyright (c) 2023 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2023-2024 by Progress Software Corporation. All rights reserved.
 **************************************************************************/
 /**
  * Author(s): Dustin Grau (dugrau@progress.com)
@@ -81,6 +81,7 @@ oMgrConn:LogCommand("RUN", this-procedure:name).
 /* Initial URL to obtain a list of all MSAgents for an ABL Application. */
 message substitute("Looking for MSAgents of &1...", cAblApp).
 assign oAgents = oMgrConn:GetAgents(cAblApp).
+
 if oAgents:Length eq 0 then
     message "No MSAgents running".
 else
@@ -103,7 +104,7 @@ on stop undo, next AGENTBLK:
         if oStacks:Length gt 0 then do:
             message substitute("Saving stack information for MSAgent PID &1...", cPID).
             assign cOutFile = substitute("agentStacks_&1_&2.json", cPID, replace(iso-date(now), ":", "_")).
-            oStacks:WriteFile(cOutFile, true). /* Write entire response to disk. */
+            oStacks:WriteFile(session:temp-directory + cOutFile, true). /* Write entire response to disk. */
             message substitute("~tStack data written to &1", cOutFile).
         end.
         else
@@ -130,6 +131,9 @@ on stop undo, next AGENTBLK:
     end. /* do stop-after */
 end. /* iLoop - agent */
 
+catch err as Progress.Lang.Error:
+    put unformatted substitute("~nError while communicating with PASOE instance: &1", err:GetMessage(1)) skip.
+end catch.
 finally:
     /* Return value expected by PCT Ant task. */
     {&_proparse_ prolint-nowarn(returnfinally)}

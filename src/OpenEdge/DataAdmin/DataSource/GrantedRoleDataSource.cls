@@ -183,6 +183,7 @@ CustomDetail,_Custom-grant-detail":u
                                                 pcName,
                                                 quoter(pcUserId)),
                                             0).
+		
         if not can-find(b_domain where
                         b_domain._domain-name eq entry(2, pcUserId, '@':u)) then
             undo, throw new AppError(substitute('Domain not found for user-id &1',
@@ -197,7 +198,7 @@ CustomDetail,_Custom-grant-detail":u
         define variable cConnectionRole as character no-undo.
         define variable hCurrentUser as handle no-undo.
         define variable lCanGrant as logical no-undo.
-                
+	                
         define buffer b_grant for _sec-granted-role.
         define buffer b_role for _sec-role.
         define buffer b_dboption for _db-option.
@@ -210,7 +211,7 @@ CustomDetail,_Custom-grant-detail":u
         /* The current user must always be the grantor for create and update.
            Sometimes for deletes */
         assign hCurrentUser = get-db-client('dictdb':u).
-        
+		        
         if hBeforeBuffer:row-state ne row-deleted and
            phTTBuffer::Grantor ne substitute('&1@&2':u, hCurrentUser:user-id, hCurrentUser:domain-name) then
             undo, throw new AppError(substitute('Grantor &1 is not the current database user',

@@ -1,5 +1,5 @@
 /**************************************************************************
-Copyright (c) 2023 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2023-2024 by Progress Software Corporation. All rights reserved.
 **************************************************************************/
 /**
  * Author(s): Dustin Grau (dugrau@progress.com)
@@ -125,7 +125,7 @@ assign oAgentMap = new StringStringMap().
 oMgrConn:LogCommand("RUN", this-procedure:name).
 
 /* Begin output of status information to a dated file. */
-assign cOutFile = substitute("status_&1_&2.txt", cAblApp, cOutDate).
+assign cOutFile = substitute(session:temp-directory + "status_&1_&2.txt", cAblApp, cOutDate).
 message substitute("Starting output to file: &1 ...", cOutFile).
 output to value(cOutFile).
 
@@ -267,6 +267,10 @@ procedure GetApplications:
     assign lIsMin122 = (oVersion:Major eq 12 and oVersion:Minor ge 2) or oVersion:Major gt 12.
     assign lIsMin127 = (oVersion:Major eq 12 and oVersion:Minor ge 7) or oVersion:Major gt 12.
     assign lIsMin128 = (oVersion:Major eq 12 and oVersion:Minor ge 8) or oVersion:Major gt 12.
+
+    catch err as Progress.Lang.Error:
+        put unformatted substitute("~nUnable to get application list from PASOE instance: &1", err:GetMessage(1)) skip.
+    end catch.
 end procedure.
 
 /* Get the configured max for ABLSessions/Connections per MSAgent, along with min/max/initial MSAgents. */
@@ -770,7 +774,7 @@ procedure GetSessions:
             catch err as Progress.Lang.Error:
                 message substitute("Encountered error displaying Client Session &1 of &2: &3", iLoop, iTotClSess, err:GetMessage(1)).
                 if valid-object(oConnInfo) then /* Output JSON data for investigation. */
-                    oClSess:WriteFile(substitute("ClientSession_&1.json", cOutDate), true).
+                    oClSess:WriteFile(substitute(session:temp-directory + "ClientSession_&1.json", cOutDate), true).
                 next SESSIONBLK.
             end catch.
         end. /* iLoop */

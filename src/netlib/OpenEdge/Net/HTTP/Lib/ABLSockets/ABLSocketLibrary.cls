@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2014-2019, 2021, 2023 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014-2019,2021,2023-2024 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : ABLSocketLibrary
@@ -269,7 +269,9 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
                // do not trace the CONNECT request
                mTracingRequest       = no
                .
+
         MakeSyncRequest(moSocketLib, connectRequest, connectResponse, rr).
+
         // reset for the main request
         assign mTracingRequest = tracingCurrentRequest.
 
@@ -315,11 +317,13 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
         Logger:Warn('MakeSyncRequest(ClientSocket,IHttpRequest,IHttpResponse,ByteBucket) is being deprecated from OpenEdge release 12.5.0. Please refactor.').
 
         // request line
+        {&_proparse_ prolint-nowarn(overflow)}
         pos = pRequestBody:IndexOf(StringConstant:CRLF).
         if pos gt 0 then
             rr:StartLine:PutBytes(pRequestBody:GetBytes(1, pos + 1)).
 
         // headers
+        {&_proparse_ prolint-nowarn(overflow)}
         assign startAt = pos + 2   // LF + next
                pos     = pRequestBody:IndexOf(StringConstant:CRLF + StringConstant:CRLF, startAt)
                .
@@ -333,6 +337,7 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
             assign rr:Body = ByteBucket:Instance().
             rr:Body:PutBytes(pRequestBody:GetBytes(startAt, pRequestBody:Size - startAt + 1)).
         end.
+
         MakeSyncRequest(pServer, pRequest, pResponse, rr).
     end method.
 
@@ -425,8 +430,8 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
                timer[1] = now
                .
         do on stop undo, return error new AppError(substitute('Request write timeout for server &1 on port &2 ',
-                                                        moSocketConnectionParam:URI:Host,
-                                                        moSocketConnectionParam:URI:Port), miErrorNo_RequestWriteTimeout)
+                                                              moSocketConnectionParam:URI:Host,
+                                                              moSocketConnectionParam:URI:Port), miErrorNo_RequestWriteTimeout)
            stop-after dTimeout:
             pServer:WriteData(pRawRequest:StartLine).
             pServer:WriteData(pRawRequest:Headers).
@@ -508,6 +513,13 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
         if pRequest:Method ne MethodEnum:HEAD:ToString() then
             ExtractEntity(pResponse, responseBody).
 
+        catch stoi as Progress.Lang.StopAfter:
+            // It would be natural to assume that if a STOP is raised during execution of a request there will be no body returned.
+            // This is expected to perform cleanup of objects in the response which were created but will no longer be used.
+            delete object responseBody.
+
+            undo, throw stoi. // Throw the object so that it can be caught by the calling logic.
+        end catch.
         finally:
             assign moResponseWriter = ?.
         end finally.
@@ -532,7 +544,7 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
         define variable traceRequest as ITraceableRequest no-undo.
         define variable timer as datetime extent 2 no-undo.
         define variable rawRequest as RawMessage no-undo.
-        define variable oSpanContext as Progress.OpenTelemetry.SpanContext no-undo. 
+        define variable oSpanContext as Progress.OpenTelemetry.SpanContext no-undo.
 
         Assert:NotNull(poRequest,  'Http request').
         Assert:NotNull(poResponse, 'Http response').
@@ -555,13 +567,13 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
         /**
             Add any OpenTelemetry tracing data for pass-through (aka. context propagation).
             This simply looks to see if we have existing span context indicating that OTel tracing
-            has been enabled for either the calling parent program or the OpenEdge.* class package.  
+            has been enabled for either the calling parent program or the OpenEdge.* class package.
 
             The SpanContext class provides the information that identifies the context for the span
             in the Trace and must be propagated to all child spans and across process boundaries.
             There are 2 specific headers that need to be sent in the HTTP request, when you want to
             propagate tracing to a remote process: traceparent and tracestate.
-           
+
             The traceparent is a string that follows a specific format, and it contains some versioning
             information, the trace id and the span id. The tracestate can contain vendor-specific
             information in a key-value pair format that can be passed around for the use of the specific
@@ -587,7 +599,7 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
                 Logger:Debug(substitute("Telemetry TraceState [&1]", oSpanContext:TraceState)).
             end. // TraceState
         end. // valid-object
-       
+
         /* Are we using HttpClient Tracing for this request? */
         if type-of(poRequest, IAdaptable) then
             assign traceRequest = cast(cast(poRequest, IAdaptable):GetAdapter(get-class(ITraceableRequest)), ITraceableRequest).
@@ -673,11 +685,10 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
                    .
         /* return a useful error when the server cannot connect */
         if not moSocketLib:Connected then
-            return error new AppError(
-                                substitute('Connection failure for server &1 on port &2 ',
-                                    moSocketConnectionParam:URI:Host,
-                                    moSocketConnectionParam:URI:Port),
-                                miErrorNo_ConnectionFailure).
+            return error new AppError(substitute('Connection failure for server &1 on port &2 ',
+                                                 moSocketConnectionParam:URI:Host,
+                                                 moSocketConnectionParam:URI:Port),
+                                      miErrorNo_ConnectionFailure).
 
         // for HTTPS servers over a proxy, tunnel
         if     valid-object(oProxyRequest)
