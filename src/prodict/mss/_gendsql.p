@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2005-2006,2008-2010,2011 by Progress Software        *
-* Corporation. All rights reserved.  Prior versions of this work may *
-* contain portions contributed by participants of Possenet.          *
-*                                                                    *
-*********************************************************************/
+/**************************************************************************
+* Copyright (C) 2005-2006,2008-2010,2011-2024 by Progress Software        *
+* Corporation. All rights reserved.  Prior versions of this work may      *
+* contain portions contributed by participants of Possenet.               *
+*                                                                         *
+***************************************************************************/
 /* Procedure: prodict/mss/_gendsql.p
 
      Created: Donna L. McMann
@@ -58,6 +58,7 @@
               09/18/13 sgarg    Fix for empty string ("") INITIAL value, does not generate SQL (OE00241307)
               12/11/13 sdash    OE Initial Value not propagated w/"Include Defaults" on delta.sql (PSC00247036)
 			  08/20/18 vprasad ODIA-1951 -  ODBC Driver 17 for SQL Server certification
+              03/04/24 kberlia  Fixed issue for not considering width option in DSRVR-PRECISION value While generating DF using delta SQL utility (OCTA-56151).
 
 If the user wants to have a DEFAULT value of blank for VARCHAR fields, 
 an environmental variable BLANKDEFAULT can be set to "YES" and the code will
@@ -4027,6 +4028,7 @@ DO ON STOP UNDO, LEAVE:
                 ASSIGN df-info.df-seq = dfseq
                        dfseq = dfseq + 1
                        df-info.df-tbl = tablename
+                       df-info.df-fld = fieldname
                        df-line = "  DSRVR-PRECISION " + STRING(all_digits).
                 CREATE df-info.
                 ASSIGN df-info.df-seq = dfseq
