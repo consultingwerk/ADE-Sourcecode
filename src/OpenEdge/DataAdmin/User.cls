@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2011,2015 by Progress Software Corporation  */
+/* Copyright (c) 2011,2015,2024 by Progress Software Corporation  */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -240,7 +240,15 @@ class OpenEdge.DataAdmin.User inherits Entity implements IUser:
                 mdefaultbuffer::Email = pEmail.
             end.
             Email = pEmail.
-        end. 
+        end.
+
+    define public property IsSecAdmin as logical no-undo     
+        get():
+            if valid-handle(mBuffer) then
+                return mBuffer::IsSecAdmin.
+            else
+                return IsSecAdmin. 
+        end.		
 
 	constructor public User(cntxt as IDataAdminModel):
         super (cntxt).

@@ -1,5 +1,5 @@
 /**************************************************************************
-Copyright (c) 2023 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2023-2024 by Progress Software Corporation. All rights reserved.
 **************************************************************************/
 /*------------------------------------------------------------------------
     File        : AuthTagDataSource
@@ -22,12 +22,14 @@ using OpenEdge.DataAdmin.Error.UnauthorizedOperationError.
 using OpenEdge.DataAdmin.Error.UnsupportedOperationError.
 using OpenEdge.DataAdmin.Lang.WebUtil.
 using Progress.Lang.AppError.
+using Progress.Database.DBConfig.
 
 class OpenEdge.DataAdmin.DataSource.AuthTagDataSource inherits DataSource:
 
     define private variable hBuffer as handle no-undo.
 
     define private variable msave as logical no-undo.
+    define private variable oDBConfig as DBConfig no-undo.
 
     /* Is the current user a security admin? */
     define private variable mIsAdmin as logical no-undo init false.
@@ -44,7 +46,8 @@ Description,_Description"
                "dictdb._sec-auth-tag":u,
                mMapping).
 		BaseQueryTemplate = "for each _sec-auth-tag&1no-lock ":u.
-        run prodict/_dctadmn.p ( input userid('dictdb':u), output mIsAdmin ).
+        oDBConfig = new DBConfig(ldbname("dictdb")).
+        mIsAdmin = oDBConfig:IsDDMAdmin.
 
         create buffer hBuffer for table "dictdb._sec-auth-tag" no-error.
         if error-status:error then do:
@@ -96,7 +99,7 @@ Description,_Description"
         define variable cPrepareString as character no-undo.
 
         if not mIsAdmin then
-            undo, throw new UnauthorizedOperationError('Security admin user required for updates').
+            undo, throw new UnauthorizedOperationError('User with DDM admin privileges required for updates').
 
         case piState:
             when row-created or
@@ -161,7 +164,8 @@ Description,_Description"
             undo, throw new DataAccessError(new DataMapper("AuthTag,_sec-auth-tag":u, mMapping), e).
         end catch.
         finally:
-            hQuery:query-close().
+            if valid-handle(hQuery) then
+	      hQuery:query-close().
             delete object hQuery no-error.
         end finally.
     end method.

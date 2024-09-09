@@ -1,5 +1,11 @@
- 
- /*------------------------------------------------------------------------
+/***********************************************************************/
+/* Copyright (c) 2016,2024 by Progress Software Corporation.           */
+/*                                                                     */
+/* All rights reserved.  No part of this program or document           */
+/* may be  reproduced in  any form  or by  any means without           */
+/* permission in writing from Progress Software Corporation.           */
+/***********************************************************************/
+/*------------------------------------------------------------------------
     File        : Cdc
     Purpose     : 
     Syntax      : 
@@ -7,7 +13,7 @@
     Author(s)   : mkondra
     Created     : Mon Nov 30 15:52:22 IST 2015
     Notes       : 
-  ----------------------------------------------------------------------*/
+-------------------------------------------------------------------------*/
 
 using OpenEdge.DataAdmin.ICdc.
 using OpenEdge.DataAdmin.IDataAdminElement.
@@ -247,20 +253,32 @@ class OpenEdge.DataAdmin.Cdc implements ICdc, IDataAdminElement, IDataAdminSeria
 	end method.
 
 	method public void Export( input cFile as character ):
-		define variable htbl as handle no-undo.
-        if not valid-handle(mDefaultBuffer) then
-        do:
-        
-            undo, throw new UnsupportedOperationError("Export of " + this-object:GetClass():TypeName).
-        end.              
-        create temp-table htbl.
-        htbl:create-like(mDefaultBuffer).
-        htbl:temp-table-prepare (mDefaultBuffer:name).
-        htbl:default-buffer-handle:buffer-copy (mBuffer).
-        htbl:default-buffer-handle:serialize-name = mDefaultBuffer:serialize-name .    
-        htbl:default-buffer-handle:write-json ("File",cFile,yes).
-        delete object htbl.   
+            this-object:ExportToJson():WriteFile(cFile, yes).
 	end method.
+
+        method public JsonObject ExportToJson ( ):
+            define variable htbl as handle no-undo.
+            define variable oJson as JsonObject no-undo.
+            oJson = new JsonObject().
+
+            if not valid-handle(mDefaultBuffer) then
+            do:
+                undo, throw new UnsupportedOperationError("Export of " + this-object:GetClass():TypeName).
+            end.
+
+            create temp-table htbl.
+            htbl:create-like(mDefaultBuffer).
+            htbl:temp-table-prepare(mDefaultBuffer:name).
+            htbl:default-buffer-handle:buffer-copy(mBuffer).
+            htbl:default-buffer-handle:serialize-name = mDefaultBuffer:serialize-name.
+            htbl:default-buffer-handle:write-json("JsonObject", oJson, yes).
+
+            return oJson.
+
+            finally:
+                delete object htbl no-error.
+            end finally.
+        end method.
 
 	method public void ExportAsProcedure( input pcfile as character ):
 		undo, throw new UnsupportedOperationError("Generation of code for " + Context:Name). 

@@ -1,5 +1,5 @@
 /************************************************
-  Copyright (c) 2016 by Progress Software Corporation. All rights reserved.
+  Copyright (c) 2016-2024 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : GrantedRoleDataSource
@@ -178,11 +178,8 @@ CustomDetail,_Custom-grant-detail":u
         define buffer b_domain for _sec-authentication-domain.
         
         Assert:NotNullOrEmpty(pcUserId, pcName).
-        if index(pcUserId, '@':u) eq 0 then
-            undo, throw new AppError(substitute('&1 &2 must be a qualified user-id',
-                                                pcName,
-                                                quoter(pcUserId)),
-                                            0).
+        // Blank domain name userid should be allowed, to make it consistent with Data Admin tool
+        if index(pcUserId, '@':u) eq 0 then return.
 		
         if not can-find(b_domain where
                         b_domain._domain-name eq entry(2, pcUserId, '@':u)) then
@@ -198,6 +195,7 @@ CustomDetail,_Custom-grant-detail":u
         define variable cConnectionRole as character no-undo.
         define variable hCurrentUser as handle no-undo.
         define variable lCanGrant as logical no-undo.
+        define variable cGrantor  as character no-undo.
 	                
         define buffer b_grant for _sec-granted-role.
         define buffer b_role for _sec-role.
@@ -211,9 +209,13 @@ CustomDetail,_Custom-grant-detail":u
         /* The current user must always be the grantor for create and update.
            Sometimes for deletes */
         assign hCurrentUser = get-db-client('dictdb':u).
+
+        /* We should allow Grantor name with blank domain name */
+		cGrantor = if hCurrentUser:domain-name = "" then hCurrentUser:user-id 
+                   else substitute('&1@&2':u, hCurrentUser:user-id, hCurrentUser:domain-name).
 		        
         if hBeforeBuffer:row-state ne row-deleted and
-           phTTBuffer::Grantor ne substitute('&1@&2':u, hCurrentUser:user-id, hCurrentUser:domain-name) then
+           phTTBuffer::Grantor ne cGrantor then
             undo, throw new AppError(substitute('Grantor &1 is not the current database user',
                                                     phTTBuffer::Grantor),
                                              0).
@@ -252,6 +254,13 @@ CustomDetail,_Custom-grant-detail":u
                             b_grant._grantee   eq phTTBuffer::Grantor  and
                             b_grant._role-name eq phTTBuffer::RoleName
                             no-lock no-error.
+                 /* For the blank domain we need to handle the case when grantee created with @ sign */
+                 if not available b_grant and index(phTTBuffer::Grantor, "@") = 0 then
+                    find first b_grant where
+                               b_grant._grantee   eq phTTBuffer::Grantor + "@"  and
+                               b_grant._role-name eq phTTBuffer::RoleName
+                               no-lock no-error.
+                
                 /* User as been granted the role and is allowed to grant to others */
                 if available b_grant and b_grant._grant-rights then
                     assign lCanGrant = true.
@@ -288,6 +297,13 @@ CustomDetail,_Custom-grant-detail":u
                            b_grant._grantee   eq phTTBuffer::Grantor  and
                            b_grant._role-name eq phTTBuffer::RoleName
                            no-lock no-error.
+                /* For the blank domain we need to handle the case when grantee created with @ sign */
+                if not available b_grant and index(phTTBuffer::Grantor, "@") = 0 then
+                    find first b_grant where
+                               b_grant._grantee   eq phTTBuffer::Grantor + "@"  and
+                               b_grant._role-name eq phTTBuffer::RoleName
+                               no-lock no-error.
+                
                 /* User as been granted the role and is allowed to grant to others */
                 if available b_grant and b_grant._grant-rights then
                 do:

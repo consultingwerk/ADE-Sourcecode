@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2011 by progress Software Corporation       */
+/* Copyright (c) 2011-2024 by progress Software Corporation       */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -19,6 +19,8 @@ using OpenEdge.DataAdmin.Core.IElement.
 using OpenEdge.DataAdmin.IDataAdminSerializable.
 using OpenEdge.DataAdmin.IDataAdminService.
 using OpenEdge.DataAdmin.IRequestInfo.
+using Progress.Json.ObjectModel.JsonObject.
+
 interface OpenEdge.DataAdmin.IDataAdminElement inherits IDataAdminSerializable, IElement:  
     
     /** returns the Service the object was retrieved from */
@@ -49,10 +51,10 @@ interface OpenEdge.DataAdmin.IDataAdminElement inherits IDataAdminSerializable, 
         @param file the file name to imprt from - currently supportes .json only */   
     method public void ImportTree(cFile as char).    
     
-    method public void Export().      
-    
+    method public void Export().    
     method public void Export(cFile as char).  
     method public void ExportTree(cFile as char).  
-    method public void ExportTree(cFile as char,pcCollections as char).  
+    method public void ExportTree(cFile as char,pcCollections as char). 
+    method public JsonObject ExportToJson().	
     
 end interface.

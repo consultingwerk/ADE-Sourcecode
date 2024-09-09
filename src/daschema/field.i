@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2010-2016 by progress Software Corporation  */
+/* Copyright (c) 2010-2016,2024 by progress Software Corporation  */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -30,11 +30,13 @@ define temp-table ttField no-undo serialize-name "fields" {1}
 /*     field IsCaseSensitive as logical  */
     field tRowid          as rowid     serialize-hidden
     field DataType        as character serialize-name "dataType"
-/*     field DisplayFormat   as character*/
+    field DisplayFormat   as character serialize-name "displayFormat"
 /*     field Label       as character*/
 /*     field ColumnLabel     as character*/
-/*     field initialValue    as character*/
-/*     field Order           as integer  */
+    field InitialValue    as character serialize-name "initialValue" 
+    field MaskValue       as character serialize-name "maskValue"
+    field AuthTagValue    as character serialize-name "authtagValue"
+    field Order           as integer   serialize-name "order"
 /*     field NumDecimals     as integer  */
 /*     field NumExtents      as integer  */
 /*     field Position        as integer  */

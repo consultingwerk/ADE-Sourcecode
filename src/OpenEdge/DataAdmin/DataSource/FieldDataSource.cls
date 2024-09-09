@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2010-2016 by progress Software Corporation. */
+/* Copyright (c) 2010-2016,2024 by progress Software Corporation. */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -18,6 +18,8 @@
 using Progress.Lang.*.
 using OpenEdge.DataAdmin.DataSource.DataSource.
 using OpenEdge.DataAdmin.Error.IllegalArgumentError.
+using OpenEdge.DataAdmin.DataAdminService from propath.
+using Progress.Database.DBConfig from propath.
 routine-level on error undo, throw.
 
 class OpenEdge.DataAdmin.DataSource.FieldDataSource inherits DataSource: 
@@ -30,10 +32,24 @@ class OpenEdge.DataAdmin.DataSource.FieldDataSource inherits DataSource:
 "Name,_field-name,~
 TableName,_file-name,~
 DataType,_data-type,~
+DisplayFormat,_format,~
+InitialValue,_initial,~
+Order,_order,~
 Description,_field._desc,~
 trowid,rowid(_Field),~
 IsMultiTenant,_File-attributes[1]"
  no-undo.
+ 
+    define protected property DBConfig as DBConfig no-undo
+    get():
+        if not valid-object(DBConfig) then 
+        do:       
+            DBConfig = new DBConfig(ldbname("dictdb")).
+            DBConfig:LockWait = false.
+        end.    
+        return DBConfig.
+    end.
+    private set.
 	
     constructor public FieldDataSource (hchanges as handle ):     
         super (hchanges,"_File,_Field","dictdb._File,dictdb._Field", 
@@ -101,6 +117,8 @@ IsMultiTenant,_File-attributes[1]"
         define variable cArea as character no-undo.
         define variable cAreaRef as character no-undo.
         define variable iSource as integer no-undo.
+        define variable cMask as character no-undo.
+        define variable cAuthTag as character no-undo.
         
         if mBuffer::DataType = "clob" or mBuffer::DataType = "blob" then 
         do:
@@ -135,6 +153,14 @@ IsMultiTenant,_File-attributes[1]"
         assign
             mBuffer::AreaName = cArea
             mBuffer::AreaURL  = cAreaRef.
+			
+	IF DBConfig:IsDDMAdmin THEN DO:
+           DBConfig:getFieldDDMConfig (mBuffer::Tablename,mBuffer::name, output cMask, output cAuthTag).  
+           assign  
+              mBuffer::MaskValue    = cMask
+              mBuffer::AuthTagValue = cAuthTag.
+        END.
+		
     end method.
     
     /* rename here to be added to _field expressions and handled in ColumnExpression */

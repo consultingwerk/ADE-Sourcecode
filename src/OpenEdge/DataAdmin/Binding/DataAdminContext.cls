@@ -2956,7 +2956,12 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract implements IDataAdmin
                   + '   "limit": ' + string(Count)        + LineFeed 
                   + '  ~},'                               + LineFeed
                   .        
-    end method.    
+    end method. 
+
+    method public JsonObject ExportToJson ( ):
+        // TODO: Perhaps find a way to support this, though it would take more research and is not yet needed.
+        undo, throw new UnsupportedOperationError("ExportToJson not supported in " + getClass():TypeName).
+    end method.	
     
     method public void ExportLastSaved(pcfile as char). 
         define variable hBuffer as handle no-undo. 

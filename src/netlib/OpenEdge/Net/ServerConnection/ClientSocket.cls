@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2014-2023 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014-2024 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : ClientSocket
@@ -338,6 +338,7 @@ class OpenEdge.Net.ServerConnection.ClientSocket
                 if timeoutLeft gt 0 then
                 do:
                     // MUST be set as whole seconds
+                    {&_proparse_ prolint-nowarn(overflow)}
                     hSocket:set-socket-option('SO-RCVTIMEO':u, string(integer(timeoutLeft))).
                     Logger:Trace(substitute('Socket timeout set to &1':u, timeoutLeft)).
                 end.
@@ -522,7 +523,7 @@ class OpenEdge.Net.ServerConnection.ClientSocket
                 else
                     assign moReadEventArgs:BytesRead = hSocket:bytes-read
                            /* Add this data to the eventargs */
-                           moReadEventArgs:Data = new memptr(get-pointer-value(mData),
+                           moReadEventArgs:Data = new Memptr(get-pointer-value(mData),
                                                              get-size(mData)).
 
                 /* Read is terminated. We're done here.  */
@@ -550,7 +551,7 @@ class OpenEdge.Net.ServerConnection.ClientSocket
                 else
                 do:
                     /* Add this data to the eventargs */
-                    assign moReadEventArgs:Data = new memptr(get-pointer-value(mData),
+                    assign moReadEventArgs:Data = new Memptr(get-pointer-value(mData),
                                                       get-size(mData))
                            iStartTime           = mtime.
                     /* tell any listeners that we have new data */
@@ -806,6 +807,8 @@ class OpenEdge.Net.ServerConnection.ClientSocket
         hSocket:set-socket-option(optionName, pCertificatSubjectName).
 
         catch err as Progress.Lang.SysError:
+            // An error 9318 indicates a TLS problem and should be dealt with by checking the message for
+            // other error numbers and then produce a more user-friendly output to explain the situation.
             if err:GetMessageNum(1) eq 9318 then
             do:
                 Logger:Error(substitute('StartTls: TLS Client authentication error for &1:&2 with subject &3',

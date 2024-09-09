@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2010 by progress Software Corporation       */
+/* Copyright (c) 2010-2024 by progress Software Corporation       */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -364,17 +364,31 @@ class OpenEdge.DataAdmin.Extent implements IExtent, IDataAdminElement, IDataAdmi
     end method.          
     
     method public void Export(cFile as char):
+        this-object:ExportToJson():WriteFile(cFile, yes).
+    end method.
+
+    method public JsonObject ExportToJson ( ):
         define variable htbl as handle no-undo.
+        define variable oJson as JsonObject no-undo.
+        oJson = new JsonObject().
+
         if not valid-handle(mDefaultBuffer) then
         do:
             undo, throw new UnsupportedOperationError("Export of new tenant").
         end.
+
         create temp-table htbl.
         htbl:create-like(mDefaultBuffer).
-        htbl:temp-table-prepare ("ttExtent").
-        htbl:default-buffer-handle:buffer-copy (mBuffer).
-        htbl:default-buffer-handle:serialize-name = "extents".     
-        htbl:default-buffer-handle:write-json ("File",cFile,yes).   
+        htbl:temp-table-prepare("ttExtent").
+        htbl:default-buffer-handle:buffer-copy(mBuffer).
+        htbl:default-buffer-handle:serialize-name = "extents".
+        htbl:default-buffer-handle:write-json("JsonObject", oJson, yes).
+
+        return oJson.
+
+        finally:
+            delete object htbl no-error.
+        end finally.
     end method.
         
     method public void ImportTree(pcFile as char). 

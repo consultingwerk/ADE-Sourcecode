@@ -1,5 +1,5 @@
 /**************************************************************************
-Copyright (c) 2011,2012,2015,2023 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2011,2012,2015,2023,2024 by Progress Software Corporation. All rights reserved.
 **************************************************************************/
 /*------------------------------------------------------------------------
     File        : UserDataSource
@@ -28,7 +28,7 @@ class OpenEdge.DataAdmin.DataSource.UserDataSource inherits DataSource :
     define buffer b_tenant for dictdb._tenant.
     define private property TenantURL  as character no-undo get. set.
     define protected variable mBuffer as handle no-undo.
-	define private variable mMapping as char
+    define private variable mMapping as char
 	   init
 "Name,_Userid,~
 Description,_description,~
@@ -40,7 +40,9 @@ MiddleInitial,_middle_initial,~
 SurName,_surname,~
 DomainName,_domain-name,~
 Telephone,_Telephone,~
-Email,_Email"
+Email,_Email,~
+Createdate,_create_date,~
+Lastlogin,_last_login"
 /*DomainId,_sec-authentication-domain._domain-id,~*/
      no-undo.
     define query dquery for b_domain .
@@ -233,6 +235,7 @@ Email,_Email"
         define variable userurl as character no-undo.
         define variable iusersrc   as integer no-undo.
         define variable husersrc as handle no-undo.
+	define variable lIsAdmin as logical no-undo initial false. /* Is the current user a security admin? */
 
         if mSave = false then
         do:
@@ -262,6 +265,8 @@ Email,_Email"
             mBuffer::url = url + "/users/" + WebUtil:UrlEncode(mBuffer::Id) when url > ''
             mBuffer::UserPermissionUrl = url + "/userpermissions/" + WebUtil:UrlEncode(mBuffer::Id) when url > ''
              .
+	run prodict/_dctadmn.p ( input mbuffer::Id, output lIsAdmin ).
+        mBuffer::IsSecAdmin = lIsAdmin.	 
 
         if mBuffer::TenantName > "" and url > '' then
             mBuffer::TenantUrl  = TenantURL + WebUtil:UrlEncode(mBuffer::TenantName).

@@ -1,5 +1,5 @@
 /************************************************
-  Copyright (c) 2016 by Progress Software Corporation. All rights reserved.
+  Copyright (c) 2016-2024 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : GrantedRoleContext
@@ -170,7 +170,8 @@ class OpenEdge.DataAdmin.Binding.GrantedRoleContext inherits DataAdminContext :
                .
         if valid-object(oService) then
             assign hCurrentUser          = get-db-client(oService:Name)
-                   ttGrantedRole.Grantor = substitute('&1@&2':u, hCurrentUser:user-id, hCurrentUser:domain-name).
+                   ttGrantedRole.Grantor = if hCurrentUser:domain-name = "" then hCurrentUser:user-id 
+                                           else substitute('&1@&2':u, hCurrentUser:user-id, hCurrentUser:domain-name). /* Blank domain name should be allowed */
         /* Use a GUID for the Id if not is supplied. */
         if ttGrantedRole.Id eq '':u or ttGrantedRole.Id eq ? then
             assign ttGrantedRole.Id = guid.
