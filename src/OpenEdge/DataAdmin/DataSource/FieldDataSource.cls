@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2010-2016 by progress Software Corporation. */
+/* Copyright (c) 2010-2016,2024 by progress Software Corporation. */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -30,6 +30,9 @@ class OpenEdge.DataAdmin.DataSource.FieldDataSource inherits DataSource:
 "Name,_field-name,~
 TableName,_file-name,~
 DataType,_data-type,~
+DisplayFormat,_format,~
+InitialValue,_initial,~
+Order,_order,~
 Description,_field._desc,~
 trowid,rowid(_Field),~
 IsMultiTenant,_File-attributes[1]"

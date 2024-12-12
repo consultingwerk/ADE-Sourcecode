@@ -1,4 +1,4 @@
- /* Copyright (c) 2011-2016 by progress Software Corporation  */
+ /* Copyright (c) 2011-2016,2024 by progress Software Corporation  */
  /*                                                           */
  /* all rights reserved.  no part of this program or document */
  /* may be  reproduced in  any form  or by  any means without */
@@ -395,21 +395,30 @@ class OpenEdge.DataAdmin.Entity abstract implements IDataAdminElement use-widget
        end finally.
     end method.
      
-    method private void ExportToJson(cFile as char):
+    method public JsonObject ExportToJson():
         /* create buffer to export one record  */
         define variable htbl as handle no-undo.
-        
-        Refresh().
+        define variable oJson as JsonObject no-undo.
+        oJson = new JsonObject().
+
+        this-object:Refresh().
+
         create temp-table htbl.
         htbl:create-like(mDefaultBuffer).
-        htbl:temp-table-prepare (mDefaultBuffer:name).
-        htbl:default-buffer-handle:buffer-copy (mBuffer).
-        htbl:default-buffer-handle:serialize-name = mDefaultBuffer:serialize-name .    
-        htbl:default-buffer-handle:write-json ("File",cFile,yes).   
-        
+        htbl:temp-table-prepare(mDefaultBuffer:name).
+        htbl:default-buffer-handle:buffer-copy(mBuffer).
+        htbl:default-buffer-handle:serialize-name = mDefaultBuffer:serialize-name.
+        htbl:default-buffer-handle:write-json("JsonObject", oJson, yes).
+
+        return oJson.
+
         finally:
             delete object htbl no-error.
         end finally.
+    end method.
+
+    method private void ExportToJson(cFile as char):
+        this-object:ExportToJson():WriteFile(cFile, yes).
     end method. 
     
     method public void ExportAsProcedure(pcfile as char ):

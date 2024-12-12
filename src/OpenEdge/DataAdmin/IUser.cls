@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2011,2015 by Progress Software Corporation  */
+/* Copyright (c) 2011,2015,2024 by Progress Software Corporation  */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -63,5 +63,16 @@ interface OpenEdge.DataAdmin.IUser inherits IDataAdminElement:
 
      /** An email address for the user (optional) */
      define public property Email         as character no-undo get. set.    
+     
+     /** Determine user is Security Admin. To be a Security Administrator, user must have:
+        Write  permission on _File._Can-read
+        Write  permission on _File._Can-write
+        Write  permission on _File._Can-create
+        Write  permission on _File._Can-delete
+        Write  permission on _Field._Can-read
+        Write  permission on _Field._Can-write
+        Create permission on _User
+        Delete permission on _User */
+     define public property IsSecAdmin    as logical no-undo get.
          
 end interface.

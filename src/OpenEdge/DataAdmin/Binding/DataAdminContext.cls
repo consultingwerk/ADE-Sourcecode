@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2011-2016,2019 by Progress Software Corporation. */
+/* Copyright (c) 2011-2016,2019,2024 by Progress Software Corporation. */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -2957,6 +2957,11 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract implements IDataAdmin
                   + '  ~},'                               + LineFeed
                   .        
     end method.    
+
+    method public JsonObject ExportToJson ( ):
+        // TODO: Perhaps find a way to support this, though it would take more research and is not yet needed.
+        undo, throw new UnsupportedOperationError("ExportToJson not supported in " + getClass():TypeName).
+    end method.
     
     method public void ExportLastSaved(pcfile as char). 
         define variable hBuffer as handle no-undo. 
