@@ -526,6 +526,31 @@ class OpenEdge.ApplicationServer.Util.OEManagerConnection implements ISupportLog
             return new JsonArray().
     end method. /* GetAgentMetrics */
 
+    /* Get a listng of agent (ABL) requests for a single agent of an ABL Application
+        https://docs.progress.com/bundle/pas-for-openedge-reference/page/Get-current-request-information.html
+
+       @param character ABL Application Name
+       @param integer Agent Process ID (PID)
+       @return JsonArray Array of Requests */
+    method public JsonArray GetAgentRequests ( input pcAblApp as character,
+                                               input piPID    as integer ):
+        define variable oJsonResp as JsonObject no-undo.
+
+        assign oJsonResp = this-object:GetData(substitute(OEManagerEndpoint:AgentRequests, pcAblApp, piPID)).
+
+        if JsonPropertyHelper:HasTypedProperty(oJsonResp, "error", JsonDataType:String) then
+            undo, throw new Progress.Lang.AppError(oJsonResp:GetCharacter("error"), 0).
+
+        if JsonPropertyHelper:HasTypedProperty(oJsonResp, "result", JsonDataType:Object) then do:
+            if JsonPropertyHelper:HasTypedProperty(oJsonResp:GetJsonObject("result"), "AgentRequest", JsonDataType:Array) then
+                return oJsonResp:GetJsonObject("result"):GetJsonArray("AgentRequest").
+            else
+                return new JsonArray().
+        end. /* result */
+        else
+            return new JsonArray().
+    end method. /* GetAgentRequests */
+
     /* Get a listng of agent (ABL) sessions for a single agent of an ABL Application
         https://docs.progress.com/bundle/pas-for-openedge-reference/page/Get-session-metrics.html
 

@@ -1,5 +1,5 @@
 /**************************************************************************
-Copyright (c) 2022-2023 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2022-2024 by Progress Software Corporation. All rights reserved.
 **************************************************************************/
 /*------------------------------------------------------------------------
     File        : OEManagerEndpoint
@@ -29,6 +29,9 @@ class OpenEdge.ApplicationServer.Util.OEManagerEndpoint:
         private set.
 
     define public static property AgentMetrics as character no-undo init "oemanager/applications/&1/agents/&2/metrics" get.
+        private set.
+
+    define public static property AgentRequests as character no-undo init "oemanager/applications/&1/agents/&2/requests" get.
         private set.
 
     define public static property AgentSessions as character no-undo init "oemanager/applications/&1/agents/&2/sessions" get.

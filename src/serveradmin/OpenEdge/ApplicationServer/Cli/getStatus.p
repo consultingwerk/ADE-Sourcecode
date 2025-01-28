@@ -166,7 +166,7 @@ end finally.
 /* PROCEDURES / FUNCTIONS */
 
 function FormatDecimal returns character ( input pcValue as character ):
-    return trim(string(int64(pcValue) / 60000, ">>9.9")).
+    return trim(string(int64(pcValue) / 60000, "->>9.9")).
 end function. /* FormatDecimal */
 
 function FormatMemory returns character ( input piValue as int64, input plTrim as logical ):
@@ -200,9 +200,9 @@ end function. /* FormatMsTime */
 
 function FormatLongNumber returns character ( input pcValue as character, input plTrim as logical ):
     if plTrim then
-        return trim(string(int64(pcValue), ">>>,>>>,>>9")).
+        return trim(string(int64(pcValue), "->>>,>>>,>>9")).
     else
-        return string(int64(pcValue), ">>>,>>>,>>9").
+        return string(int64(pcValue), "->>>,>>>,>>9").
 end function. /* FormatCharAsNumber */
 
 function FormatCharAsNumber returns character ( input pcValue as character ):
@@ -651,7 +651,7 @@ procedure GetSessions:
            JsonPropertyHelper:HasTypedProperty(oMetrics, "readErrors", JsonDataType:Number) then
             put unformatted substitute("~t      # Agent Responses Read: &1 (&2 Errors)",
                                         FormatLongNumber(string(oMetrics:GetInteger("reads")), false),
-                                        trim(string(oMetrics:GetInteger("readErrors"), ">>>,>>>,>>9"))) skip.
+                                        trim(string(oMetrics:GetInteger("readErrors"), "->>>,>>>,>>9"))) skip.
 
         /* Minimum, maximum, average times to read a response from the MSAgent. */
         if JsonPropertyHelper:HasTypedProperty(oMetrics, "minAgentReadTime", JsonDataType:Number) and
@@ -668,7 +668,7 @@ procedure GetSessions:
            JsonPropertyHelper:HasTypedProperty(oMetrics, "writeErrors", JsonDataType:Number) then
             put unformatted substitute("~t    # Agent Requests Written: &1 (&2 Errors)",
                                         FormatLongNumber(string(oMetrics:GetInteger("writes")), false),
-                                        trim(string(oMetrics:GetInteger("writeErrors"), ">>>,>>>,>>9"))) skip.
+                                        trim(string(oMetrics:GetInteger("writeErrors"), "->>>,>>>,>>9"))) skip.
 
         /* Number of clients connected at a particular time. */
         /* Maximum number of concurrent clients. */
@@ -676,7 +676,7 @@ procedure GetSessions:
            JsonPropertyHelper:HasTypedProperty(oMetrics, "maxConcurrentClients", JsonDataType:Number) then
             put unformatted substitute("~tConcurrent Connected Clients: &1 (Max: &2)",
                                         FormatLongNumber(string(oMetrics:GetInteger("concurrentConnectedClients")), false),
-                                        trim(string(oMetrics:GetInteger("maxConcurrentClients"), ">>>,>>>,>>9"))) skip.
+                                        trim(string(oMetrics:GetInteger("maxConcurrentClients"), "->>>,>>>,>>9"))) skip.
 
         /* Total time that reserved ABL sessions had to wait before executing. */
         if JsonPropertyHelper:HasTypedProperty(oMetrics, "totReserveABLSessionWaitTime", JsonDataType:Number) then

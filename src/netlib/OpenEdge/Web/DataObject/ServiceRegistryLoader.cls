@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2023 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2024 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : ServiceRegistryLoader
@@ -155,7 +155,7 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
         Assert:NotNull(pVersion, 'Service version').
         Assert:NotNull(pWebAppPath, 'Web app path').
 
-        assign pServiceName = DataObjectService:NormaliseServiceName(pServiceName).
+        assign pServiceName = DataObjectService:NormalizeServiceName(pServiceName).
 
         if pWebAppPath eq '':u then
             assign pWebAppPath = 'ROOT':u.
@@ -730,6 +730,7 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
                         end.
 
                         // If data validations passed above, continue to mapping the operation for this service.
+                        {&_proparse_ prolint-nowarn(overflow)}
                         assign oMappedOperation = new MappedOperation(propertyName,
                                                                       oMethod,
                                                                       oVerb:GetCharacter(string(ServiceMappingFileSchemaEnum:contentType)),
@@ -741,7 +742,7 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
                                                                       (if oVerb:Has(string(ServiceMappingFileSchemaEnum:options))
                                                                        then CreateOperationOptions(oVerb:GetJsonObject(string(ServiceMappingFileSchemaEnum:options))) else ?),
                                                                       (if oVerb:Has(string(ServiceMappingFileSchemaEnum:statusCode))
-                                                                       then oVerb:GetInteger(string(ServiceMappingFileSchemaEnum:statusCode)) else integer(StatusCodeEnum:OK))
+                                                                       then oVerb:GetInteger(string(ServiceMappingFileSchemaEnum:statusCode)) else integer(StatusCodeEnum:OK:GetValue()))
                                                                       ) no-error.
 
                         // Because we use GetClass on "targetType" in the constructor of the MappedOperation class, we need to use no-error above.
@@ -837,16 +838,16 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
 
                                 // The element type tells us how to map this parameter in the HTTP message.
                                 if JsonPropertyHelper:HasTypedProperty(oElem, string(ServiceMappingFileSchemaEnum:type), JsonDataType:STRING) then
-                                    assign elemType = oElem:GetCharacter(string(ServiceMappingFileSchemaEnum:type)).
+                                    assign elemType = trim(oElem:GetCharacter(string(ServiceMappingFileSchemaEnum:type))).
                                 else do:
                                     Logger:Error(substitute('Element &1 for "&2" is missing or not a string in &3 of "&4" for service "&5"',
                                                             string(ServiceMappingFileSchemaEnum:type), ablName, methodName, propertyName, pService:Name)).
                                     next ELEM-CNT-LOOP.
                                 end.
 
-                                // This doesn't mean we fail as this can legit be a NULL value (eg. for the BODY element type).
+                                // This doesn't mean we fail as this can legit be a NULL or empty value (such as for the Body or StatusCode element types).
                                 if JsonPropertyHelper:HasTypedProperty(oElem, string(ServiceMappingFileSchemaEnum:name), JsonDataType:STRING) then
-                                    assign elemName = oElem:GetCharacter(string(ServiceMappingFileSchemaEnum:name)).
+                                    assign elemName = trim(oElem:GetCharacter(string(ServiceMappingFileSchemaEnum:name))).
 
                                 // Add element by given name as expected type (eg. field, body, etc.)
                                 assign msgElem[iElemLoop] = new MessageElement(ElementTypeEnum:GetEnum(elemType), elemName, ioMode) no-error.
@@ -934,6 +935,7 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
                             next VERB-LOOP.
                         end.
 
+                        {&_proparse_ prolint-nowarn(overflow)}
                         assign oMappedOperation = new MappedOperation(propertyName,
                                                                       oMethod,
                                                                       oVerb:GetCharacter(string(ServiceMappingFileSchemaEnum:contentType)),
@@ -944,7 +946,7 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
                                                                       (if JsonPropertyHelper:HasTypedProperty(oVerb, string(ServiceMappingFileSchemaEnum:options), JsonDataType:OBJECT)
                                                                        then CreateOperationOptions(oVerb:GetJsonObject(string(ServiceMappingFileSchemaEnum:options))) else ?),
                                                                       (if JsonPropertyHelper:HasTypedProperty(oVerb, string(ServiceMappingFileSchemaEnum:statusCode), JsonDataType:NUMBER)
-                                                                       then oVerb:GetInteger(string(ServiceMappingFileSchemaEnum:statusCode)) else integer(StatusCodeEnum:OK))
+                                                                       then oVerb:GetInteger(string(ServiceMappingFileSchemaEnum:statusCode)) else integer(StatusCodeEnum:OK:GetValue()))
                                                                       ).
 
                         // Increment if we survived the loop without exiting.

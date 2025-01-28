@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2019, 2021-2023 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2019,2021-2024 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : OperationHandler
@@ -329,14 +329,14 @@ class OpenEdge.Web.DataObject.OperationHandler implements IOperationHandler, ISu
             assign elementTime[1] = now
                    msgElem        = poArg:Parameter:OutputElement[loop]
                    respElemWriter = ResponseElementWriterBuilder:Build(msgElem:ElementType)
-                                        :WriteTo(pResponse)
-                                        :Logger(this-object:Logger)
-                                        :Writer
+                                                                :WriteTo(pResponse)
+                                                                :Logger(this-object:Logger)
+                                                                :Writer
                    .
             if not valid-object(respElemWriter) then
             do:
                 Logger:Warn(substitute('Unsupported message element type &1 for "&2"',
-                                string(msgElem:ElementType), msgElem:ElementName)).
+                                       string(msgElem:ElementType), msgElem:ElementName)).
                 next MSG-ELEM-LOOP.
             end.
 
@@ -585,7 +585,7 @@ class OpenEdge.Web.DataObject.OperationHandler implements IOperationHandler, ISu
                 if not type-of(poMessageBody, JsonObject) then
                 do:
                     Logger:Warn(substitute('Only JsonObject types supported for Field mapping, not &1',
-                                    poMessageBody:GetClass():TypeName)).
+                                           poMessageBody:GetClass():TypeName)).
                     return.
                 end.
 
@@ -594,7 +594,7 @@ class OpenEdge.Web.DataObject.OperationHandler implements IOperationHandler, ISu
                 if not oJsonData:Has(pMsgElement:ElementName) then
                 do:
                     Logger:Warn(substitute('Field "&1" not found in message body',
-                                    pMsgElement:ElementName)).
+                                           pMsgElement:ElementName)).
                     return.
                 end.
 
@@ -614,7 +614,7 @@ class OpenEdge.Web.DataObject.OperationHandler implements IOperationHandler, ISu
                 else
                 do:
                     Logger:Warn(substitute('Only MultipartEntity types supported for Field mapping, not &1',
-                                    poMessageBody:GetClass():TypeName)).
+                                           poMessageBody:GetClass():TypeName)).
                     return.
                 end.
             end.    // MULTIPART/FORM-DATA
@@ -848,7 +848,7 @@ class OpenEdge.Web.DataObject.OperationHandler implements IOperationHandler, ISu
             otherwise
             do:
                 Logger:Warn(substitute('Argument type &1 is not a supported array holder. Returning complete value',
-                                    pArgType:TypeName)).
+                                       pArgType:TypeName)).
                 assign elemValue = pValueHolder.
             end.
         end case.   // individual primitive array types
@@ -911,8 +911,8 @@ class OpenEdge.Web.DataObject.OperationHandler implements IOperationHandler, ISu
             if elemIdx eq 0 then
             do:
                 Logger:Warn(substitute('Unable to read field &1 of argument type &2. Using entire entire argument value instead.',
-                                    pPropertyName,
-                                    pArgType:TypeName )).
+                                       pPropertyName,
+                                       pArgType:TypeName )).
                 return pArgValue.
             end.
             assign pPropertyName = substring(pPropertyName, 1, pos[1] - 1).
@@ -927,8 +927,8 @@ class OpenEdge.Web.DataObject.OperationHandler implements IOperationHandler, ISu
         then
         do:
             Logger:Warn(substitute('Unable to read field &1 of argument type &2. Using entire entire argument value instead.',
-                                pPropertyName,
-                                pArgType:TypeName )).
+                                   pPropertyName,
+                                   pArgType:TypeName )).
             return pArgValue.
         end.
 
@@ -1183,57 +1183,59 @@ class OpenEdge.Web.DataObject.OperationHandler implements IOperationHandler, ISu
 
             case msgElem:ElementType:
                 when ElementTypeEnum:Path then
-                case true:
-                    when writeProperty then
-                        valueWriter:Write(new KeyValuePair(msgElem:ABLReference, pRequest:GetPathParameter(msgElem:ElementName))).
-                    otherwise
-                        valueWriter:Write(pRequest:GetPathParameter(msgElem:ElementName)).
-                end case.
+                    case true:
+                        when writeProperty then
+                            valueWriter:Write(new KeyValuePair(msgElem:ABLReference, pRequest:GetPathParameter(msgElem:ElementName))).
+                        otherwise
+                            valueWriter:Write(pRequest:GetPathParameter(msgElem:ElementName)).
+                    end case.
 
                 when ElementTypeEnum:Query then
+                do:
                     if pRequest:URI:HasQueryName(msgElem:ElementName) then
-                    case true:
-                        // Query parameters may contain more than 1 value for a name, so we must deal with a character[] result when more than 1 value exists.
-                        when writeProperty then do:
-                            if pRequest:URI:GetQueryValueCount(msgElem:ElementName) gt 1 and poArg:Parameter:ArgumentType eq get-class(ILongcharArrayHolder) then
-                                // If the argument parameter is expected to be a character/longchar array, then return an array of values when present.
-                                valueWriter:Write(new KeyValuePair(msgElem:ABLReference, new LongcharArrayHolder(pRequest:URI:GetQueryValues(msgElem:ElementName)))).
-                            else
-                                valueWriter:Write(new KeyValuePair(msgElem:ABLReference, pRequest:URI:GetQueryValue(msgElem:ElementName))). // Use the old way (last value).
-                        end.
-                        otherwise do:
-                            if pRequest:URI:GetQueryValueCount(msgElem:ElementName) gt 1 and poArg:Parameter:ArgumentType eq get-class(ILongcharArrayHolder) then
-                                // If the argument parameter is expected to be a character/longchar array, then return an array of values when present.
-                                valueWriter:Write(new LongcharArrayHolder(pRequest:URI:GetQueryValues(msgElem:ElementName))).
-                            else
-                                valueWriter:Write(pRequest:URI:GetQueryValue(msgElem:ElementName)). // Use the old way (last value).
-                        end.
-                    end case.
+                        case true:
+                            // Query parameters may contain more than 1 value for a name, so we must deal with a character[] result when more than 1 value exists.
+                            when writeProperty then do:
+                                if pRequest:URI:GetQueryValueCount(msgElem:ElementName) gt 1 and poArg:Parameter:ArgumentType eq get-class(ILongcharArrayHolder) then
+                                    // If the argument parameter is expected to be a character/longchar array, then return an array of values when present.
+                                    valueWriter:Write(new KeyValuePair(msgElem:ABLReference, new LongcharArrayHolder(pRequest:URI:GetQueryValues(msgElem:ElementName)))).
+                                else
+                                    valueWriter:Write(new KeyValuePair(msgElem:ABLReference, pRequest:URI:GetQueryValue(msgElem:ElementName))). // Use the old way (last value).
+                            end.
+                            otherwise do:
+                                if pRequest:URI:GetQueryValueCount(msgElem:ElementName) gt 1 and poArg:Parameter:ArgumentType eq get-class(ILongcharArrayHolder) then
+                                    // If the argument parameter is expected to be a character/longchar array, then return an array of values when present.
+                                    valueWriter:Write(new LongcharArrayHolder(pRequest:URI:GetQueryValues(msgElem:ElementName))).
+                                else
+                                    valueWriter:Write(pRequest:URI:GetQueryValue(msgElem:ElementName)). // Use the old way (last value).
+                            end.
+                        end case.
+                end.
 
                 // Kept for legacy purposes, otherwise QueryParams should be used.
                 when ElementTypeEnum:QueryMap then
-                case true:
-                    when writeProperty then
-                        valueWriter:Write(new KeyValuePair(msgElem:ABLReference, pRequest:URI:GetQueryMap())).
-                    otherwise
-                        valueWriter:Write(pRequest:URI:GetQueryMap()).
-                end case.
+                    case true:
+                        when writeProperty then
+                            valueWriter:Write(new KeyValuePair(msgElem:ABLReference, pRequest:URI:GetQueryMap())).
+                        otherwise
+                            valueWriter:Write(pRequest:URI:GetQueryMap()).
+                    end case.
 
                 when ElementTypeEnum:QueryParams then
-                case true:
-                    when writeProperty then
-                        valueWriter:Write(new KeyValuePair(msgElem:ABLReference, pRequest:URI:GetQueryParams())).
-                    otherwise
-                        valueWriter:Write(pRequest:URI:GetQueryParams()).
-                end case.
+                    case true:
+                        when writeProperty then
+                            valueWriter:Write(new KeyValuePair(msgElem:ABLReference, pRequest:URI:GetQueryParams())).
+                        otherwise
+                            valueWriter:Write(pRequest:URI:GetQueryParams()).
+                    end case.
 
                 when ElementTypeEnum:Header then
-                case true:
-                    when writeProperty then
-                        valueWriter:Write(new KeyValuePair(msgElem:ABLReference, ReadHeaderValue(msgElem, pRequest))).
-                    otherwise
-                        valueWriter:Write(ReadHeaderValue(msgElem, pRequest)).
-                end case.
+                    case true:
+                        when writeProperty then
+                            valueWriter:Write(new KeyValuePair(msgElem:ABLReference, ReadHeaderValue(msgElem, pRequest))).
+                        otherwise
+                            valueWriter:Write(ReadHeaderValue(msgElem, pRequest)).
+                    end case.
 
                 when ElementTypeEnum:HeaderSet then
                 do:
@@ -1247,30 +1249,32 @@ class OpenEdge.Web.DataObject.OperationHandler implements IOperationHandler, ISu
                 end.
 
                 when ElementTypeEnum:Constant then
-                case true:
-                    when writeProperty then
-                        valueWriter:Write(new KeyValuePair(msgElem:ABLReference, msgElem:ElementName)).
-                    otherwise
-                        valueWriter:Write(msgElem:ElementName).
-                end case.
+                    case true:
+                        when writeProperty then
+                            valueWriter:Write(new KeyValuePair(msgElem:ABLReference, msgElem:ElementName)).
+                        otherwise
+                            valueWriter:Write(msgElem:ElementName).
+                    end case.
 
                 /* Returns the cookie value only */
                 when ElementTypeEnum:Cookie then
+                do:
                     if pRequest:HasCookie(msgElem:ElementName) then
-                    case true:
-                        when writeProperty then
-                            valueWriter:Write(new KeyValuePair(msgElem:ABLReference, pRequest:GetCookie(msgElem:ElementName):Value)).
-                        otherwise
-                            valueWriter:Write(pRequest:GetCookie(msgElem:ElementName):Value).
-                    end case.
+                        case true:
+                            when writeProperty then
+                                valueWriter:Write(new KeyValuePair(msgElem:ABLReference, pRequest:GetCookie(msgElem:ElementName):Value)).
+                            otherwise
+                                valueWriter:Write(pRequest:GetCookie(msgElem:ElementName):Value).
+                        end case.
+                end.
 
                 when ElementTypeEnum:Body then
-                case true:
-                    when writeProperty then
-                        valueWriter:Write(new KeyValuePair(msgElem:ABLReference, poMessageBody)).
-                    otherwise
-                        valueWriter:Write(poMessageBody).
-                end case.
+                    case true:
+                        when writeProperty then
+                            valueWriter:Write(new KeyValuePair(msgElem:ABLReference, poMessageBody)).
+                        otherwise
+                            valueWriter:Write(poMessageBody).
+                    end case.
 
                 when ElementTypeEnum:Field then
                     // this method writes into the value writer
@@ -1278,20 +1282,20 @@ class OpenEdge.Web.DataObject.OperationHandler implements IOperationHandler, ISu
 
                 /* cannot convert */
                 when ElementTypeEnum:Request then
-                case true:
-                    when writeProperty then
-                        valueWriter:Write(new KeyValuePair(msgElem:ABLReference, pRequest)).
-                    otherwise
-                        valueWriter:Write(pRequest).
-                end case.
+                    case true:
+                        when writeProperty then
+                            valueWriter:Write(new KeyValuePair(msgElem:ABLReference, pRequest)).
+                        otherwise
+                            valueWriter:Write(pRequest).
+                    end case.
 
                 when ElementTypeEnum:HttpMethod then
-                case true:
-                    when writeProperty then
-                        valueWriter:Write(new KeyValuePair(msgElem:ABLReference, pRequest:Method)).
-                    otherwise
-                        valueWriter:Write(pRequest:Method).
-                end case.
+                    case true:
+                        when writeProperty then
+                            valueWriter:Write(new KeyValuePair(msgElem:ABLReference, pRequest:Method)).
+                        otherwise
+                            valueWriter:Write(pRequest:Method).
+                    end case.
 
                 /* unsupported */
                 otherwise

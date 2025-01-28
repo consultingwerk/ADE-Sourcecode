@@ -1,5 +1,5 @@
 /**************************************************************************
-Copyright (c) 2014,2017-2018,2021-2022 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014,2017-2018,2021-2022,2024 by Progress Software Corporation. All rights reserved.
 **************************************************************************/
  /*------------------------------------------------------------------------
     File        : AgentInfo.cls
@@ -343,6 +343,7 @@ class OpenEdge.ApplicationServer.AgentInfo final:
         hQuery:get-last().
 
         /* loop through until query returns no more records */
+        COUNTBLK:
         do while not hQuery:query-off-end:
             iCounter = iCounter + 1.
 
@@ -351,12 +352,9 @@ class OpenEdge.ApplicationServer.AgentInfo final:
             hTTCopyBuffer:buffer-copy(hTTSrcBuffer).
             hTTCopyBuffer:buffer-release().
 
-            /* Stop when we create 100 records */
+            /* Stop when we create 1000 records */
             if iCounter = 1000 then
-            COUNTBLK:
-            do:
                 leave COUNTBLK.
-            end.
 
             /* get previous record */
             hQuery:get-prev().
@@ -511,7 +509,7 @@ class OpenEdge.ApplicationServer.AgentInfo final:
 
     /* Returns an Agent SessionID given a Client SessionID
 
-       @param character Client SessionID 
+       @param character Client SessionID
        @return integer Agent SessionID */
     method public integer getAgentSessionID (input clsessid as character):
         // biopasa.c: OTM_PASAGENTINFO_GETAGENTSESSIONID_ID -> csMtPasGetAgentSessionId
