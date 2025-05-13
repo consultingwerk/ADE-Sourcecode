@@ -1,5 +1,5 @@
 /* ***********************************************************/
-/* Copyright (c) 2011-2013 by Progress Software Corporation  */
+/* Copyright (c) 2011-2013,2025 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -133,7 +133,7 @@ procedure handleStop:
 end. 
 
 procedure handleError:
-    define input  parameter perr as error no-undo.
+    define input  parameter perr as Error no-undo.
     define input  parameter pfile as character no-undo.
     define variable errorHandler      as DataAdminErrorHandler no-undo.
    

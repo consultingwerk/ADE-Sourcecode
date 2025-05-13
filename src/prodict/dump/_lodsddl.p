@@ -1,8 +1,8 @@
-/***************************************************************************
-* Copyright (C) 2006-2017,2021,2022,2023 by Progress Software Corporation. *
-* All contributed by participants of Possenet.                             *
-*                                                                          *
-****************************************************************************/
+/********************************************************************************
+* Copyright (C) 2006-2017,2021,2022,2023,2025 by Progress Software Corporation. *
+* All contributed by participants of Possenet.                                  *
+*                                                                               *
+*********************************************************************************/
 /*------------------------------------------------------------------------
     File        : _lodsddl
     Purpose     : 
@@ -1116,7 +1116,7 @@ PROCEDURE checkEPolicy:
     DO ON ERROR UNDO, LEAVE:
         dictEPolicy = NEW prodict.sec._sec-pol-util().
 
-        CATCH ae AS PROGRESS.Lang.AppError:
+        CATCH ae AS Progress.Lang.AppError:
             /* this gets set so we display the error message */
             ASSIGN error_text[61] = "Cannot load any encryption definitions." + "~n"
                             + ae:GetMessage(1)
@@ -1159,7 +1159,7 @@ PROCEDURE checkObjAttrs:
     DO ON ERROR UNDO, LEAVE:
         dictObjAttrs = NEW prodict.pro._obj-attrib-util().
 
-        CATCH ae AS PROGRESS.Lang.AppError:
+        CATCH ae AS Progress.Lang.AppError:
             /* this gets set so we display the error message */
             ASSIGN error_text[70] = "Cannot load any buffer-pool definitions." + "~n"
                             + ae:GetMessage(1)

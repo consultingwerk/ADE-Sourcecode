@@ -1,9 +1,9 @@
-/*********************************************************************************
-* Copyright (C) 2005-2014,2020,2021,2022,2023 by Progress Software Corporation.  *
-* All rights reserved. Prior versions of this work may contain                   *
-* portions contributed by participants of Possenet.                              *
-*                                                                                *
-**********************************************************************************/
+/**************************************************************************************
+* Copyright (C) 2005-2014,2020,2021,2022,2023,2025 by Progress Software Corporation.  *
+* All rights reserved. Prior versions of this work may contain                        *
+* portions contributed by participants of Possenet.                                   *
+*                                                                                     *
+**************************************************************************************/
 
 /* _dmpincr.p - phase 2 of incremental .df maker 
 
@@ -401,7 +401,7 @@ PROCEDURE checkEPolicy:
         */
         IF isDictDbEncryptionEnabled THEN
            myEPolicy[1] = NEW prodict.sec._sec-pol-util(LDBNAME("DICTDB")).
-        CATCH ae AS PROGRESS.Lang.AppError:
+        CATCH ae AS Progress.Lang.AppError:
            /* if encryption is not enabled, we simply ignore it */
             IF ae:GetMessageNum(1) NE 14889 THEN
                cMsg[1] = "Database " + LDBNAME("DICTDB") + " : " + ae:GetMessage(1).
@@ -416,7 +416,7 @@ PROCEDURE checkEPolicy:
         */
         IF isDictDb2EncryptionEnabled THEN
            myEPolicy[2] = NEW prodict.sec._sec-pol-util(LDBNAME("DICTDB2")).
-        CATCH ae AS PROGRESS.Lang.AppError:
+        CATCH ae AS Progress.Lang.AppError:
             /* if encryption is not enabled, we simply ignore it */
             IF ae:GetMessageNum(1) NE 14889 THEN
                cMsg[2] = "Database " + LDBNAME("DICTDB2") + " : " + ae:GetMessage(1).
@@ -454,7 +454,7 @@ PROCEDURE checkEPolicy:
                 END.
                 ELSE DO:
                    if p-silentincrd THEN 
-                       undo, throw new AppError(new_lang[32] + "~n" +
+                       undo, throw new Progress.Lang.AppError(new_lang[32] + "~n" +
                             new_lang[33] + "~n" +
                             new_lang[34] + "~n" +
                             new_lang[35]). 
@@ -483,7 +483,7 @@ PROCEDURE checkEPolicy:
                     VIEW-AS ALERT-BOX WARNING.
             ELSE DO:
                    if p-silentincrd THEN 
-                       undo, throw new AppError(new_lang[36] + "~n" + cTmp). 
+                       undo, throw new Progress.Lang.AppError(new_lang[36] + "~n" + cTmp). 
                    ELSE
                        MESSAGE new_lang[36] SKIP cTmp.
             END.
@@ -519,7 +519,7 @@ PROCEDURE checkObjectAttributes:
            in both, or we won't do anything with them.
         */
         myObjAttrs[1] = NEW prodict.pro._obj-attrib-util(LDBNAME("DICTDB")).
-        CATCH ae AS PROGRESS.Lang.AppError:
+        CATCH ae AS Progress.Lang.AppError:
            /* if database doesn't support it, we just ignore it */
             IF ae:GetMessageNum(1) NE 4634 THEN
                cMsg[1] = "Database " + LDBNAME("DICTDB") + " : " + ae:GetMessage(1).
@@ -533,7 +533,7 @@ PROCEDURE checkObjectAttributes:
            in both, or we won't do anything with them.
         */
         myObjAttrs[2] = NEW prodict.pro._obj-attrib-util(LDBNAME("DICTDB2")).
-        CATCH ae AS PROGRESS.Lang.AppError:
+        CATCH ae AS Progress.Lang.AppError:
             /* if database doesn't support it, we just ignore it */
             IF ae:GetMessageNum(1) NE 4634 THEN
                cMsg[2] = "Database " + LDBNAME("DICTDB2") + " : " + ae:GetMessage(1).
@@ -567,7 +567,7 @@ PROCEDURE checkObjectAttributes:
                 END.
                 ELSE DO:
                    if p-silentincrd THEN 
-                       undo, throw new AppError(new_lang[37] + "~n" + new_lang[38]). 
+                       undo, throw new Progress.Lang.AppError(new_lang[37] + "~n" + new_lang[38]). 
                    ELSE
                     MESSAGE new_lang[37] SKIP
                             new_lang[38].
@@ -594,7 +594,7 @@ PROCEDURE checkObjectAttributes:
                     VIEW-AS ALERT-BOX WARNING.
             ELSE DO:
                    if p-silentincrd THEN 
-                       undo, throw new AppError(new_lang[38] + "~n" + cTmp).
+                       undo, throw new Progress.Lang.AppError(new_lang[38] + "~n" + cTmp).
                    ELSE
                        MESSAGE new_lang[38] SKIP cTmp.
             END.

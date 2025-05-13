@@ -1,8 +1,8 @@
-/*********************************************************************
-* Copyright (C) 2008-2010 by Progress Software Corporation. All rights    *
-* reserved.                                                          *
-*                                                                    *
-*********************************************************************/
+/*******************************************************************************
+* Copyright (C) 2008-2010,2025 by Progress Software Corporation. All rights    *
+* reserved.                                                                    *
+*                                                                              *
+********************************************************************************/
 
 /*--------------------------------------------------------------------
 
@@ -110,7 +110,7 @@ DO TRANSACTION ON ERROR UNDO, LEAVE
        END.
    END.
                 
-   CATCH ae AS PROGRESS.Lang.AppError:
+   CATCH ae AS Progress.Lang.AppError:
        /* 'edit' mode returns error if user did not commit, so that we undo
           the transaction. If message is blank, no need to display anything.
        */

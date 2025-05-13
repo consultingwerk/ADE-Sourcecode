@@ -1,8 +1,8 @@
-/*********************************************************************
-* Copyright (C) 2008-2009,2012 by Progress Software Corporation. All *
-* rights reserved.                                                   *
-*                                                                    *
-*********************************************************************/
+/**************************************************************************
+* Copyright (C) 2008-2009,2012,2025 by Progress Software Corporation. All *
+* rights reserved.                                                        *
+*                                                                         *
+***************************************************************************/
 
 /*--------------------------------------------------------------------
 
@@ -126,7 +126,7 @@ METHOD PRIVATE VOID getDBConfigObj (INPUT cDbName AS CHAR):
     */
     getDbLock(NO).
 
-    CATCH e AS PROGRESS.Lang.ProError:
+    CATCH e AS Progress.Lang.ProError:
        DEFINE VARIABLE cError AS CHAR    NO-UNDO.
        DEFINE VARIABLE iNum   AS INTEGER NO-UNDO.
 
@@ -268,7 +268,7 @@ METHOD PUBLIC VOID getTableList(OUTPUT DATASET dsObjAttrs):
     END.
     OUTPUT CLOSE.*/
 
-    CATCH e AS PROGRESS.Lang.ProError:
+    CATCH e AS Progress.Lang.ProError:
        UNDO, THROW NEW Progress.Lang.AppError(e:GetMessage(1), e:GetMessageNum(1)).
     END CATCH.
     FINALLY:
@@ -395,7 +395,7 @@ METHOD PUBLIC VOID getObjectList(INPUT cTableName AS CHARACTER,
     END.
     OUTPUT CLOSE.*/
 
-    CATCH e AS PROGRESS.Lang.ProError:
+    CATCH e AS Progress.Lang.ProError:
        UNDO, THROW NEW Progress.Lang.AppError(e:GetMessage(1), e:GetMessageNum(1)).
     END CATCH.
     FINALLY:
@@ -538,7 +538,7 @@ METHOD PUBLIC VOID updateSettings (INPUT callerForCallBack AS HANDLE,
                     UNDO main-trans, THROW NEW Progress.Lang.AppError("Invalid object type: " + bAfter.obj-type, 1).
             END CASE.
 
-            CATCH e AS PROGRESS.Lang.ProError:
+            CATCH e AS Progress.Lang.ProError:
                 DEFINE VARIABLE cError    AS CHAR    NO-UNDO.
                 DEFINE VARIABLE iNum      AS INTEGER NO-UNDO.
                 DEFINE VARIABLE lContinue AS LOGICAL NO-UNDO.
@@ -886,7 +886,7 @@ METHOD PRIVATE VOID addObject(INPUT objNum AS INTEGER,
                       INPUT myStorage).
 
 
-    CATCH e AS PROGRESS.Lang.ProError:
+    CATCH e AS Progress.Lang.ProError:
         /* temp-table is no-undo, so if we failed to create the record, just 
            delete it now, and throw the exception to the caller which will get
            thrown all the way to the driver procedure.

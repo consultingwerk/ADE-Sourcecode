@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2012-2017 by Progress Software Corporation. */
+/* Copyright (c) 2012-2017,2025 by Progress Software Corporation. */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -1050,7 +1050,7 @@ class OpenEdge.DataAdmin.ServerCommand.TableDataCommand abstract  implements ISe
         return true.    
     end method.
              
-    method private void HandleError(e as error):
+    method private void HandleError(e as Error):
         if e:GetMessageNum(1) = 15984 then
         do: 
             undo, throw new ForbiddenOperationError("Table data for other tenants can only be accessed by a super-tenant.", e). 

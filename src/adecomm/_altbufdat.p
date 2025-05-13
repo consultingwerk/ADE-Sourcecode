@@ -1,8 +1,8 @@
-/*********************************************************************
-* Copyright (C) 2009 by Progress Software Corporation. All rights    *
-* reserved.                                                          *
-*                                                                    *
-*********************************************************************/
+/**************************************************************************
+* Copyright (C) 2009,2025 by Progress Software Corporation. All rights    *
+* reserved.                                                               *
+*                                                                         *
+***************************************************************************/
 
 /*----------------------------------------------------------------------------
 
@@ -103,7 +103,7 @@ DO TRANSACTION ON ERROR UNDO, LEAVE
 
    lStopped = NO.
 
-   CATCH ae AS PROGRESS.Lang.AppError:
+   CATCH ae AS Progress.Lang.AppError:
        MESSAGE ae:GetMessage(1) 
                VIEW-AS ALERT-BOX ERROR BUTTONS OK.
        DELETE OBJECT ae.

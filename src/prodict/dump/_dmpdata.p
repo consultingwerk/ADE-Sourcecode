@@ -1,5 +1,5 @@
 /************************************************************************
-* Copyright (C) 2007,2011,2017,2023 by Progress Software Corporation.   *
+* Copyright (C) 2007,2011,2017,2023,2025 by Progress Software Corporation.   *
 * All rights reserved. Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                              *
 ************************************************************************/
@@ -529,7 +529,7 @@ DO ON STOP UNDO, LEAVE:
                         _usrdump passes root-only also for single table 
                         in this case, but it is conceivable that 
                         we could get here with some combination of dump_d params  */
-                        undo, throw new apperror("Cannot dump lobs using default location if directory is specified with file-name").
+                        undo, throw new AppError("Cannot dump lobs using default location if directory is specified with file-name").
                     end.    
                     lobdir = user_env[40].
                     /* create lob directory if necessary */

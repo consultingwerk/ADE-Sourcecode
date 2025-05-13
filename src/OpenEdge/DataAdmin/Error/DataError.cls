@@ -1,5 +1,5 @@
  /*************************************************************/
- /* Copyright (c) 2010 by progress Software Corporation       */
+ /* Copyright (c) 2010,2025 by progress Software Corporation       */
  /*                                                           */
  /* all rights reserved.  no part of this program or document */
  /* may be  reproduced in  any form  or by  any means without */
@@ -24,11 +24,11 @@ class OpenEdge.DataAdmin.Error.DataError inherits DataAdminError:
         this-object(cMsg,?).
     end constructor.
 	
-	constructor public DataError (e as error):
+	constructor public DataError (e as Error):
 	    this-object(e:GetMessage(1),e ).
 	end constructor.
     
-    constructor public DataError (cMsg as char,  e as error):
+    constructor public DataError (cMsg as char,  e as Error):
         super (cMsg,e ).
         HTTPErrorNum = 200.
     end constructor.

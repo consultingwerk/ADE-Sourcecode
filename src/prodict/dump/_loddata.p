@@ -1,8 +1,8 @@
-/***************************************************************************
-* Copyright (C) 2005-2009,2011,2021,2023 by Progress Software Corporation. *
-* All rights reserved. Prior versions of this work may contain portions    *
-* contributed by participants of Possenet.                                 *
-**************************************************************************/
+/********************************************************************************
+* Copyright (C) 2005-2009,2011,2021,2023,2025 by Progress Software Corporation. *
+* All rights reserved. Prior versions of this work may contain portions         *
+* contributed by participants of Possenet.                                      *
+*********************************************************************************/
 
 /* _loddata.p */ /**** Data Dictionary load contents module ****/
 
@@ -578,7 +578,7 @@ DO ON STOP UNDO, LEAVE:
                     _usrload passes root-only also for single table 
                     in this case, but it is conceivable that 
                     we could get here with some combination of dump_d params  */
-                    undo, throw new apperror("Cannot load lobs using default location if directory is specified with file-name").
+                    undo, throw new AppError("Cannot load lobs using default location if directory is specified with file-name").
                 end.    
                 lobdir = user_env[40].
                 /* check if lob directory exists */      

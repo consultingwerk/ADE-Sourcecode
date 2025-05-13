@@ -1,4 +1,8 @@
-USING PROGRESS.Lang.*.
+/*
+Copyright (c) 2021, 2023,2025 Progress Software Corporation and/or its subsidiaries or affiliates. All Rights Reserved.
+*/
+
+USING Progress.Lang.*.
 BLOCK-LEVEL ON ERROR UNDO, THROW.
 
 ENUM OpenEdge.DataAdmin.Util.ExprFlags FLAGS:

@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2011-2014 by progress Software Corporation. */
+/* Copyright (c) 2011-2014,2025 by progress Software Corporation. */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -461,7 +461,7 @@ class OpenEdge.DataAdmin.DataSource.DataSource inherits DBQuery implements IData
         queryString = new QueryString(pcQuery,"for each " + pctable + " no-lock").
         cFind = queryString:BuildFindString(pcTable).
         return FindTableJoinValues(pcTable,cFind).
-        catch e as error:
+        catch e as Error:
         
            case e:GetMessageNum(1):
                 /* not found (valid query) */ 

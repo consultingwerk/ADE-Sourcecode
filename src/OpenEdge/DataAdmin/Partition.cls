@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2010-2012,2024 by Progress Software Corporation  */
+/* Copyright (c) 2010-2012,2024-2025 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -31,7 +31,7 @@ class OpenEdge.DataAdmin.Partition implements IPartition,IDataAdminElement,IData
     define private variable mBuffer as handle no-undo. 
     define private variable mchild as logical no-undo.
 	
-	define public property Error     as error no-undo           get.           
+	define public property Error     as Error no-undo           get.           
     
     define public property IsMultiTenant  as logical no-undo    
         get():

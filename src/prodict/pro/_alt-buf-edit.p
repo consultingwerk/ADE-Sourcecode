@@ -1,8 +1,8 @@
-/*********************************************************************
-* Copyright (C) 2009 by Progress Software Corporation. All rights    *
-* reserved.                                                          *
-*                                                                    *
-*********************************************************************/
+/**************************************************************************
+* Copyright (C) 2009,2025 by Progress Software Corporation. All rights    *
+* reserved.                                                               *
+*                                                                         *
+***************************************************************************/
 
 /*--------------------------------------------------------------------
 
@@ -768,7 +768,7 @@ PROCEDURE doCommit:
     /* if updateSettings throws error, we won't get here, will get in the catch block below */
     ASSIGN Committed = YES.
 
-    CATCH e AS PROGRESS.Lang.ProError:
+    CATCH e AS Progress.Lang.ProError:
        MESSAGE 'Failed to save changes.' skip e:GetMessage(1)
            VIEW-AS ALERT-BOX ERROR BUTTONS OK.
        

@@ -1,9 +1,9 @@
-/********************************************************************************
-* Copyright (C) 2006-2011,2013,2016,2020,2023 by Progress Software Corporation. * 
-* All rights reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                                      *
-*                                                                               *
-*********************************************************************************/
+/*************************************************************************************
+* Copyright (C) 2006-2011,2013,2016,2020,2023,2025 by Progress Software Corporation. * 
+* All rights reserved. Prior versions of this work may contain portions              *
+* contributed by participants of Possenet.                                           *
+*                                                                                    *
+**************************************************************************************/
 
 
 /* _dmpsddl.p - dump data definitions */
@@ -235,7 +235,7 @@ DO ON STOP UNDO, LEAVE:
           DELETE OBJECT hBuffer2 NO-ERROR.
         END.
 
-        CATCH ae AS PROGRESS.Lang.AppError:
+        CATCH ae AS Progress.Lang.AppError:
            /* if encryption is not enabled, then we silently ignore this */
             IF ae:GetMessageNum(1) NE 14889 THEN 
             DO:
@@ -258,7 +258,7 @@ DO ON STOP UNDO, LEAVE:
     IF _Db._Db-type = "PROGRESS" THEN DO ON ERROR UNDO, LEAVE:
         myObjAttrs = NEW prodict.pro._obj-attrib-util().
 
-        CATCH ae AS PROGRESS.Lang.AppError:
+        CATCH ae AS Progress.Lang.AppError:
            /* if db doesn't support alternate buffer pools, then we silently ignore this */
             IF ae:GetMessageNum(1) NE 4634 THEN DO:
                 

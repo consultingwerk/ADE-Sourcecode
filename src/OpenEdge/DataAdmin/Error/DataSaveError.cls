@@ -1,4 +1,8 @@
- 
+/*
+Copyright (c) 2010, 2025 Progress Software Corporation and/or its subsidiaries or affiliates. All Rights Reserved.
+*/
+
+
  /*------------------------------------------------------------------------
     File        : DataSaveError
     Purpose     : 
@@ -15,7 +19,7 @@ using OpenEdge.DataAdmin.Error.* from propath.
 class OpenEdge.DataAdmin.Error.DataSaveError inherits DataAdminError: 
     
 		
-	constructor public DataSaveError (cEntity as char,  e as error):
+	constructor public DataSaveError (cEntity as char,  e as Error):
 	    super (TransformMessage(cEntity,e),e ).
 	end constructor.
 

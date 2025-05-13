@@ -1,5 +1,5 @@
 /* ***********************************************************/
-/* Copyright (c) 2009-2012 by Progress Software Corporation  */
+/* Copyright (c) 2009-2012,2025 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -231,7 +231,7 @@ function CheckValidWizard return character (wizardname as char):
         end.
     end.
     return "".
-    catch e as progress.Lang.error :
+    catch e as Progress.Lang.Error :
         return "". 
     end catch.
     finally:

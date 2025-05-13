@@ -1,7 +1,8 @@
 /*
-USING System.TEXT.RegularExpressions.*.
+Copyright (c) 2021,2023,2025 Progress Software Corporation and/or its subsidiaries or affiliates. All Rights Reserved.
 */
-USING PROGRESS.Lang.FlagsEnum.
+
+USING Progress.Lang.FlagsEnum.
 USING OpenEdge.DataAdmin.Util.ExprFlags.
 
 /* OE acct names are tested by $RDLC/utchkuid() function.
@@ -430,7 +431,7 @@ END.
 
 Run ExtrFilePerms.
 
-CATCH err AS PROGRESS.Lang.Error:
+CATCH err AS Progress.Lang.Error:
     REPEAT ierr = 1 TO err:NumMessages:
         CASE ierr: /* Error number */
             WHEN 1 THEN ASSIGN ierrSuff = "st".

@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2010 by progress Software Corporation       */
+/* Copyright (c) 2010,2025 by progress Software Corporation       */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -40,7 +40,7 @@ class OpenEdge.DataAdmin.DataAccess.DataAccessError inherits DataError:
     
     /* constructor added specifically to handle authenticationsystem already exists 
       (replace "domain type" with "name" in message and pass it as char) */
-    constructor public DataAccessError (mapper as IDataMapper,cmsg as char, num as int, e as error):
+    constructor public DataAccessError (mapper as IDataMapper,cmsg as char, num as int, e as Error):
         super (TransformMessage(cMsg,num,mapper),e).  
     end constructor.
 

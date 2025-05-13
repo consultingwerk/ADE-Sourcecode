@@ -1,8 +1,8 @@
-/*********************************************************************
-* Copyright (C) 2008-2010 by Progress Software Corporation. All rights    *
-* reserved.                                                          *
-*                                                                    *
-*********************************************************************/
+/*******************************************************************************
+* Copyright (C) 2008-2010,2025 by Progress Software Corporation. All rights    *
+* reserved.                                                                    *
+*                                                                              *
+********************************************************************************/
 
 /*--------------------------------------------------------------------
 
@@ -36,7 +36,7 @@ CLASS prodict.sec._sec-pol-util:
 DEFINE PRIVATE VARIABLE myEPolicy     AS EncryptionPolicy    NO-UNDO.
 DEFINE PRIVATE VARIABLE TablePolicies AS TablePolicy  EXTENT NO-UNDO.
 DEFINE PRIVATE VARIABLE IndexPolicies AS IndexPolicy  EXTENT NO-UNDO.
-DEFINE PRIVATE VARIABLE LobPolicies   AS LobPolicy    EXTENT NO-UNDO.
+DEFINE PRIVATE VARIABLE LobPolicies   AS LOBPolicy    EXTENT NO-UNDO.
 DEFINE PRIVATE VARIABLE seq           AS INTEGER             NO-UNDO.
 DEFINE PRIVATE VARIABLE hDB           AS HANDLE              NO-UNDO.
 
@@ -132,7 +132,7 @@ METHOD PRIVATE VOID getEpolicyObj (INPUT cDbName AS CHAR):
     */
     getDbLock(NO).
 
-    CATCH e AS PROGRESS.Lang.ProError:
+    CATCH e AS Progress.Lang.ProError:
        DEFINE VARIABLE cError AS CHAR    NO-UNDO.
        DEFINE VARIABLE iNum   AS INTEGER NO-UNDO.
 
@@ -267,7 +267,7 @@ METHOD PUBLIC VOID getTableList(INPUT getCurrPolicyInfo AS LOGICAL,
     END.
     OUTPUT CLOSE.*/
 
-    CATCH e AS PROGRESS.Lang.ProError:
+    CATCH e AS Progress.Lang.ProError:
        UNDO, THROW NEW Progress.Lang.AppError(e:GetMessage(1), e:GetMessageNum(1)).
     END CATCH.
     FINALLY:
@@ -385,7 +385,7 @@ METHOD PUBLIC VOID getObjectList(INPUT cTableName AS CHARACTER,
     END.
     OUTPUT CLOSE.*/
 
-    CATCH e AS PROGRESS.Lang.ProError:
+    CATCH e AS Progress.Lang.ProError:
        UNDO, THROW NEW Progress.Lang.AppError(e:GetMessage(1), e:GetMessageNum(1)).
     END CATCH.
     FINALLY:
@@ -489,7 +489,7 @@ METHOD PUBLIC VOID updatePolicies (INPUT callerForCallBack AS HANDLE,
     DEF VAR objType    AS CHAR NO-UNDO.
     DEFINE VARIABLE myTPol AS TablePolicy NO-UNDO.
     DEFINE VARIABLE myIPol AS IndexPolicy NO-UNDO.
-    DEFINE VARIABLE myLPol AS LobPolicy   NO-UNDO.
+    DEFINE VARIABLE myLPol AS LOBPolicy   NO-UNDO.
 
     /* now go through all the changed records and make the necessary 
        changes. We are here either because the user wants to enable,
@@ -541,7 +541,7 @@ METHOD PUBLIC VOID updatePolicies (INPUT callerForCallBack AS HANDLE,
                     UNDO, THROW NEW Progress.Lang.AppError("Invalid object type: " + bAfter.obj-type, 1).
             END CASE.
 
-            CATCH e AS PROGRESS.Lang.ProError:
+            CATCH e AS Progress.Lang.ProError:
                 DEFINE VARIABLE cError    AS CHAR    NO-UNDO.
                 DEFINE VARIABLE iNum      AS INTEGER NO-UNDO.
                 DEFINE VARIABLE lContinue AS LOGICAL NO-UNDO.
@@ -929,7 +929,7 @@ METHOD PRIVATE VOID addObject(INPUT objNum AS INTEGER,
 
 
     END.
-    CATCH e AS PROGRESS.Lang.ProError:
+    CATCH e AS Progress.Lang.ProError:
         /* temp-table is no-undo, so if we failed to create the record, just 
            delete it now, and throw the exception to the caller which will get
            thrown all the way to the driver procedure.

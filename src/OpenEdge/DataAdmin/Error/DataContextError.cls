@@ -1,5 +1,5 @@
  /*************************************************************/
- /* Copyright (c) 2010 by progress Software Corporation       */
+ /* Copyright (c) 2010,2025 by progress Software Corporation       */
  /*                                                           */
  /* all rights reserved.  no part of this program or document */
  /* may be  reproduced in  any form  or by  any means without */
@@ -28,7 +28,7 @@ class OpenEdge.DataAdmin.Error.DataContextError inherits DataError:
 	
     /* Adds the passed message as message 1 and returnvalue. 
        The error is added as message 2 and inner error */
-	constructor public DataContextError (cMsg as char, cEntity as char,  e as error):
+	constructor public DataContextError (cMsg as char, cEntity as char,  e as Error):
         super (cMsg,e).
         mEntity = cEntity.
         AddMessage(e).   
@@ -36,7 +36,7 @@ class OpenEdge.DataAdmin.Error.DataContextError inherits DataError:
 	
 	/* Adds the passed error's message as message 1 and returnvalue. 
 	   The error is also added as inner error */
-	constructor public DataContextError (cEntity as char,  e as error):
+	constructor public DataContextError (cEntity as char,  e as Error):
 	    super (TransformMessage(cEntity,e),e ).
 	    mEntity = cEntity.
 	end constructor.
