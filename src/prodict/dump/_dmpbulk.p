@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000,2007,2020 by Progress Software Corporation.     *
+* Copyright (C) 2000,2007,2020,2025 by Progress Software Corporation. *
 * All rights reserved. Prior versions of this work may contain       *
 * portions contributed by participants of Possenet.                  *
 *********************************************************************/
@@ -9,6 +9,7 @@
    D. McMann 04/09/03 Added logic for LOB Directory
    fernando  12/12/07 Handle large list of tables.
    tmasood   06/04/20 Fix the issue with Bulk load description file.
+   tmasood   05/27/25 Allowed dump of BLOB fields
 
 */
 
@@ -96,7 +97,7 @@ IF INTEGER(DBVERSION("DICTDB")) > 8 THEN
 
     FOR EACH _Field OF _File BY _Field._Order:
       IF _sys-field OR _Data-type = "recid" THEN NEXT.
-      IF user_env[9] = 'b' AND CAN-DO("blob,clob",_Data-type) THEN NEXT.
+      IF user_env[9] = 'b' AND CAN-DO("clob",_Data-type) THEN NEXT.
       PUT STREAM bulk UNFORMATTED "  " _Field-name SKIP.
     END.
 

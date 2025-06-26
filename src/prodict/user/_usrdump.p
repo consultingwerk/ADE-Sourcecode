@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2007,2011,2016,2020 by Progress Software Corporation.*
+* Copyright (C) 2007,2011,2016,2020,2025 by Progress Software Corporation.*
 * All rights reserved.  Prior versions of this work may contain      *
 * portions contributed by participants of Possenet.                  *
 *                                                                    *
@@ -79,6 +79,7 @@ history:
     rkamboj     08/16/11   Added new terminology for security items and windows.
     rkamboj 	11/11/2011 Fixed issue of dump data for Lob field. bug OE00214956.
     tmasood     06/02/2020 Fix the issue with Bulk load description file.
+    tmasood     05/27/2025 Allowed dump of BLOB fields
 */
 /*h-*/
 
@@ -1788,9 +1789,9 @@ DO:
     END. 
   END.
   IF lwarning AND inclob THEN DO:
-    MESSAGE "WARNING: One or more selected tables has CLOB/BLOB datatype." SKIP
-             "Bulk dump of CLOB/BLOB is not supported." SKIP
-             "The table(s) will be dumped without the CLOB/BLOB fields." SKIP
+    MESSAGE "WARNING: One or more selected tables has CLOB datatype." SKIP
+             "Bulk dump of CLOB is not supported." SKIP
+             "The table(s) will be dumped without the CLOB fields." SKIP
              "Do you want to continue?"
          VIEW-AS ALERT-BOX WARNING BUTTONS YES-NO UPDATE okay.
     IF NOT okay THEN
@@ -2925,13 +2926,13 @@ IF user_env[1] <> "" AND
             ELSE _File._Dump-name).
 END.
 
-/* Dump of table with BLOB/CLOB not allowed  */
+/* Dump of table with CLOB not allowed  */
 IF user_env[1] <> "" AND user_env[9] = "b" THEN DO:
    FOR EACH _File NO-LOCK WHERE _Db-recid = drec_db 
                             AND CAN-DO(user_env[1],_File._File-name)
                              OR user_env[1] = "All",
      EACH _Field NO-LOCK WHERE _Field._File-Recid = RECID (_File)
-                           AND CAN-DO("blob,clob",_Field._Data-Type):
+                           AND CAN-DO("clob",_Field._Data-Type):
                               
        ASSIGN lwarning = TRUE.
        LEAVE.                         
