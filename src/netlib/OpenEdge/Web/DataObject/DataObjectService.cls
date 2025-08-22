@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2017-2021,2024 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2017-2021,2024-2025 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : DataObjectService
@@ -213,7 +213,7 @@ class OpenEdge.Web.DataObject.DataObjectService
         Assert:NotNull(pMethod, 'Operation method').
 
         if Logger:LogLevel eq LogLevelEnum:Trace then
-            temp-table Operation:write-json("file", substitute("&1/operation.json", session:temp-directory), true).
+            temp-table Operation:write-json("file", substitute("&1/operation.json", right-trim(replace(session:temp-directory, StringConstant:BACKSLASH, "/"), "/")), true).
 
         FindOperationRecord(pServiceURI, string(pMethod), buffer lbOperation).
         if available(lbOperation) then
@@ -300,7 +300,7 @@ class OpenEdge.Web.DataObject.DataObjectService
         define variable schemaClone as IHandleHolder no-undo.
         define variable schemaOption as SchemaOption no-undo.
         define variable iter as IIterator no-undo.
-        var integer iCount = 0, iSeg = 0.
+        var integer iCount = 0.
 
         define buffer lbOperation for Operation.
 
