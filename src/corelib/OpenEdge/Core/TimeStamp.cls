@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013, 2016, 2018, 2021-2024 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2013, 2016, 2018, 2021-2025 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : TimeStamp
@@ -307,13 +307,15 @@ serializable
             initial 'Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec'.
 
         /* ANSI C date:
-           Sun Nov  6 08:49:37 1994       ; ANSI C's asctime() format */
-        if index(pcValue, ',') eq 0 then
+           Sun Nov  6 08:49:37 1994       ; ANSI C's asctime() format (space-padded) */
+        if index(pcValue, ',') eq 0 then do:
+            /* A single-digit day will be space-padded, so first collapse double-spaces */
+            assign pcValue = replace(pcValue, '  ', ' ').
             assign iMonth = lookup(entry(2, pcValue, ' '), cMonthList)
-                   /* note the double space between Month and Day, so entry 3 is missing */
-                   iDay   = integer(entry(4, pcValue, ' '))
-                   cTime = entry(5, pcValue, ' ')
-                   iYear  = integer(entry(6, pcValue, ' ')).
+                   iDay   = integer(entry(3, pcValue, ' '))
+                   cTime  = entry(4, pcValue, ' ')
+                   iYear  = integer(entry(5, pcValue, ' ')).
+        end.
         else
         /* Sunday, 06-Nov-94 08:49:37 GMT ; RFC 850, obsoleted by RFC 1036 */
         if num-entries(pcValue, ' ') eq 4 then
@@ -330,11 +332,11 @@ serializable
                    cTime  = entry(5, pcValue, ' ').
 
         return datetime-tz(iMonth, iDay, iYear,
-            integer(entry(1, cTime, ':')),       /* hour */
-            integer(entry(2, cTime, ':')),       /* minute */
-            integer(entry(3, cTime, ':')),       /* second */
-            0,                          /* millisecond */
-            0).                         /* timezone (always GMT per spec) */
+                           integer(entry(1, cTime, ':')),       /* hour */
+                           integer(entry(2, cTime, ':')),       /* minute */
+                           integer(entry(3, cTime, ':')),       /* second */
+                           0,                          /* millisecond */
+                           0).                         /* timezone (always GMT per spec) */
     end method.
 
     /** Converts an ABL date into an HTTP 'sane date', according to RFC 822, as

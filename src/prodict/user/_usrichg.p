@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2008-2014 by Progress Software Corporation.            *
+* Copyright (C) 2008-2014,2025 by Progress Software Corporation.       *
 * All rights reserved.  Prior versions of this work may contain        *
 * portions contributed by participants of Possenet.                    *
 *                                                                      *
@@ -42,6 +42,7 @@ History:
     10/03/07  fernando      Fixed delimiter issue on area name list - OE00135682
     11/16/07  fernando      Support for _aud-audit-data* indexes deactivation
     06/26/08  fernando      Filter out schema tables for encryption
+    06/10/25  talha         Fix the active toggle box for online added index
 
 ----------------------------------------------------------------------------*/
 
@@ -91,6 +92,7 @@ define variable isTablePartitioned      as logical                 no-undo.
 define variable isMultitenant    as LOGICAL             no-undo.
 define variable isPartitioned    as LOGICAL             no-undo.
 define variable isCDCEnabled     as logical             no-undo.
+define variable l_actidx         as logical             no-undo.
 
 DEFINE BUFFER bfr_Index FOR DICTDB._Index.
 
@@ -622,12 +624,27 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
                 ASSIGN areaname:LIST-ITEMS  IN FRAME idx_top = ""
                        areaname:LIST-ITEMS IN FRAME idx_top = arealist
                        indexarea = areaname:ENTRY(1) IN FRAME idx_top.
+
+                IF user_dbtype = "PROGRESS" THEN
+                DO:
+                    FIND first dictdb._StorageObject WHERE dictdb._StorageObject._Db-recid = _File._Db-recid
+                                                       AND dictdb._StorageObject._Object-type = 2
+                                                       AND dictdb._StorageObject._Object-number = _Index._Idx-num
+                                                       AND dictdb._StorageObject._partitionid = 0
+                                                       NO-LOCK NO-ERROR.
+                    IF AVAILABLE _StorageObject AND (get-bits(_StorageObject._Object-State,1,1) = 1) AND _Index._Active THEN /* Inactive */
+                      ASSIGN l_actidx = FALSE.
+                    ELSE
+                      ASSIGN l_actidx = TRUE.
+                END.
+                ELSE
+                  ASSIGN l_actidx = TRUE.
                     
                 DISPLAY
                     _File._Prime-index = RECID(_Index) @ is_prime
                     _Index._Index-name 
                     _Index._Unique 
-                    _Index._Active
+                    IF l_actidx THEN _Index._Active ELSE l_actidx @ _Index._Active
                     _Index._Wordidx = 1 @ word_index
                     recid_idx
                     areaname
@@ -1132,7 +1149,7 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
           
         ELSE IF NOT qbf_idx_deac THEN
             MESSAGE new_lang[19]. /* not PROGRESS db */
-        ELSE IF NOT _Index._Active THEN
+        ELSE IF (NOT _Index._Active OR NOT l_actidx) THEN
             MESSAGE new_lang[20]. /* already off */
         ELSE DO:
             answer = FALSE. /* are you sure... make inactive? */

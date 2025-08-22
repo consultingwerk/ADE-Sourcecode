@@ -1,14 +1,14 @@
 /************************************************
-Copyright (c)  2014, 2015 by Progress Software Corporation. All rights reserved.
-*************************************************/ 
+Copyright (c)  2014,2015,2025 by Progress Software Corporation. All rights reserved.
+*************************************************/
 /*------------------------------------------------------------------------
     File        : ApperyPushNotificationMessageBuilder
-    Purpose     : Helper class to build a notification message easily 
-    Syntax      : 
-    Description : 
+    Purpose     : Helper class to build a notification message easily
+    Syntax      :
+    Description :
     Author(s)   : pjudge
     Created     : Fri Jun 13 13:11:41 EDT 2014
-    Notes       : * Per spec/doc the message is as follows 
+    Notes       : * Per spec/doc the message is as follows
                         {
                             "payload": {
                                 "message": <message>,
@@ -23,9 +23,9 @@ Copyright (c)  2014, 2015 by Progress Software Corporation. All rights reserved.
                             "filter": {
                                 "deviceID": <deviceIDcriteria>,
                                 "<param1>": <criteria>,
-                                
+
                             }
-                        }        
+                        }
                 * Supported filter types:
                       Mobile db         ABL
                       -----------------------
@@ -54,18 +54,18 @@ class OpenEdge.Mobile.ApperyPushNotificationMessageBuilder inherits PushNotifica
     /* platform names per Appery */
     define private variable mcPlatform as character extent 4 no-undo
         init [?, ?, 'A':u,'I':u].
-        
+
     define override public property Payload as JsonObject no-undo
-        get(): 
+        get():
             if not valid-object(this-object:Payload) then
                 assign this-object:Payload = NewPayload().
-            
+
             return this-object:Payload.
         end get.
         private set.
-    
+
     /** Returns a useable Payload based on the config.
-        
+
         @return JsonObject A useable push notification message payload */
     method private JsonObject NewPayload():
         define variable oPayload as JsonObject no-undo.
@@ -78,17 +78,17 @@ class OpenEdge.Mobile.ApperyPushNotificationMessageBuilder inherits PushNotifica
         define variable iMax as integer no-undo.
         define variable oChild as JsonArray no-undo.
         define variable oPlatform as ApplicationPlatformEnum no-undo.
-         
+
         assign oPayload = new JsonObject()
                oDetail  = new JsonObject().
         oPayload:Add('payload':u, oDetail).
-        
-        oDetail:Add('message':u, GetOptionStringValue('message.text':u)). 
+
+        oDetail:Add('message':u, GetOptionStringValue('message.text':u)).
         if HasOption('badgeCount':u) then
             oDetail:Add('badge':u, string(GetOptionNumericValue('message.count':u))).
         else
             oDetail:Add('badge':u, '':u).
-            
+
         /* send immediately */
         if this-object:SendImmediate then
             oPayload:Add('status':u, 'sent':u).
@@ -98,29 +98,29 @@ class OpenEdge.Mobile.ApperyPushNotificationMessageBuilder inherits PushNotifica
                    tOptionValue = GetOptionDateTimeValue('schedule.time':u)
                    /* use a datetime variable so that we can make the ABL do the work */
                    tSendDate = datetime(date(tOptionValue), mtime(tOptionValue)).
-            
+
             /* YYYY-MM-DD hh:mm:00.000 (no seconds, millis)  */
-            oDetail:Add('scheduledTime':u, replace(iso-date(tSendDate), 'T':u, ' ':u)). 
+            oDetail:Add('scheduledTime':u, replace(iso-date(tSendDate), 'T':u, ' ':u)).
             assign lOptionValue = GetOptionLogicalValue('schedule.useDeviceTimeZone':u).
-            
+
             /* explicit check for true to avoid unknown values. */
             if lOptionValue eq true then
                 oDetail:Add('useDeviceTimeZone':u, 'true':u).
             else
                 oDetail:Add('timeZone':u, string(timezone(tOptionValue))).
-            
+
             /* Add schedule to payload */
             oPayload:Add('schedule':u, oDetail).
         end.    /* scheduled */
-        
-        /* Manual filters */        
+
+        /* Manual filters */
         for each ConfigOption where
-                 ConfigOption.ParentBuilder eq integer(this-object) and
+                 ConfigOption.ParentBuilder eq int64(this-object) and
                  ConfigOption.ConfigName begins 'device.id.':U      :
-            
+
             assign oFilterOperand = PushNotificationFilterOperandEnum:GetEnum(entry(3, ConfigOption.ConfigName, '.':U))
                    no-error.
-                   
+
             assign oChild = cast(ConfigOption.ObjectValue, JsonArray)
                    iMax   = cast(oChild, JsonArray):Length.
             do iLoop = 1 to iMax:
@@ -129,11 +129,11 @@ class OpenEdge.Mobile.ApperyPushNotificationMessageBuilder inherits PushNotifica
                                 oFilterOperand).
             end.
         end.
-        
+
         for each ConfigOption where
-                 ConfigOption.ParentBuilder eq integer(this-object) and
+                 ConfigOption.ParentBuilder eq int64(this-object) and
                  ConfigOption.ConfigName begins 'channels.':U       :
-            
+
             assign oFilterOperand = PushNotificationFilterOperandEnum:GetEnum(entry(2, ConfigOption.ConfigName, '.':U))
                    no-error.
 
@@ -141,11 +141,11 @@ class OpenEdge.Mobile.ApperyPushNotificationMessageBuilder inherits PushNotifica
                            cast(ConfigOption.ObjectValue, JsonArray),
                            oFilterOperand).
         end.
-        
+
         for each ConfigOption where
-                 ConfigOption.ParentBuilder eq integer(this-object) and
+                 ConfigOption.ParentBuilder eq int64(this-object) and
                  ConfigOption.ConfigName begins 'platform.':U       :
-            
+
             /* this method needs to wait until the enum changes are checked in */
             assign oFilterOperand = PushNotificationFilterOperandEnum:GetEnum(entry(2, ConfigOption.ConfigName, '.':U))
                    no-error.
@@ -153,54 +153,50 @@ class OpenEdge.Mobile.ApperyPushNotificationMessageBuilder inherits PushNotifica
             assign oChild = cast(ConfigOption.ObjectValue, JsonArray)
                    iMax   = oChild:Length.
             do iLoop = 1 to iMax:
-                assign oPlatform = ApplicationPlatformEnum:GetEnum(cast(ConfigOption.ObjectValue, JsonArray):GetCharacter(iLoop))
-                       no-error.
+                assign oPlatform = ApplicationPlatformEnum:GetEnum(cast(ConfigOption.ObjectValue, JsonArray):GetCharacter(iLoop)) no-error.
                 if valid-object(oPlatform) then
                     AddStringFilter('type':u,
-                                   mcPlatform[integer(oPlatform)], 
-                                   oFilterOperand).
+                                    mcPlatform[oPlatform:GetValue()],
+                                    oFilterOperand).
             end.
         end.
-        
+
         /* add filters to payload */
         assign oDetail = cast(GetOptionObjectValue('filter':u), JsonObject).
         if valid-object(oDetail) then
             oPayload:Add('filter':u, oDetail).
-        
+
         return oPayload.
     end method.
-    
+
     /** A general method to add Date filter values to the notification
-        query/filter. 
-        
+        query/filter.
+
         Supported operands: eq/ne/gt/ge/lt/le/
-        
+
         @param character The filter name
         @param datetime The filter value
-        @param PushNotificationFilterOperandEnum The operand (eg Equals or NotEqual) 
+        @param PushNotificationFilterOperandEnum The operand (eg Equals or NotEqual)
         @return PushNotificationMessageBuilder This builder object */
     method override public PushNotificationMessageBuilder AddDateFilter(input pcFilterName as character,
                                                                         input ptFilterValue as datetime,
                                                                         input poOperand as PushNotificationFilterOperandEnum):
         define variable oFilterParent as JsonObject no-undo.
         define variable oFilterObject as JsonObject no-undo.
-        define variable oFilterValue as JsonObject no-undo.
-        define variable cNames as character extent no-undo.
-        define variable cOperandName as character no-undo.
         define variable lFieldExists as logical no-undo.
         define variable cDateValue as character no-undo.
-        
+
         Assert:NotNull(poOperand, 'Operand').
         Assert:NotNullOrEmpty(pcFilterName, 'Filter Name').
         Assert:NotNull(ptFilterValue, 'Filter Value').
 
         if not HasOption('filter':u) then
             SetOption('filter':u, new JsonObject()).
-        
+
         assign oFilterParent = cast(GetOptionObjectValue('filter':u), JsonObject)
                lFieldExists  = ValidateOperand(oFilterParent, pcFilterName, poOperand)
                cDateValue = replace(iso-date(ptFilterValue), 'T', ' ').
-        
+
         case poOperand:
             when PushNotificationFilterOperandEnum:Equals then
                 if lFieldExists then
@@ -215,27 +211,27 @@ class OpenEdge.Mobile.ApperyPushNotificationMessageBuilder inherits PushNotifica
             do:
                 assign oFilterObject = GetObjectProperty(oFilterParent, pcFilterName).
                 if lFieldExists then
-                    oFilterObject:Set(OperandValue[integer(poOperand)], cDateValue).
+                    oFilterObject:Set(OperandValue[poOperand:GetValue()], cDateValue).
                 else
-                    oFilterObject:Add(OperandValue[integer(poOperand)], cDateValue).                
+                    oFilterObject:Add(OperandValue[poOperand:GetValue()], cDateValue).
             end.    /* notequal/includes/notincludes  */
             otherwise
                 undo, throw new AppError(
                                 substitute('&1 operand not supported for date filters',
-                                    string(poOperand)), 0). 
+                                    string(poOperand)), 0).
         end case.   /* operand */
-        
+
         return this-object.
-    end.  
+    end method.
 
     /** General method to add array filters to the payload.
-    
-        Supported operands: Includes/NotIncludes/Matches            
-        
+
+        Supported operands: Includes/NotIncludes/Matches
+
         @param character      The name of the type of filter (type/deviceID/etc)
-        @param JsonConstruct  The value to add. Could be Object (matches only) 
+        @param JsonConstruct  The value to add. Could be Object (matches only)
                               or array (Includes/NotIncludes)
-        @param PushNotificationFilterOperandEnum The operand (eq/ne/etc) 
+        @param PushNotificationFilterOperandEnum The operand (eq/ne/etc)
         @return PushNotificationMessageBuilder This builder object */
     method override public PushNotificationMessageBuilder AddArrayFilter(input pcFilterName as character,
                                                                          input poFilterValue as JsonConstruct,
@@ -247,27 +243,27 @@ class OpenEdge.Mobile.ApperyPushNotificationMessageBuilder inherits PushNotifica
         /* If a filter already exists, then the following rules apply:
             - if the existing operand does not match the new operand,
               throw an error. Otherwise,
-            - if the existing operand is matches the new operand, replace 
+            - if the existing operand is matches the new operand, replace
               the filter value. */
         Assert:NotNull(poOperand, 'Operand').
         Assert:NotNullOrEmpty(pcFilterName, 'Filter Name').
         Assert:NotNull(poFilterValue, 'Filter Value').
-        
+
         if not HasOption('filter':u) then
             SetOption('filter':u, new JsonObject()).
-        
+
         assign oFilterParent = cast(GetOptionObjectValue('filter':u), JsonObject)
                lFieldExists  = ValidateOperand(oFilterParent, pcFilterName, poOperand).
-        
+
         case poOperand:
             when PushNotificationFilterOperandEnum:Matches then
             do:
                 Assert:IsType(poFilterValue, get-class(JsonObject)).
                 assign oFilterObject = GetObjectProperty(oFilterParent, pcFilterName).
                 if lFieldExists then
-                    oFilterObject:Set(OperandValue[integer(poOperand)], cast(poFilterValue, JsonObject)).
+                    oFilterObject:Set(OperandValue[poOperand:GetValue()], cast(poFilterValue, JsonObject)).
                 else
-                    oFilterObject:Add(OperandValue[integer(poOperand)], cast(poFilterValue, JsonObject)).
+                    oFilterObject:Add(OperandValue[poOperand:GetValue()], cast(poFilterValue, JsonObject)).
             end.
             when PushNotificationFilterOperandEnum:Includes or
             when PushNotificationFilterOperandEnum:NotIncludes then
@@ -275,26 +271,26 @@ class OpenEdge.Mobile.ApperyPushNotificationMessageBuilder inherits PushNotifica
                 Assert:IsType(poFilterValue, get-class(JsonArray)).
                 assign oFilterObject = GetObjectProperty(oFilterParent, pcFilterName).
                 if lFieldExists then
-                    oFilterObject:Set(OperandValue[integer(poOperand)], cast(poFilterValue, JsonArray)).
+                    oFilterObject:Set(OperandValue[poOperand:GetValue()], cast(poFilterValue, JsonArray)).
                 else
-                    oFilterObject:Add(OperandValue[integer(poOperand)], cast(poFilterValue, JsonArray)).
+                    oFilterObject:Add(OperandValue[poOperand:GetValue()], cast(poFilterValue, JsonArray)).
             end.
             otherwise
                 undo, throw new AppError(
                                 substitute('&1 operand not supported for array filter',
-                                    string(poOperand)), 0). 
+                                    string(poOperand)), 0).
         end case.   /* operand */
-        
-        return this-object. 
+
+        return this-object.
     end method.
-    
+
     /** General method to add string/character filters to the payload.
-    
-        Supported operands: Equals/NotEqual/Includes/NotIncludes            
-        
+
+        Supported operands: Equals/NotEqual/Includes/NotIncludes
+
         @param character  The name of the type of filter (type/deviceID/etc)
         @param character  The value to add
-        @param PushNotificationFilterOperandEnum The operand (eq/ne/etc) 
+        @param PushNotificationFilterOperandEnum The operand (eq/ne/etc)
         @return PushNotificationMessageBuilder This builder object */
     method override public PushNotificationMessageBuilder AddStringFilter(input pcFilterName as character,
                                                                           input pcFilterValue as character,
@@ -303,17 +299,17 @@ class OpenEdge.Mobile.ApperyPushNotificationMessageBuilder inherits PushNotifica
         define variable oFilterObject as JsonObject no-undo.
         define variable oArrayValue as JsonArray no-undo.
         define variable lFieldExists as logical no-undo.
-        
+
         Assert:NotNull(poOperand, 'Operand').
         Assert:NotNullOrEmpty(pcFilterName,  'Filter Name').
         Assert:NotNullOrEmpty(pcFilterValue, 'Filter Value').
-        
+
         if not HasOption('filter':u) then
             SetOption('filter':u, new JsonObject()).
-        
+
         assign oFilterParent = cast(GetOptionObjectValue('filter':u), JsonObject)
                lFieldExists  = ValidateOperand(oFilterParent, pcFilterName, poOperand).
-        
+
         case poOperand:
             when PushNotificationFilterOperandEnum:Equals then
                 if lFieldExists then
@@ -324,53 +320,50 @@ class OpenEdge.Mobile.ApperyPushNotificationMessageBuilder inherits PushNotifica
             do:
                 assign oFilterObject = GetObjectProperty(oFilterParent, pcFilterName).
                 if lFieldExists then
-                    oFilterObject:Set(OperandValue[integer(poOperand)], pcFilterValue).
+                    oFilterObject:Set(OperandValue[poOperand:GetValue()], pcFilterValue).
                 else
-                    oFilterObject:Add(OperandValue[integer(poOperand)], pcFilterValue).
+                    oFilterObject:Add(OperandValue[poOperand:GetValue()], pcFilterValue).
             end.    /* notequal/includes/notincludes  */
             when PushNotificationFilterOperandEnum:Includes or
             when PushNotificationFilterOperandEnum:NotIncludes then
             do:
                 assign oFilterObject = GetObjectProperty(oFilterParent, pcFilterName)
-                       oArrayValue = GetArrayProperty(oFilterObject, OperandValue[integer(poOperand)]).
+                       oArrayValue = GetArrayProperty(oFilterObject, OperandValue[poOperand:GetValue()]).
                 oArrayValue:Add(pcFilterValue).
             end.
             otherwise
                 undo, throw new AppError(
                                 substitute('&1 operand not supported for string filters',
-                                    string(poOperand)), 0). 
+                                    string(poOperand)), 0).
         end case.   /* operand */
-        
+
         return this-object.
     end method.
 
     /** A general method to add logical/boolean filter values to the notification
         query/filter. Only Equals and NotEqual supported
-        
+
         @param character The filter name
         @param logical The filter value
-        @param PushNotificationFilterOperandEnum The operand (eg Equals or NotEqual) 
+        @param PushNotificationFilterOperandEnum The operand (eg Equals or NotEqual)
         @return PushNotificationMessageBuilder This builder object */
     method override public PushNotificationMessageBuilder AddLogicalFilter(input pcFilterName as character,
                                                                            input plFilterValue as logical,
                                                                            input poOperand as PushNotificationFilterOperandEnum):
         define variable oFilterParent as JsonObject no-undo.
         define variable oFilterObject as JsonObject no-undo.
-        define variable oFilterValue as JsonObject no-undo.
-        define variable cNames as character extent no-undo.
-        define variable cOperandName as character no-undo.
         define variable lFieldExists as logical no-undo.
-        
+
         Assert:NotNull(poOperand, 'Operand').
         Assert:NotNullOrEmpty(pcFilterName, 'Filter Name').
         Assert:NotUnknown(plFilterValue, 'Filter Value').
-        
+
         if not HasOption('filter':u) then
             SetOption('filter':u, new JsonObject()).
-        
+
         assign oFilterParent = cast(GetOptionObjectValue('filter':u), JsonObject)
                lFieldExists  = ValidateOperand(oFilterParent, pcFilterName, poOperand).
-        
+
         case poOperand:
             when PushNotificationFilterOperandEnum:Equals then
                 if lFieldExists then
@@ -381,47 +374,46 @@ class OpenEdge.Mobile.ApperyPushNotificationMessageBuilder inherits PushNotifica
             do:
                 assign oFilterObject = GetObjectProperty(oFilterParent, pcFilterName).
                 if lFieldExists then
-                    oFilterObject:Set(OperandValue[integer(poOperand)], plFilterValue).
+                    oFilterObject:Set(OperandValue[poOperand:GetValue()], plFilterValue).
                 else
-                    oFilterObject:Add(OperandValue[integer(poOperand)], plFilterValue).                
+                    oFilterObject:Add(OperandValue[poOperand:GetValue()], plFilterValue).
             end.    /* notequal/includes/notincludes  */
             otherwise
                 undo, throw new AppError(
                                 substitute('&1 operand not supported for logical filters',
-                                    string(poOperand)), 0). 
+                                    string(poOperand)), 0).
         end case.   /* operand */
-        
+
         return this-object.
-    end. 
+    end method.
 
     /** A general method to add numeric(decimal) filter values to the notification
-        query/filter. 
-        
+        query/filter.
+
         Supported operands: eq/eq/gt/ge/lt/le/inc/ninc
-        
+
         @param character The filter name
         @param decimal The filter value
-        @param PushNotificationFilterOperandEnum The operand (eg Equals or NotEqual) 
+        @param PushNotificationFilterOperandEnum The operand (eg Equals or NotEqual)
         @return PushNotificationMessageBuilder This builder object */
     method override public PushNotificationMessageBuilder AddNumericFilter(input pcFilterName as character,
                                                                            input pdFilterValue as decimal,
                                                                            input poOperand as PushNotificationFilterOperandEnum):
         define variable oFilterParent as JsonObject no-undo.
         define variable oFilterObject as JsonObject no-undo.
-        define variable oFilterValue as JsonObject no-undo.
         define variable oArrayValue as JsonArray no-undo.
         define variable lFieldExists as logical no-undo.
-        
+
         Assert:NotNull(poOperand, 'Operand').
         Assert:NotNullOrEmpty(pcFilterName, 'Filter Name').
         Assert:NotNull(pdFilterValue, 'Filter Value').
 
         if not HasOption('filter':u) then
             SetOption('filter':u, new JsonObject()).
-        
+
         assign oFilterParent = cast(GetOptionObjectValue('filter':u), JsonObject)
                lFieldExists  = ValidateOperand(oFilterParent, pcFilterName, poOperand).
-        
+
         case poOperand:
             when PushNotificationFilterOperandEnum:Equals then
                 if lFieldExists then
@@ -436,37 +428,37 @@ class OpenEdge.Mobile.ApperyPushNotificationMessageBuilder inherits PushNotifica
             do:
                 assign oFilterObject = GetObjectProperty(oFilterParent, pcFilterName).
                 if lFieldExists then
-                    oFilterObject:Set(OperandValue[integer(poOperand)], pdFilterValue).
+                    oFilterObject:Set(OperandValue[poOperand:GetValue()], pdFilterValue).
                 else
-                    oFilterObject:Add(OperandValue[integer(poOperand)], pdFilterValue).                
+                    oFilterObject:Add(OperandValue[poOperand:GetValue()], pdFilterValue).
             end.    /* notequal/includes/notincludes  */
             when PushNotificationFilterOperandEnum:Includes or
             when PushNotificationFilterOperandEnum:NotIncludes then
             do:
                 assign oFilterObject = GetObjectProperty(oFilterParent, pcFilterName)
-                       oArrayValue = GetArrayProperty(oFilterObject, OperandValue[integer(poOperand)]).
+                       oArrayValue = GetArrayProperty(oFilterObject, OperandValue[poOperand:GetValue()]).
                 oArrayValue:Add(pdFilterValue).
             end.
             otherwise
                 undo, throw new AppError(
                                 substitute('&1 operand not supported for numeric filters',
-                                    string(poOperand)), 0). 
+                                    string(poOperand)), 0).
         end case.   /* operand */
-        
+
         return this-object.
-    end.
-    
+    end method.
+
     /** General method to add object filters to the payload. Note that the
         arrays required by Includes/NotIncludes must contain objects themselves,
         but this method does NOT validate the contents of the array. The notification
         service will do so.
-        
-        Supported operands: Includes/NotIncludes/Equals/NotEqual            
-        
+
+        Supported operands: Includes/NotIncludes/Equals/NotEqual
+
         @param character      The name of the type of filter (type/deviceID/etc)
-        @param JsonConstruct  The value to add. Could be Object (EqualEquals/NotEqual ) 
+        @param JsonConstruct  The value to add. Could be Object (EqualEquals/NotEqual )
                               or array (Includes/NotIncludes)
-        @param PushNotificationFilterOperandEnum The operand (eq/ne/etc) 
+        @param PushNotificationFilterOperandEnum The operand (eq/ne/etc)
         @return PushNotificationMessageBuilder This builder object */
     method override public PushNotificationMessageBuilder AddObjectFilter(input pcFilterName as character,
                                                                           input poFilterValue as JsonConstruct,
@@ -474,22 +466,22 @@ class OpenEdge.Mobile.ApperyPushNotificationMessageBuilder inherits PushNotifica
         define variable oFilterParent as JsonObject no-undo.
         define variable oFilterObject as JsonObject no-undo.
         define variable lFieldExists as logical no-undo.
-        
+
         /* If a filter already exists, then the following rules apply:
             - if the existing operand does not match the new operand,
               throw an error. Otherwise,
-            - if the existing operand is matches the new operand, replace 
+            - if the existing operand is matches the new operand, replace
               the filter value. */
         Assert:NotNull(poOperand, 'Operand').
         Assert:NotNullOrEmpty(pcFilterName, 'Filter Name').
         Assert:NotNull(poFilterValue, 'Filter Value').
-        
+
         if not HasOption('filter':u) then
             SetOption('filter':u, new JsonObject()).
-        
+
         assign oFilterParent = cast(GetOptionObjectValue('filter':u), JsonObject)
                lFieldExists  = ValidateOperand(oFilterParent, pcFilterName, poOperand).
-        
+
         case poOperand:
             when PushNotificationFilterOperandEnum:Equals then
             do:
@@ -502,12 +494,12 @@ class OpenEdge.Mobile.ApperyPushNotificationMessageBuilder inherits PushNotifica
             when PushNotificationFilterOperandEnum:NotEqual then
             do:
                 Assert:IsType(poFilterValue, get-class(JsonObject)).
-                
+
                 assign oFilterObject = GetObjectProperty(oFilterParent, pcFilterName).
                 if lFieldExists then
-                    oFilterObject:Set(OperandValue[integer(poOperand)], cast(poFilterValue, JsonObject)).
+                    oFilterObject:Set(OperandValue[poOperand:GetValue()], cast(poFilterValue, JsonObject)).
                 else
-                    oFilterObject:Add(OperandValue[integer(poOperand)], cast(poFilterValue, JsonObject)).
+                    oFilterObject:Add(OperandValue[poOperand:GetValue()], cast(poFilterValue, JsonObject)).
             end.
             when PushNotificationFilterOperandEnum:Includes or
             when PushNotificationFilterOperandEnum:NotIncludes then
@@ -515,28 +507,28 @@ class OpenEdge.Mobile.ApperyPushNotificationMessageBuilder inherits PushNotifica
                 Assert:IsType(poFilterValue, get-class(JsonArray)).
                 assign oFilterObject = GetObjectProperty(oFilterParent, pcFilterName).
                 if lFieldExists then
-                    oFilterObject:Set(OperandValue[integer(poOperand)], cast(poFilterValue, JsonArray)).
+                    oFilterObject:Set(OperandValue[poOperand:GetValue()], cast(poFilterValue, JsonArray)).
                 else
-                    oFilterObject:Add(OperandValue[integer(poOperand)], cast(poFilterValue, JsonArray)).
+                    oFilterObject:Add(OperandValue[poOperand:GetValue()], cast(poFilterValue, JsonArray)).
             end.
             otherwise
                 undo, throw new AppError(
                                 substitute('&1 operand not supported for object filter',
-                                    string(poOperand)), 0). 
+                                    string(poOperand)), 0).
         end case.   /* operand */
-        
-        return this-object. 
+
+        return this-object.
     end method.
 
     /** General method to add Geolocations filters to the payload. Note that the
-        objects required by the GEO type must have particular properties, 
+        objects required by the GEO type must have particular properties,
         but this method only validates some of the properties.
-        
-        Supported operands: near/nearSphere/within            
-        
+
+        Supported operands: near/nearSphere/within
+
         @param character      The name of the type of filter (type/deviceID/etc)
-        @param JsonObject     The value to add. 
-        @param PushNotificationFilterOperandEnum The operand (eq/ne/etc) 
+        @param JsonObject     The value to add.
+        @param PushNotificationFilterOperandEnum The operand (eq/ne/etc)
         @return PushNotificationMessageBuilder This builder object */
     method override public PushNotificationMessageBuilder AddGeoFilter(input pcFilterName as character,
                                                                        input poFilterValue as JsonObject,
@@ -545,34 +537,34 @@ class OpenEdge.Mobile.ApperyPushNotificationMessageBuilder inherits PushNotifica
         define variable oFilterObject as JsonObject no-undo.
         define variable lFieldExists as logical no-undo.
         define variable oTestObject as JsonObject no-undo.
-        
+
         /* If a filter already exists, then the following rules apply:
             - if the existing operand does not match the new operand,
               throw an error. Otherwise,
-            - if the existing operand is matches the new operand, replace 
+            - if the existing operand is matches the new operand, replace
               the filter value. */
         Assert:NotNull(poOperand, 'Operand').
         Assert:NotNullOrEmpty(pcFilterName, 'Filter Name').
         Assert:NotNull(poFilterValue, 'Filter Value').
-        
+
         if not HasOption('filter':u) then
             SetOption('filter':u, new JsonObject()).
-        
+
         assign oFilterParent = cast(GetOptionObjectValue('filter':u), JsonObject)
                lFieldExists  = ValidateOperand(oFilterParent, pcFilterName, poOperand).
-        
+
         case poOperand:
             when PushNotificationFilterOperandEnum:Near then
             do:
                 if not poFilterValue:Has('$near') then
                     undo, throw new AppError('Badly formed geo filter: no $near property' , 0).
-                    
+
                 if poFilterValue:GetType('$near') ne JsonDataType:ARRAY then
                     undo, throw new AppError('Badly formed geo filter: $near should be ARRAY data type' , 0).
-                
+
                 if not poFilterValue:Has('$maxDistance') then
                     undo, throw new AppError('Badly formed geo filter: no $maxDistance property' , 0).
-                    
+
                 if poFilterValue:GetType('$maxDistance') ne JsonDataType:NUMBER then
                    undo, throw new AppError('Badly formed geo filter: $maxDistance should be NUMBER data type' , 0).
             end.
@@ -580,13 +572,13 @@ class OpenEdge.Mobile.ApperyPushNotificationMessageBuilder inherits PushNotifica
             do:
                 if not poFilterValue:Has('$nearSphere') then
                     undo, throw new AppError('Badly formed geo filter: no $nearSphere property' , 0).
-                    
+
                 if poFilterValue:GetType('$nearSphere') ne JsonDataType:ARRAY then
                     undo, throw new AppError('Badly formed geo filter: $nearSphere should be ARRAY data type' , 0).
-                
+
                 if not poFilterValue:Has('$maxDistance') then
                     undo, throw new AppError('Badly formed geo filter: no $maxDistance property' , 0).
-                    
+
                 if poFilterValue:GetType('$maxDistance') ne JsonDataType:NUMBER then
                    undo, throw new AppError('Badly formed geo filter: $maxDistance should be NUMBER data type' , 0).
             end.
@@ -595,43 +587,43 @@ class OpenEdge.Mobile.ApperyPushNotificationMessageBuilder inherits PushNotifica
                 /* $geoWithin -> $polygon */
                 if not poFilterValue:Has('$geoWithin') then
                     undo, throw new AppError('Badly formed geo filter: no $geoWithin property' , 0).
-                    
+
                 if poFilterValue:GetType('$geoWithin') ne JsonDataType:OBJECT then
                     undo, throw new AppError('Badly formed geo filter: $geoWithin should be OBJECT data type' , 0).
-                
+
                 assign oTestObject = poFilterValue:GetJsonObject('$geoWithin').
 
                 if not oTestObject:Has('$polygon') then
                     undo, throw new AppError('Badly formed geo filter: no $polygon property' , 0).
-                    
+
                 if oTestObject:GetType('$polygon') ne JsonDataType:ARRAY then
                     undo, throw new AppError('Badly formed geo filter: $polygon should be ARRAY data type' , 0).
             end.
             otherwise
                 undo, throw new AppError(
                                 substitute('&1 operand not supported for pointer filter',
-                                    string(poOperand)), 0). 
+                                    string(poOperand)), 0).
         end case.   /* operand */
-        
+
         /* if we got here, we passed all the validation */
         assign oFilterObject = GetObjectProperty(oFilterParent, pcFilterName).
         if lFieldExists then
-            oFilterObject:Set(OperandValue[integer(poOperand)], poFilterValue).
+            oFilterObject:Set(OperandValue[poOperand:GetValue()], poFilterValue).
         else
-            oFilterObject:Add(OperandValue[integer(poOperand)], poFilterValue).
-            
-        return this-object. 
+            oFilterObject:Add(OperandValue[poOperand:GetValue()], poFilterValue).
+
+        return this-object.
     end method.
-    
+
     /** General method to add object filters to the payload. Note that the
-        objects required by the Pointer type must have particular properties, 
+        objects required by the Pointer type must have particular properties,
         but this method validates some of the properties.
-        
-        Supported operands: Equals/NotEqual            
-        
+
+        Supported operands: Equals/NotEqual
+
         @param character      The name of the type of filter (type/deviceID/etc)
-        @param JsonObject     The value to add. 
-        @param PushNotificationFilterOperandEnum The operand (eq/ne/etc) 
+        @param JsonObject     The value to add.
+        @param PushNotificationFilterOperandEnum The operand (eq/ne/etc)
         @return PushNotificationMessageBuilder This builder object */
     method override public PushNotificationMessageBuilder AddPointerFilter(input pcFilterName as character,
                                                                            input poFilterValue as JsonObject,
@@ -639,33 +631,33 @@ class OpenEdge.Mobile.ApperyPushNotificationMessageBuilder inherits PushNotifica
         define variable oFilterParent as JsonObject no-undo.
         define variable oFilterObject as JsonObject no-undo.
         define variable lFieldExists as logical no-undo.
-        
+
         /* If a filter already exists, then the following rules apply:
             - if the existing operand does not match the new operand,
               throw an error. Otherwise,
-            - if the existing operand is matches the new operand, replace 
+            - if the existing operand is matches the new operand, replace
               the filter value. */
         Assert:NotNull(poOperand, 'Operand').
         Assert:NotNullOrEmpty(pcFilterName, 'Filter Name').
         Assert:NotNull(poFilterValue, 'Filter Value').
-        
+
         if not HasOption('filter':u) then
             SetOption('filter':u, new JsonObject()).
-        
+
         assign oFilterParent = cast(GetOptionObjectValue('filter':u), JsonObject)
                lFieldExists  = ValidateOperand(oFilterParent, pcFilterName, poOperand).
-        
+
         /* validate the payload */
         if not poFilterValue:Has('collName') then
             undo, throw new AppError('Badly formed pointer filter: no collName property' , 0).
         if poFilterValue:GetType('collName') ne JsonDataType:STRING then
             undo, throw new AppError('Badly formed pointer filter: collName should be STRING data type' , 0).
-        
+
         if not poFilterValue:Has('_id') then
             undo, throw new AppError('Badly formed pointer filter: no _id property' , 0).
         if poFilterValue:GetType('_id') ne JsonDataType:STRING then
            undo, throw new AppError('Badly formed pointer filter: _id should be STRING data type' , 0).
-        
+
         case poOperand:
             when PushNotificationFilterOperandEnum:Equals then
             do:
@@ -678,21 +670,21 @@ class OpenEdge.Mobile.ApperyPushNotificationMessageBuilder inherits PushNotifica
             do:
                 assign oFilterObject = GetObjectProperty(oFilterParent, pcFilterName).
                 if lFieldExists then
-                    oFilterObject:Set(OperandValue[integer(poOperand)], poFilterValue).
+                    oFilterObject:Set(OperandValue[poOperand:GetValue()], poFilterValue).
                 else
-                    oFilterObject:Add(OperandValue[integer(poOperand)], poFilterValue).
+                    oFilterObject:Add(OperandValue[poOperand:GetValue()], poFilterValue).
             end.
             otherwise
                 undo, throw new AppError(substitute('&1 operand not supported for pointer filter',
-                                         string(poOperand)), 0). 
+                                         string(poOperand)), 0).
         end case.   /* operand */
-        
-        return this-object. 
+
+        return this-object.
     end method.
-    
+
     /** Validates the incoming operand with any existing operand. The operand
         cannot be changed once set.
-        
+
         @param JsonObject The object representing the 'filter' property.
         @param character  The name of the type of filter (type/deviceID/etc)
         @param PushNotificationFilterOperandEnum The operand (eq/ne/etc)
@@ -704,35 +696,35 @@ class OpenEdge.Mobile.ApperyPushNotificationMessageBuilder inherits PushNotifica
         define variable cNames as character extent no-undo.
         define variable cOperandName as character no-undo.
         define variable lFieldExists as logical no-undo.
-        
-        assign lFieldExists = poFilterParent:Has(pcFilterName). 
-        
+
+        assign lFieldExists = poFilterParent:Has(pcFilterName).
+
         if lFieldExists then
         do:
             if poFilterParent:GetType(pcFilterName) eq JsonDataType:STRING then
                 assign extent(cNames) = 1
                        /* blank */
-                       cNames = OperandValue[integer(PushNotificationFilterOperandEnum:Equals)].
+                       cNames = OperandValue[PushNotificationFilterOperandEnum:Equals:GetValue()].
             else
                 assign oFilterObject = GetObjectProperty(poFilterParent, pcFilterName)
                        cNames = oFilterObject:GetNames().
-            
-            /* If there are no properties set, then we can consider the field 
+
+            /* If there are no properties set, then we can consider the field
                non-extant. */
             if extent(cNames) eq ? then
                 lFieldExists = false.
             else
                 assign cOperandName = cNames[1].
-            
+
             /* do not allow operand changes */
-            if cOperandName ne OperandValue[integer(poOperand)] then
+            if cOperandName ne OperandValue[poOperand:GetValue()] then
                 undo, throw new AppError(
                                 substitute('Filter field &1 value already has operand &2 set',
                                             pcFilterName,
                                             cOperandName
                                             ), 0).
         end.
-        
-        return lFieldExists.         
+
+        return lFieldExists.
     end method.
 end class.

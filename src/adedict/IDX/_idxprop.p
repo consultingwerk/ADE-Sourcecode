@@ -1,5 +1,5 @@
 /*****************************************************************
-* Copyright (C) 2000-2014 by Progress Software Corporation.      *
+* Copyright (C) 2000-2014,2025 by Progress Software Corporation.      *
 * All rights reserved.  Prior versions of this work may contain  *
 * portions contributed by participants of Possenet.              *
 *                                                                *
@@ -29,6 +29,7 @@ Last modified on:
 06/08/06 fernando   Support for large key entries
 08/21/06 fernando   Fix can-write check on _Index (20051216-011).
 11/16/07 fernando   Support for _aud-audit-data* indexes deactivation
+06/10/25 talha      Fix the active toggle box for online added index
 ----------------------------------------------------------------------------*/
 &GLOBAL-DEFINE WIN95-BTN YES
 
@@ -52,6 +53,7 @@ DEFINE VAR idx_mod   as LOGICAL NO-UNDO INIT YES.
 DEFINE VAR canAudDeact   as LOGICAL NO-UNDO.
 define var CanLocIdx     as logical no-undo.
 DEFINE VAR canCDCDeact   as LOGICAL NO-UNDO.
+DEFINE VAR l_actidx      as LOGICAL NO-UNDO INIT TRUE.
 
 
 /*============================Mainline code==================================*/
@@ -183,8 +185,20 @@ DO: /* Foreign DB */
        ActRec:SENSITIVE = false
        ActRec           = false.
 END.
-ELSE ASSIGN ActRec:LABEL = "Ac&tive"
-            ActRec       = b_Index._Active.
+ELSE DO:
+    FIND FIRST dictdb._StorageObject WHERE dictdb._StorageObject._Db-recid = _File._Db-recid
+                                       AND dictdb._StorageObject._Object-type = 2
+                                       AND dictdb._StorageObject._Object-number = b_Index._Idx-num
+                                       AND dictdb._StorageObject._partitionid = 0
+                                       NO-LOCK NO-ERROR.
+    IF AVAILABLE _StorageObject AND (get-bits(_StorageObject._Object-State,1,1) = 1) AND b_Index._Active THEN
+      ASSIGN ActRec:LABEL = "Ac&tive"
+             ActRec       = false
+             l_actidx     = false.
+    ELSE
+      ASSIGN ActRec:LABEL = "Ac&tive"
+             ActRec       = b_Index._Active.
+END.
         
 IF dictdb._File._For-type = ? AND NOT is-pre-101b-db THEN 
 DO:
@@ -374,7 +388,7 @@ else do:
    if s_Idx_Primary OR INDEX(capab, {&CAPAB_CHANGE_PRIMARY}) = 0 then
       s_Idx_Primary:sensitive in frame idxprops = no.
       
-   if (NOT b_Index._Active OR INDEX(capab, {&CAPAB_INACTIVATE}) = 0)
+   if (NOT b_Index._Active OR INDEX(capab, {&CAPAB_INACTIVATE}) = 0 OR NOT l_actidx)
       AND 
         &IF "{&WINDOW-SYSTEM}" begins "MS-WIN"
           &THEN ActRec:Label = "Ac&tive"
@@ -405,7 +419,7 @@ IF
       &THEN ActRec:Label = "Ac&tive"
       &ELSE ActRec:Label = "Active"
     &ENDIF
-  AND b_Index._Active AND INDEX(capab, {&CAPAB_INACTIVATE}) > 0
+  AND b_Index._Active AND INDEX(capab, {&CAPAB_INACTIVATE}) > 0 AND l_actidx
   THEN enable ActRec with frame idxprops.
 
   if name_mod then apply "entry" to b_Index._Index-Name in frame idxprops.
