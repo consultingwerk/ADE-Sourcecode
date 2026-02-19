@@ -28,6 +28,7 @@ using Progress.Lang.AppError.
 using Progress.Lang.Object.
 
 class OpenEdge.BusinessRules.RulesServerConnection use-widget-pool implements IServerConnection:
+
     define private variable moDecisionServiceConnection as WebServiceConnection no-undo.
     define private variable moAdminServiceConnection as WebServiceConnection no-undo.
     
@@ -46,7 +47,7 @@ class OpenEdge.BusinessRules.RulesServerConnection use-widget-pool implements IS
     define public property ConnectionParameters as IConnectionParameters no-undo get. private set.
 
     /**  Returns the result of the Decision Service server's Connected property */
-	define public property Connected as logical no-undo 
+    define public property Connected as logical no-undo 
         get():
             define variable lConnected as logical no-undo.
             
@@ -58,15 +59,15 @@ class OpenEdge.BusinessRules.RulesServerConnection use-widget-pool implements IS
             return lConnected.
         end get.
 
-	constructor public RulesServerConnection (input poConnectionParameters as RulesServerConnectionParameters):
+    constructor public RulesServerConnection (input poConnectionParameters as RulesServerConnectionParameters):
         Assert:NotNull(poConnectionParameters, 'Connection Parameters').
         this-object:ConnectionParameters = poConnectionParameters.
         
         moDecisionServiceConnection = new WebServiceConnection(cast(poConnectionParameters:DecisionServiceConnectionParameters, WebServiceConnectionParameters)).
         if valid-object(poConnectionParameters:AdminServiceConnectionParameters) then
             moAdminServiceConnection = new WebServiceConnection(cast(poConnectionParameters:AdminServiceConnectionParameters, WebServiceConnectionParameters)).
-	end constructor.
-	
+    end constructor.
+    
     method public void CreateServer():
         moDecisionServiceConnection:CreateServer().
         
@@ -74,23 +75,23 @@ class OpenEdge.BusinessRules.RulesServerConnection use-widget-pool implements IS
             moAdminServiceConnection:CreateServer().
     end method.
 
-	method public void DestroyServer():
-	    moDecisionServiceConnection:DestroyServer().
-	    
-	    if valid-object(moAdminServiceConnection) then
-	       moAdminServiceConnection:DestroyServer().
-	end method.
+    method public void DestroyServer():
+        moDecisionServiceConnection:DestroyServer().
+        
+        if valid-object(moAdminServiceConnection) then
+           moAdminServiceConnection:DestroyServer().
+    end method.
 
-	method public void Connect():
-	    define variable hRulesService as handle no-undo.
-	    
-	    if not moDecisionServiceConnection:Connected then
-	    do:
-    	    moDecisionServiceConnection:Connect().
-    	    
-    	    hRulesService = cast(moDecisionServiceConnection:Server, WidgetHandle):Value.
+    method public void Connect():
+        define variable hRulesService as handle no-undo.
+        
+        if not moDecisionServiceConnection:Connected then
+        do:
+            moDecisionServiceConnection:Connect().
+            
+            hRulesService = cast(moDecisionServiceConnection:Server, WidgetHandle):Value.
     
-            run value(moDecisionServiceConnection:PortName) set mhDecisionServicePort on hRulesService.	
+            run value(moDecisionServiceConnection:PortName) set mhDecisionServicePort on hRulesService.    
         end.
                 
         if valid-object(moAdminServiceConnection) and
@@ -102,24 +103,24 @@ class OpenEdge.BusinessRules.RulesServerConnection use-widget-pool implements IS
     
             run value(moAdminServiceConnection:PortName) set mhAdminServicePort on hRulesService.
         end.
-	end method.
+    end method.
 
-	method public void Disconnect():
-	    moDecisionServiceConnection:Disconnect().
-	    
-	    if valid-object(moAdminServiceConnection) then
+    method public void Disconnect():
+        moDecisionServiceConnection:Disconnect().
+        
+        if valid-object(moAdminServiceConnection) then
             moAdminServiceConnection:Disconnect().
         
-	    delete object mhDecisionServicePort no-error.
-	    /* simplere just to delete no-error than check first */
+        delete object mhDecisionServicePort no-error.
+        /* simplere just to delete no-error than check first */
         delete object mhAdminServicePort no-error.
-	end method.
-	
-	/** Invokes a decision service on the Rules Server
-	   
-	   @param  longchar The message/payload to send
-	   @return longchar The results of the service call. */
-	method public longchar InvokeDecisionService(input pcRequestDocument as longchar):
+    end method.
+    
+    /** Invokes a decision service on the Rules Server
+       
+       @param  longchar The message/payload to send
+       @return longchar The results of the service call. */
+    method public longchar InvokeDecisionService(input pcRequestDocument as longchar):
         define variable lcResponseDocument as longchar no-undo.
         define variable xmlDoc as handle no-undo.
         define variable xmlNode as handle no-undo.
@@ -200,6 +201,6 @@ class OpenEdge.BusinessRules.RulesServerConnection use-widget-pool implements IS
     
     method override public character ToString():
         return this-object:ConnectionParameters:GetConnectionString().
-	end method.
-	
+    end method.
+    
 end class.

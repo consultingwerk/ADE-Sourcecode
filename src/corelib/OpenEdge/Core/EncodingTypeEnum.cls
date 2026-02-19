@@ -1,20 +1,20 @@
 /*************************************************************************
-Copyright (c) 2021 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2021,2025 by Progress Software Corporation. All rights reserved.
 **************************************************************************/
 /*------------------------------------------------------------------------
     File        : EncodingTypeEnum
-    Purpose     : Enumeration of supported (via ABL function) encodings
-    Syntax      :
+    Purpose     : Enumeration of supported (via ABL function) encoding types
     Description :
     Author(s)   : pjudge
     Created     : 2020-12-09
-    Notes       : * Encodings from doc at https://docs.progress.com/bundle/openedge-security-keys-and-certificates/page/genpassword.html
-  ----------------------------------------------------------------------*/
-enum OpenEdge.Core.EncodingTypeEnum :
-    define enum oech1
-                odeb0
-                nopr0
-                
+    Notes       : Encoding types should agree with documentation of the genpasswd
+                  utility located in the OpenEdge documentation hub at:
+  https://docs.progress.com/bundle/openedge-security-keys-and-certificates/page/genpassword.html
+------------------------------------------------------------------------*/
+
+enum OpenEdge.Core.EncodingTypeEnum:
+    define enum nopr0 // Indicates no encoding of the accompanying string will take place, not valid for use with encoding methods!
+
                 ae1b1
                 ae1b2
                 ae1b3
@@ -24,7 +24,7 @@ enum OpenEdge.Core.EncodingTypeEnum :
                 ae1b7
                 ae1b8
                 ae1b9
-                
+
                 ae1h1
                 ae1h2
                 ae1h3
@@ -34,7 +34,7 @@ enum OpenEdge.Core.EncodingTypeEnum :
                 ae1h7
                 ae1h8
                 ae1h9
-                
+
                 ae2b1
                 ae2b2
                 ae2b3
@@ -44,7 +44,7 @@ enum OpenEdge.Core.EncodingTypeEnum :
                 ae2b7
                 ae2b8
                 ae2b9
-                
+
                 ae2h1
                 ae2h2
                 ae2h3
@@ -54,16 +54,18 @@ enum OpenEdge.Core.EncodingTypeEnum :
                 ae2h7
                 ae2h8
                 ae2h9
-                
-                oepb1
-                oepb2
-                oepb3
-                oepb4
-                oepb5
-                oepb6
-                oepb7
-                oepb8
-                oepb9
-                
-                Default = odeb0.
+
+                oeph0
+                oeph1
+                oeph2
+                oeph3
+                oeph4
+                oeph5
+                oeph6
+                oeph7
+                oeph8
+                oeph9
+
+                aedh0 // Introduced as of OpenEdge 13.0
+                .
 end enum.

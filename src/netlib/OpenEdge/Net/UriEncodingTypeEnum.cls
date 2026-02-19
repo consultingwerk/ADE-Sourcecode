@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014-2017,2024 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2014-2017 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : UrlEncodingTypeEnum

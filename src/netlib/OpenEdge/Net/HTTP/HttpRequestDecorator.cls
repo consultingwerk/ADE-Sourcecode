@@ -1,21 +1,21 @@
 /************************************************
-Copyright (c) 2015-2016, 2018-2022 by Progress Software Corporation. All rights reserved.
-*************************************************/ 
+Copyright (c) 2015-2016,2018-2022,2025 by Progress Software Corporation. All rights reserved.
+*************************************************/
 /*------------------------------------------------------------------------
     File        : HttpRequestDecorator
     Purpose     : Decorator class for decorating/customising Http Requests
-                  without requiring inheritance. This allows us to construct 
+                  without requiring inheritance. This allows us to construct
                   more complex Requests (say with proxy OR with credentials,
-                  no proxy) without having to have individual types for all the 
-                  combinations                  
-    Syntax      : 
-    Description : 
+                  no proxy) without having to have individual types for all the
+                  combinations
+    Syntax      :
+    Description :
     Author(s)   : pjudge
     Created     : Wed Jan 28 16:19:09 EST 2015
     Notes       : * There's a decent description of Decorator pattern in Wikipedia
                     at http://en.wikipedia.org/wiki/Decorator_pattern
                   * This class should be extended to provide specific functionality.
-                    For instance, adding support for proxies, or cookies 
+                    For instance, adding support for proxies, or cookies
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
@@ -27,13 +27,13 @@ using OpenEdge.Net.HTTP.IHttpRequest.
 using OpenEdge.Net.URI.
 using Progress.Lang.Object.
 
-class OpenEdge.Net.HTTP.HttpRequestDecorator 
-            implements IHttpRequest, IAdaptable: 
-    
+class OpenEdge.Net.HTTP.HttpRequestDecorator
+            implements IHttpRequest, IAdaptable:
+
     /* the decorated Request. this can be a decoration or an actual http Request */
     define protected property DecoratedHttpRequest as IHttpRequest no-undo get. private set.
-    
-    define public property Method as character no-undo 
+
+    define public property Method as character no-undo
        get():
            return DecoratedHttpRequest:Method.
        end get.
@@ -41,7 +41,7 @@ class OpenEdge.Net.HTTP.HttpRequestDecorator
            DecoratedHttpRequest:Method = pcMethod.
        end set.
 
-    define public property URI as URI no-undo 
+    define public property URI as URI no-undo
        get():
            return DecoratedHttpRequest:URI.
        end get.
@@ -49,7 +49,7 @@ class OpenEdge.Net.HTTP.HttpRequestDecorator
            DecoratedHttpRequest:URI = poURI.
        end set.
 
-    define public property Version as character no-undo 
+    define public property Version as character no-undo
         get():
             return DecoratedHttpRequest:Version.
         end get.
@@ -57,7 +57,7 @@ class OpenEdge.Net.HTTP.HttpRequestDecorator
             DecoratedHttpRequest:Version = pcVersion.
         end set.
 
-    define public property ContentType as character no-undo 
+    define public property ContentType as character no-undo
         get():
             return DecoratedHttpRequest:ContentType.
         end get.
@@ -65,7 +65,7 @@ class OpenEdge.Net.HTTP.HttpRequestDecorator
             DecoratedHttpRequest:ContentType = pcContentType.
         end set.
 
-    define public property CharacterEncoding as character no-undo 
+    define public property CharacterEncoding as character no-undo
         get():
             return DecoratedHttpRequest:CharacterEncoding.
         end get.
@@ -73,7 +73,7 @@ class OpenEdge.Net.HTTP.HttpRequestDecorator
             DecoratedHttpRequest:CharacterEncoding = pcCharacterEncoding.
         end set.
 
-    define public property ContentMD5 as raw no-undo 
+    define public property ContentMD5 as raw no-undo // Deprecated
         get():
             return DecoratedHttpRequest:ContentMD5.
         end get.
@@ -81,15 +81,23 @@ class OpenEdge.Net.HTTP.HttpRequestDecorator
             DecoratedHttpRequest:ContentMD5 = prContentMD5.
         end set.
 
-    define public property Entity as Object no-undo 
+    define public property ContentDigest as raw no-undo // Preferred
         get():
-            return DecoratedHttpRequest:Entity.        
+            return DecoratedHttpRequest:ContentDigest.
+        end get.
+        set(input prContentDigest as raw):
+            DecoratedHttpRequest:ContentDigest = prContentDigest.
+        end set.
+
+    define public property Entity as Object no-undo
+        get():
+            return DecoratedHttpRequest:Entity.
         end get.
         set(input poEntity as Object):
             DecoratedHttpRequest:Entity = poEntity.
         end set.
-    
-    define public property ContentLength as int64 no-undo 
+
+    define public property ContentLength as int64 no-undo
         get():
             return DecoratedHttpRequest:ContentLength.
         end get.
@@ -97,30 +105,30 @@ class OpenEdge.Net.HTTP.HttpRequestDecorator
             DecoratedHttpRequest:ContentLength = piContentLength.
         end set.
 
-    define public property TransferEncoding as character no-undo 
+    define public property TransferEncoding as character no-undo
         get():
             return DecoratedHttpRequest:TransferEncoding.
         end get.
         set(input pcTransferEncoding as character):
             DecoratedHttpRequest:TransferEncoding = pcTransferEncoding.
         end set.
-     
+
     constructor public HttpRequestDecorator(input poHttpRequest as IHttpRequest):
         Assert:NotNull(poHttpRequest, 'HttpRequest').
         assign DecoratedHttpRequest = poHttpRequest.
-    end constructor.       
-    
+    end constructor.
+
     method public void SetHeader( input poHeader as HttpHeader ):
         DecoratedHttpRequest:SetHeader(poHeader).
     end method.
-    
+
     /** Adds a set of header info to this message's collection of headers.
-        
+
         @param HttpHeader[] An array of headers */
     method public void SetHeaders(input poHeader as HttpHeader extent):
         DecoratedHttpRequest:SetHeaders(poHeader).
     end method.
-    
+
     method public HttpHeader GetHeader( input pcName as character ):
         return DecoratedHttpRequest:GetHeader(pcName).
     end method.
@@ -144,14 +152,14 @@ class OpenEdge.Net.HTTP.HttpRequestDecorator
     method public void SetCookie( input poCookie as OpenEdge.Net.HTTP.Cookie ):
         DecoratedHttpRequest:SetCookie(poCookie).
     end method.
-    
+
     /** Adds cookies to this message
-        
+
         @param Cookie[] An array of cookies to add. */
     method public void SetCookies(input poCookies as Cookie extent):
         DecoratedHttpRequest:SetCookies(poCookies).
     end method.
-    
+
     method public integer GetCookies( output poCookies as Cookie extent):
         return     DecoratedHttpRequest:GetCookies(output poCookies).
     end method.
@@ -179,22 +187,22 @@ class OpenEdge.Net.HTTP.HttpRequestDecorator
     method public Cookie GetCookie( input pcName as character ):
         return DecoratedHttpRequest:GetCookie(pcName).
     end method.
-    
-    /* Returns an adapter for this message 
-       
+
+    /* Returns an adapter for this message
+
        @param P.L.Class The type we want to adapt this message to
        @return P.L.Object The adapter. Will typically be of the type specified by the input argument */
     method public Progress.Lang.Object GetAdapter(input poAdaptTo as class Progress.Lang.Class):
         Assert:NotNull(poAdaptTo, 'Adapter').
-        
+
         if this-object:GetClass():IsA(poAdaptTo) then
             return this-object.
-        
+
         if valid-object(DecoratedHttpRequest) and
            type-of(DecoratedHttpRequest, IAdaptable) then
             return cast(DecoratedHttpRequest, IAdaptable):GetAdapter(poAdaptTo).
-        
-        return ?.            
+
+        return ?.
     end method.
-    
+
 end class.

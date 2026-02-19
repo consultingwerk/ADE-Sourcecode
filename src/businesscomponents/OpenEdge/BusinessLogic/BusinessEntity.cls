@@ -205,7 +205,7 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
         DEFINE VARIABLE hCurBuffer AS HANDLE NO-UNDO.
         
         /* Get rid of any existing data in DataSet */
-         REPEAT iIndex = 1 TO ProDataSet:NUM-BUFFERS:
+        REPEAT iIndex = 1 TO ProDataSet:NUM-BUFFERS:
             hCurBuffer = ProDataSet:GET-BUFFER-HANDLE(iIndex).
             hCurBuffer:EMPTY-TEMP-TABLE().
         END.
@@ -216,19 +216,19 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
             Notes:
     ------------------------------------------------------------------------------*/
     METHOD PROTECTED VOID CreateData(INPUT-OUTPUT DATASET-HANDLE hDataSet):
-         DEFINE VARIABLE hPDS AS HANDLE NO-UNDO.
-         {&_proparse_ prolint-nowarn(varusage)}
-         DEFINE VARIABLE saveUndos AS LOGICAL EXTENT NO-UNDO.
+        DEFINE VARIABLE hPDS AS HANDLE NO-UNDO.
+        {&_proparse_ prolint-nowarn(varusage)}
+        DEFINE VARIABLE saveUndos AS LOGICAL EXTENT NO-UNDO.
          
-         /* if the Create-, Update- or DeleteData operation was called BY-REFERENCE
-            we will have a different dataset than the one in the property. We want to work
-            on the one was sent, not the one that's there :) */
-         IF THIS-OBJECT:ProDataSet NE hDataSet THEN
+        /* if the Create-, Update- or DeleteData operation was called BY-REFERENCE
+           we will have a different dataset than the one in the property. We want to work
+           on the one was sent, not the one that's there :) */
+        IF THIS-OBJECT:ProDataSet NE hDataSet THEN
             ASSIGN hPDS                   = THIS-OBJECT:ProDataSet
                    THIS-OBJECT:ProDataSet = hDataSet:HANDLE.
 
-         // UNDO attrs needs to be false to preserve ERROR and REJECTED
-         SetUndos(saveUndos, FALSE).
+        // UNDO attrs needs to be false to preserve ERROR and REJECTED
+        SetUndos(saveUndos, FALSE).
          
         if extent(this-object:FieldMapping) eq ? then
             THIS-OBJECT:AttachDataSources().
@@ -267,26 +267,26 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
             Notes:
     ------------------------------------------------------------------------------*/
     METHOD PROTECTED VOID UpdateData(INPUT-OUTPUT DATASET-HANDLE hDataSet):
-          DEFINE VARIABLE hPDS AS HANDLE NO-UNDO.
-          {&_proparse_ prolint-nowarn(varusage)}
-          DEFINE VARIABLE saveUndos AS LOGICAL EXTENT NO-UNDO.
+        DEFINE VARIABLE hPDS AS HANDLE NO-UNDO.
+        {&_proparse_ prolint-nowarn(varusage)}
+        DEFINE VARIABLE saveUndos AS LOGICAL EXTENT NO-UNDO.
          
-         /* if the Create-, Update- or DeleteData operation was called BY-REFERENCE
-            we will have a different dataset than the one in the property. We want to work
-            on the one was sent, not the one that's there :) */
-         IF THIS-OBJECT:ProDataSet NE hDataSet THEN
+        /* if the Create-, Update- or DeleteData operation was called BY-REFERENCE
+           we will have a different dataset than the one in the property. We want to work
+           on the one was sent, not the one that's there :) */
+        IF THIS-OBJECT:ProDataSet NE hDataSet THEN
             ASSIGN hPDS                   = THIS-OBJECT:ProDataSet
                    THIS-OBJECT:ProDataSet = hDataSet:HANDLE.
            
-         // UNDO attrs needs to be false to preserve ERROR and REJECTED
-         SetUndos(saveUndos, FALSE).
+        // UNDO attrs needs to be false to preserve ERROR and REJECTED
+        SetUndos(saveUndos, FALSE).
 
         if extent(this-object:FieldMapping) eq ? then
             THIS-OBJECT:AttachDataSources().
         else
             THIS-OBJECT:AttachDataSources(this-object:FieldMapping).
          
-         DO TRANSACTION ON ERROR UNDO, THROW:
+        DO TRANSACTION ON ERROR UNDO, THROW:
             // ProcessBIData() determines if BI data was sent as part of request.
             // If not sent, it adds it. BI data is required when calling SAVE-ROW-CHANGES()
             IF ProcessBIData(ROW-MODIFIED) EQ TRUE THEN
@@ -295,20 +295,20 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
                 UpdateMode = UpdateModeEnum:CUD_NOBI.
          
             THIS-OBJECT:CommitData(ROW-MODIFIED).
-         END.
+        END.
          
-         CATCH e AS CLASS Progress.Lang.Error:
-           ProcessTransactionalError(e).
-         END.
+        CATCH e AS CLASS Progress.Lang.Error:
+            ProcessTransactionalError(e).
+        END.
                                  
-         FINALLY:
+        FINALLY:
             THIS-OBJECT:DetachDataSources().
             
             // Reset undos to orig values
             SetUndos(saveUndos, ?).
         
-             /* reset if we used a different PDS */
-             if valid-handle(hPDS) then
+            /* reset if we used a different PDS */
+            if valid-handle(hPDS) then
                 assign this-object:ProDataSet = hPDS.
         END FINALLY.
     END METHOD.
@@ -319,19 +319,19 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
             Notes:
     ------------------------------------------------------------------------------*/
     METHOD PROTECTED VOID DeleteData(INPUT-OUTPUT DATASET-HANDLE hDataSet):
-         DEFINE VARIABLE hPDS AS HANDLE NO-UNDO.
-         {&_proparse_ prolint-nowarn(varusage)}
-         DEFINE VARIABLE saveUndos AS LOGICAL EXTENT NO-UNDO.
+        DEFINE VARIABLE hPDS AS HANDLE NO-UNDO.
+        {&_proparse_ prolint-nowarn(varusage)}
+        DEFINE VARIABLE saveUndos AS LOGICAL EXTENT NO-UNDO.
          
-         /* if the Create-, Update- or DeleteData operation was called BY-REFERENCE
-            we will have a different dataset than the one in the property. We want to work
-            on the one was sent, not the one that's there :) */
-         IF THIS-OBJECT:ProDataSet NE hDataSet THEN
+        /* if the Create-, Update- or DeleteData operation was called BY-REFERENCE
+           we will have a different dataset than the one in the property. We want to work
+           on the one was sent, not the one that's there :) */
+        IF THIS-OBJECT:ProDataSet NE hDataSet THEN
             ASSIGN hPDS                   = THIS-OBJECT:ProDataSet
                    THIS-OBJECT:ProDataSet = hDataSet:HANDLE.
                    
-         // UNDO attrs needs to be false to preserve ERROR and REJECTED
-         SetUndos(saveUndos, FALSE).
+        // UNDO attrs needs to be false to preserve ERROR and REJECTED
+        SetUndos(saveUndos, FALSE).
          
         if extent(this-object:FieldMapping) eq ? then
             THIS-OBJECT:AttachDataSources().
@@ -359,8 +359,8 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
             // Reset undos to orig values
             SetUndos(saveUndos, ?).
         
-             /* reset if we used a different PDS */
-             if valid-handle(hPDS) then
+            /* reset if we used a different PDS */
+            if valid-handle(hPDS) then
                 assign this-object:ProDataSet = hPDS.
         END FINALLY.
     END METHOD.
@@ -376,81 +376,80 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
                      Also, if no bi data was sent, then it's created based on iRowState param.
                      Before-Image data is a requirement in order to call SAVE-ROW-CHANGES()
     ----------------------------------------------------------------------------------------*/
-     METHOD PRIVATE LOGICAL ProcessBIData(INPUT iRowState AS INTEGER):
-     
-          DEFINE VAR iIndex AS INTEGER NO-UNDO.
-          DEFINE VAR hBuffer AS HANDLE NO-UNDO.
-          DEFINE VAR hBeforeBuffer AS HANDLE NO-UNDO.
-          DEFINE VAR lAvailable AS LOGICAL NO-UNDO.
-          DEFINE VAR lReturnValue AS LOGICAL NO-UNDO.
-          DEFINE VAR hAfterQuery  AS HANDLE EXTENT NO-UNDO.
-          DEFINE VAR lHasBIData AS LOGICAL INIT ? NO-UNDO.
-          
-          EXTENT(hAfterQuery) = ProDataSet:NUM-BUFFERS.
-          
-          REPEAT iIndex = 1 TO ProDataSet:NUM-BUFFERS:
-            // Only need to worry about tables that have data-source attached..
-            IF VALID-HANDLE(ProDataSource[iIndex]) THEN DO:
-                hBuffer = ProDataSet:GET-BUFFER-HANDLE(iIndex).
-                hBeforeBuffer = hBuffer:BEFORE-BUFFER.
+    METHOD PRIVATE LOGICAL ProcessBIData(INPUT iRowState AS INTEGER):
+        DEFINE VAR iIndex AS INTEGER NO-UNDO.
+        DEFINE VAR hBuffer AS HANDLE NO-UNDO.
+        DEFINE VAR hBeforeBuffer AS HANDLE NO-UNDO.
+        DEFINE VAR lAvailable AS LOGICAL NO-UNDO.
+        DEFINE VAR lReturnValue AS LOGICAL NO-UNDO.
+        DEFINE VAR hAfterQuery  AS HANDLE EXTENT NO-UNDO.
+        DEFINE VAR lHasBIData AS LOGICAL INIT ? NO-UNDO.
+        
+        EXTENT(hAfterQuery) = ProDataSet:NUM-BUFFERS.
+        
+        REPEAT iIndex = 1 TO ProDataSet:NUM-BUFFERS:
+          // Only need to worry about tables that have data-source attached..
+          IF VALID-HANDLE(ProDataSource[iIndex]) THEN DO:
+              hBuffer = ProDataSet:GET-BUFFER-HANDLE(iIndex).
+              hBeforeBuffer = hBuffer:BEFORE-BUFFER.
 
-                IF hBeforeBuffer EQ ? THEN
-                    UNDO, THROW NEW
-                    Progress.Lang.AppError("To use BusinessEntity CUD functionality, temp-tables must be specified with BEFORE-TABLE.", 0).
-            
-                // Check for before-image rows. Skip over tables that have no rows at all
-                IF hBuffer:TABLE-HANDLE:HAS-RECORDS OR hBeforeBuffer:TABLE-HANDLE:HAS-RECORDS THEN DO:
-            
-                    IF lHasBIData EQ ? THEN DO:
-                        lHasBIData = hBeforeBuffer:TABLE-HANDLE:HAS-RECORDS.
-                    END.
-                    ELSE IF lHasBIData NE hBeforeBuffer:TABLE-HANDLE:HAS-RECORDS THEN DO:
-                        UNDO, THROW NEW Progress.Lang.AppError("To use BusinessEntity CUD functionality, all temp-tables must have same setting of before-image data", 0).
+              IF hBeforeBuffer EQ ? THEN
+                  UNDO, THROW NEW
+                  Progress.Lang.AppError("To use BusinessEntity CUD functionality, temp-tables must be specified with BEFORE-TABLE.", 0).
+          
+              // Check for before-image rows. Skip over tables that have no rows at all
+              IF hBuffer:TABLE-HANDLE:HAS-RECORDS OR hBeforeBuffer:TABLE-HANDLE:HAS-RECORDS THEN DO:
+          
+                  IF lHasBIData EQ ? THEN DO:
+                      lHasBIData = hBeforeBuffer:TABLE-HANDLE:HAS-RECORDS.
+                  END.
+                  ELSE IF lHasBIData NE hBeforeBuffer:TABLE-HANDLE:HAS-RECORDS THEN DO:
+                      UNDO, THROW NEW Progress.Lang.AppError("To use BusinessEntity CUD functionality, all temp-tables must have same setting of before-image data", 0).
+                  END.
+              END.
+            END.
+        END.
+        
+        // If no bi data, then create it..
+        IF lHasBIData EQ FALSE AND iRowState NE ? THEN DO:
+            REPEAT iIndex = 1 TO ProDataSet:NUM-BUFFERS:
+                // Only need to worry about tables that have data-source attached..
+                IF VALID-HANDLE(ProDataSource[iIndex]) THEN DO:
+                    hBuffer = ProDataSet:GET-BUFFER-HANDLE(iIndex).
+
+                    CREATE QUERY hAfterQuery[iIndex].
+                    hAfterQuery[iIndex]:SET-BUFFERS(hBuffer).
+                    lReturnValue = hAfterQuery[iIndex]:QUERY-PREPARE(SUBSTITUTE('FOR EACH &1', hBuffer:NAME)).
+                    lReturnValue = hAfterQuery[iIndex]:QUERY-OPEN().
+                    lAvailable = hAfterQuery[iIndex]:GET-FIRST().
+          
+                    DO WHILE lAvailable:
+                        /* Note: If a before-table row already exists, MARK-ROW-STATE() is a no-op */
+                        lReturnValue = hBuffer:MARK-ROW-STATE(iRowState)
+                                       // NO-ERROR is required, otherwise this statement 'fails' like a FIND, aka not
+                                       // properly/well
+                                       no-error.
+                        
+                        IF NOT lReturnValue THEN
+                            UNDO, THROW NEW Progress.Lang.AppError('Unable to ' + GetRowState(iRowState) +
+                                 ' record. Cannot create corresponding row in BEFORE-TABLE.', 0).
+                        
+                        lAvailable = hAfterQuery[iIndex]:GET-NEXT()
+                                     // reset the ERROR-STATUS from above
+                                     no-error.
                     END.
                 END.
-              END.
-          END.
-          
-          // If no bi data, then create it..
-          IF lHasBIData EQ FALSE AND iRowState NE ? THEN DO:
-              REPEAT iIndex = 1 TO ProDataSet:NUM-BUFFERS:
-                  // Only need to worry about tables that have data-source attached..
-                  IF VALID-HANDLE(ProDataSource[iIndex]) THEN DO:
-                      hBuffer = ProDataSet:GET-BUFFER-HANDLE(iIndex).
-
-                      CREATE QUERY hAfterQuery[iIndex].
-                      hAfterQuery[iIndex]:SET-BUFFERS(hBuffer).
-                      lReturnValue = hAfterQuery[iIndex]:QUERY-PREPARE(SUBSTITUTE('FOR EACH &1', hBuffer:NAME)).
-                      lReturnValue = hAfterQuery[iIndex]:QUERY-OPEN().
-                      lAvailable = hAfterQuery[iIndex]:GET-FIRST().
-            
-                      DO WHILE lAvailable:
-                          /* Note: If a before-table row already exists, MARK-ROW-STATE() is a no-op */
-                          lReturnValue = hBuffer:MARK-ROW-STATE(iRowState)
-                                         // NO-ERROR is required, otherwise this statement 'fails' like a FIND, aka not
-                                         // properly/well
-                                         no-error.
-                          
-                          IF NOT lReturnValue THEN
-                              UNDO, THROW NEW Progress.Lang.AppError('Unable to ' + GetRowState(iRowState) +
-                                   ' record. Cannot create corresponding row in BEFORE-TABLE.', 0).
-                          
-                          lAvailable = hAfterQuery[iIndex]:GET-NEXT()
-                                       // reset the ERROR-STATUS from above
-                                       no-error.
-                      END.
-                  END.
-              END.  // END REPEAT
-          END.
-          
-          FINALLY:
-              REPEAT iIndex = 1 TO ProDataSet:NUM-BUFFERS:
-                  IF VALID-HANDLE(hAfterQuery[iIndex]) THEN
-                      DELETE OBJECT hAfterQuery[iIndex].
-              END.
-              {&_proparse_ prolint-nowarn(returnfinally)}
-              RETURN lHasBIData.
-          END FINALLY.
+            END.  // END REPEAT
+        END.
+        
+        FINALLY:
+            REPEAT iIndex = 1 TO ProDataSet:NUM-BUFFERS:
+                IF VALID-HANDLE(hAfterQuery[iIndex]) THEN
+                    DELETE OBJECT hAfterQuery[iIndex].
+            END.
+            {&_proparse_ prolint-nowarn(returnfinally)}
+            RETURN lHasBIData.
+        END FINALLY.
     END METHOD.
 
     /*----------------------------------------------------------------------------------------
@@ -468,27 +467,27 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
         /* If the Create-, Update- or DeleteData operation was called BY-REFERENCE
           we will have a different dataset than the one in the property. We want to work
           on the one was sent, not the one that's there :) */
-       IF THIS-OBJECT:ProDataSet NE hDataSet THEN
-          ASSIGN hPDS = THIS-OBJECT:ProDataSet
-                 THIS-OBJECT:ProDataSet = hDataSet:HANDLE.
+        IF THIS-OBJECT:ProDataSet NE hDataSet THEN
+            ASSIGN hPDS = THIS-OBJECT:ProDataSet
+                   THIS-OBJECT:ProDataSet = hDataSet:HANDLE.
     
         if extent(this-object:FieldMapping) eq ? then
             THIS-OBJECT:AttachDataSources().
         else
             THIS-OBJECT:AttachDataSources(this-object:FieldMapping).
       
-       UpdateMode = UpdateModeEnum:BULK_SUBMIT.
+        UpdateMode = UpdateModeEnum:BULK_SUBMIT.
          
-       /* Do deletes first, next creates, and finally modifies */
-       THIS-OBJECT:CommitData(ROW-DELETED).
-       THIS-OBJECT:CommitData(ROW-CREATED).
-       THIS-OBJECT:CommitData(ROW-MODIFIED).
+        /* Do deletes first, next creates, and finally modifies */
+        THIS-OBJECT:CommitData(ROW-DELETED).
+        THIS-OBJECT:CommitData(ROW-CREATED).
+        THIS-OBJECT:CommitData(ROW-MODIFIED).
           
         FINALLY:
             THIS-OBJECT:DetachDataSources().
         
-             /* reset if we used a different PDS */
-             if valid-handle(hPDS) then
+            /* reset if we used a different PDS */
+            if valid-handle(hPDS) then
                 assign this-object:ProDataSet = hPDS.
         END FINALLY.
     END METHOD.
@@ -521,18 +520,18 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
        
         UpdateMode = UpdateModeEnum:TRANSACTIONAL_SUBMIT.
   
-       DO TRANSACTION ON ERROR UNDO, THROW:
-           /* Do deletes first, next creates, and finally modifies */
-           THIS-OBJECT:CommitData(ROW-DELETED).
-           THIS-OBJECT:CommitData(ROW-CREATED).
-           THIS-OBJECT:CommitData(ROW-MODIFIED).
-       END.
+        DO TRANSACTION ON ERROR UNDO, THROW:
+            /* Do deletes first, next creates, and finally modifies */
+            THIS-OBJECT:CommitData(ROW-DELETED).
+            THIS-OBJECT:CommitData(ROW-CREATED).
+            THIS-OBJECT:CommitData(ROW-MODIFIED).
+        END.
        
-       CATCH e AS CLASS Progress.Lang.Error:
-           ProcessTransactionalError(e).
-       END.
+        CATCH e AS CLASS Progress.Lang.Error:
+            ProcessTransactionalError(e).
+        END.
  
-       FINALLY:
+        FINALLY:
             THIS-OBJECT:DetachDataSources().
             
             // Reset undos to orig values
@@ -975,19 +974,19 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
             Purpose:
             Notes:
   -------------------------------------------------------------------------------------------------*/
-     METHOD PRIVATE CHARACTER EXTENT AdjustWheres(INPUT cFilter AS CHARACTER EXTENT):
-         DEFINE VARIABLE cWhere AS CHARACTER NO-UNDO EXTENT.
-         DEFINE VAR iBufferCnt AS INTEGER NO-UNDO.
-         DEFINE VAR iIndex AS INTEGER NO-UNDO.
+    METHOD PRIVATE CHARACTER EXTENT AdjustWheres(INPUT cFilter AS CHARACTER EXTENT):
+        DEFINE VARIABLE cWhere AS CHARACTER NO-UNDO EXTENT.
+        DEFINE VAR iBufferCnt AS INTEGER NO-UNDO.
+        DEFINE VAR iIndex AS INTEGER NO-UNDO.
          
-         iBufferCnt = ProDataSet:NUM-BUFFERS.
-         EXTENT(cWhere) = iBufferCnt.
+        iBufferCnt = ProDataSet:NUM-BUFFERS.
+        EXTENT(cWhere) = iBufferCnt.
         
-         DO iIndex = 1 TO iBufferCnt:
-             cWhere[iIndex] = AdjustWhere(cFilter[iIndex]).
-         END.
+        DO iIndex = 1 TO iBufferCnt:
+            cWhere[iIndex] = AdjustWhere(cFilter[iIndex]).
+        END.
          
-         RETURN cWhere.
+        RETURN cWhere.
     END METHOD.
     
     /* Adds a FILL-WHERE-STRING to a datasource

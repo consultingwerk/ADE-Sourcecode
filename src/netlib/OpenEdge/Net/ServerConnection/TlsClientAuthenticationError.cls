@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2021, 2023, 2024 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2021, 2023, 2024-2025 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : TlsClientAuthenticationError
@@ -7,7 +7,7 @@ Copyright (c) 2021, 2023, 2024 by Progress Software Corporation. All rights rese
     Description : Created in OCTA-34843, updated in OCTA-56721
     Author(s)   : pjudge/dugrau
     Created     : 2021-03-17
-    Notes       :
+    Notes       : 
 
     This class is used to encapsulate any errors which may have been raised by
     an SSL failure, as indicated as a SysError #9318. While this was originally
@@ -15,7 +15,7 @@ Copyright (c) 2021, 2023, 2024 by Progress Software Corporation. All rights rese
     of a catch-all to any TLS/SSL error which may be encountered by the ABL
     Sockets layer. These may be errors related to failed DNS, SSL handshakes,
     incorrect certificates or passphrases, unsupported TLS groups, or any other
-    error condition related to HTTPS communications.
+    error condition related to HTTPS communications. 
 
     The format of this error object is intended to provide an easier means of
     accessing the inner error noted by an SSL failure, and if necessary to change
@@ -26,7 +26,7 @@ Copyright (c) 2021, 2023, 2024 by Progress Software Corporation. All rights rese
     knowledge of application security--providing generic messages for certain
     conditions will obfuscate the result but still allow a developer to trace
     back to the originating condition in the application logic.
-
+    
     By default, this object will return 4 values within its error messages:
         1) The inner error code extracted from the 9318 SSL failure message
         2) The hostname from the request URI
@@ -128,7 +128,6 @@ serializable:
        @param PLError The error raised. SysError 9318 is parsed for the error code */
     constructor public TlsClientAuthenticationError (input pURI as URI,
                                                      input pInnerError as Progress.Lang.Error):
-        var character cFlag.
         var integer ix.
 
         super(pInnerError).

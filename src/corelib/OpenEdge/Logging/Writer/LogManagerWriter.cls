@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2017, 2019, 2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2017,2019,2021,2024 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : LogManagerWriter
@@ -23,32 +23,32 @@ using Progress.Lang.AppError.
 class OpenEdge.Logging.Writer.LogManagerWriter implements ILoggerFilter, IFileWriter:
     /* The subsystem used for WRITE-MESSAGE ( msg-exp[ , subsys-expr]) */
     define private property SubSys as character no-undo initial 'LogMgrWrtr':u get.
-    
+
     // This flag indicates whether this class opened the LOG-MANAGER log and whether it should
     // close it.
     // FALSE when we're on an appserver/webspeed broker or we haven't passed in a filename
     define private variable mCloseLog as logical no-undo.
-    
+
     /* (mandatory) The output location: The location of the log-manager */
     define public property FileName as character no-undo
         get():
             return log-manager:logfile-name.
         end get.
-    
+
     /* TRUE if we are appending to an existing file */
     define public property Append as logical no-undo
         get.
         private set.
-    
+
     /* Constructor. */
     constructor public LogManagerWriter():
         super().
-        
+
         // For the default log we always append
         assign mCloseLog          = false
                this-object:Append = true.
     end constructor.
-    
+
     /* Default destructor */
     destructor LogManagerWriter():
         if mCloseLog then
@@ -57,16 +57,16 @@ class OpenEdge.Logging.Writer.LogManagerWriter implements ILoggerFilter, IFileWr
             assign log-manager:logfile-name = ?.
         end.
     end destructor.
-    
+
     /* Constructor
-       
+
        @param character The name of the logfile to use
        @param logical TRUE if log entries should be appended to an existing log */
     constructor public LogManagerWriter(input pcFile as character,
                                         input plAppend as logical):
         var File logfile.
         this-object().
-        
+
         case session:client-type:
             when 'APPSERVER':u or
             when 'MULTI-SESSION-AGENT':u or
@@ -76,7 +76,7 @@ class OpenEdge.Logging.Writer.LogManagerWriter implements ILoggerFilter, IFileWr
                        this-object:Append = true
                        .
                 // If the config specifies a file name, write a note that we will be using the default log-manager log
-                if     log-manager:logging-level ge integer(LogLevelEnum:INFO)
+                if     log-manager:logging-level ge LogLevelEnum:INFO:getValue()
                    and ( not (pcFile eq ? or pcFile eq '':u)
                          and search(log-manager:logfile-name) ne search(pcFile) )
                 then
@@ -91,18 +91,18 @@ class OpenEdge.Logging.Writer.LogManagerWriter implements ILoggerFilter, IFileWr
                 do:
                     // The File() constructor raises an error if the filename is invalid or empty
                     assign logfile = new File(pcFile).
-                    
+
                     // make sure that at least a folder exists to write into
                     // don't check first, just try to create
                     if not logfile:FolderExists
                     and not logfile:CreateFolder()
                     then
                         undo, throw new AppError(substitute('Unable to create folder &1', logfile:Folder), 0).
-                    
+
                     // can we write to the file?
                     if not logfile:CanWriteToFile() then
                         undo, throw new AppError(substitute('Unable to write to log &1', logfile:Name), 0).
-                    
+
                     assign log-manager:logfile-name = logfile:Name
                            this-object:Append       = plAppend
                            // we are in control of this file
@@ -121,7 +121,7 @@ class OpenEdge.Logging.Writer.LogManagerWriter implements ILoggerFilter, IFileWr
                         log-manager:write-message(
                                 substitute('INFO: Log-manager is already in use. Cannot write to &1', pcFile),
                                 SubSys).
-                    
+
                     // this class did not open the log-manager log, so should not close it
                     assign mCloseLog          = false
                            this-object:Append = true.
@@ -129,14 +129,14 @@ class OpenEdge.Logging.Writer.LogManagerWriter implements ILoggerFilter, IFileWr
             end.
         end case.
     end constructor.
-    
+
     /** Performs implementation-specific filtering for a logger type
-        
+
         @param LogMessage The message to log. */
     method public void ExecuteFilter(input poEvent as LogEvent):
         if log-manager:logfile-name eq ? then
             return.
         log-manager:write-message(poEvent:Message:Message, SubSys).
     end method.
-    
+
 end class.

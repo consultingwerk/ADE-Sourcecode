@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2013-2020, 2022-2023 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2013-2020, 2022-2024 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : String
@@ -165,7 +165,7 @@ implements ILongcharHolder
     method public Array Split(input pcDelimiter as character extent):
         return OpenEdge.Core.String:Split(this-object, pcDelimiter).
     end method.
-    
+
     /** Splits the value of this string into an array based on
         a default delimiter
 
@@ -219,8 +219,8 @@ implements ILongcharHolder
     /** Splits the value of this string object into an array using
         multiple specified delimiters.
 
-        If all the delimiters in the input character extent do not appear in the string, 
-        and the string is not unknown, then the returned array has an extent of 1 and 
+        If all the delimiters in the input character extent do not appear in the string,
+        and the string is not unknown, then the returned array has an extent of 1 and
         contains the String.
 
         @param OpenEdge.Core.String A value to split
@@ -228,15 +228,14 @@ implements ILongcharHolder
         @return Array  An array object of strings */
     method static public Array Split(input poValue as OpenEdge.Core.String,
                                      input pcDelimiter as character extent):
-
         var Array oArray.
-        var integer iLoop, iMax, iFound.
+        var integer iLoop, iFound.
         var longchar pcValue.
-        
+
         Assert:NotNull(pcDelimiter, 'Delimiter').
-        
+
         pcValue = poValue:ToString().
-        
+
         // check each delimiter sent in character extent
         LOOPBLK:
         do iLoop = 1 to extent(pcDelimiter):
@@ -254,7 +253,7 @@ implements ILongcharHolder
         iFound = num-entries(pcValue,StringConstant:US).
 
         // assign the size of the return array based on the num-entries put in iFound
-        // and load each piece of the input String into an element of the return Array. 
+        // and load each piece of the input String into an element of the return Array.
         assign oArray = new Array(iFound).
         do iLoop = 1 to iFound:
             oArray:SetValue(new OpenEdge.Core.String(entry(iLoop, pcValue, StringConstant:US)), iLoop).
@@ -262,7 +261,7 @@ implements ILongcharHolder
 
         return oArray.
     end method.
-    
+
     // Splits: ABL primitives
 
     /** Splits the value of this string into an array using
@@ -313,8 +312,8 @@ implements ILongcharHolder
     /** Splits the value of this string into a character extent using
         multiple specified delimiters.
 
-        If all the delimiters in the input character extent do not appear in the longchar var, 
-        and the string is not unknown, then the returned extent/array has an extent of 1 
+        If all the delimiters in the input character extent do not appear in the longchar var,
+        and the string is not unknown, then the returned extent/array has an extent of 1
         and contains the longchar in character[1].
 
         @param longchar A value to split
@@ -322,13 +321,11 @@ implements ILongcharHolder
         @return character[] An extent array of longchar values */
     method static public character extent Split(input pcValue as longchar,
                                                 input pcDelimiter as character extent):
-
         var character[] cArray.
-        var character cDelim.
         var integer iLoop, iFound.
 
         Assert:NotNull(pcDelimiter, 'Delimiter').
-        
+
         // check each delimiter sent in character extent
         LOOPBLK:
         do iLoop = 1 to extent(pcDelimiter):
@@ -343,17 +340,17 @@ implements ILongcharHolder
         end.
         // if no delimiter then num-entries = 1, which will return entire string in extent 1.
         iFound = num-entries(pcValue,StringConstant:US).
-        
+
         // assign the size of the return character extent based on the num-entries put in iFound
-        // and load each piece of the input longchar into the return char extents. 
+        // and load each piece of the input longchar into the return char extents.
         assign extent(cArray) = iFound.
         do iLoop = 1 to iFound:
             assign cArray[iLoop] = entry(iLoop, pcValue,StringConstant:US).
         end.
-        
+
         return cArray.
     end method.
-    
+
     /* Join: OE.Core.String */
     /** Joins an array's contents into a delimited string
 

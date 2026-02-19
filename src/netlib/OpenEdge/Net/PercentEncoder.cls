@@ -21,17 +21,17 @@ class OpenEdge.Net.PercentEncoder:
     define public property EncodingFlags as logical extent 128 no-undo
         get.
         private set.
-    
+
     /* Constructor.
-       
+
        @param logical[128] An array of flags corresponding to the ASCII character set */
     constructor public PercentEncoder(input pFlags as logical extent 128):
         assign this-object:EncodingFlags = pFlags.
     end constructor.
-    
+
     /* Encodes a string per the input flags. Characters in the ASCII range (0-127) are
        encoded per the flags passed in; all other characters are always %-encoded.
-       
+
        @param  longchar    The string to encode. This is longchar since it can handle unicode data even when the session can't.
                            We do not expect this to contain GB's of data.
        @param logical[128] An array of flags indicating which ASCII chars to encode or not. Characters to encode must have
@@ -40,16 +40,16 @@ class OpenEdge.Net.PercentEncoder:
     method public character Encode(input pString as longchar):
         return this-object:Encode(pString, false).
     end method.
-    
+
     /* Encodes a string per the input flags. Characters in the ASCII range (0-127) are
        encoded per the flags passed in; all other characters are always %-encoded.
-       
+
        @param  longchar    The string to encode. This is longchar since it can handle unicode data even when the session can't.
                            We do not expect this to contain GB's of data.
        @param  logical     TRUE if existing % values must be reencoded as %25
        @return character   The encoded string. Return value is character since the "bad" characters have been encoded. */
-    method public character Encode(input pString as longchar,
-                                   input pReencode as logical):
+    method public character Encode(input pString   as longchar,
+                                   input pReEncode as logical):
         define variable chrLoop       as integer   no-undo.
         define variable chrCnt        as integer   no-undo.
         define variable rawChar       as raw       no-undo.
@@ -59,11 +59,11 @@ class OpenEdge.Net.PercentEncoder:
         define variable byteLoop      as integer   no-undo.
         define variable byteCnt       as integer   no-undo.
         define variable rawByte       as raw       no-undo.
-        define variable nextCodepoint as integer extent 2 no-undo.
-        define variable encodeChr as logical no-undo.
+        define variable nextCodepoint as integer   no-undo extent 2.
+        define variable encodeChr     as logical   no-undo.
         var character sourceCodepage = get-codepage(pString).
         var character[2] cpChr.
-        
+
         /* Don't bother with blank or unknown. Keep spaces though, so check for length instead of = "".
            Unknown has no meaning outside of ABL so just no-op it  */
         assign chrCnt = length(pString).
@@ -71,19 +71,20 @@ class OpenEdge.Net.PercentEncoder:
         or pString eq ?
         then
             return '':u.
-        
+
         /* Loop through entire input string */
         do chrLoop = 1 to chrCnt:
             assign chrVal    = substring(pString, chrLoop, 1)
                    // ASCII value of character using single byte codepage
                    codepoint = asc(chrVal)
                    .
+
             // Does this character need encoding?
             // percent-encoded (dec: 37)
             if codepoint eq 0x25 then
             do:
                 // if we've been told to re-encode, then re-encode
-                if pReencode then
+                if pReEncode then
                     assign encodeChr = yes.
                 else
                 // Is this a 'loose' % or a %-encoded value?
@@ -128,44 +129,47 @@ class OpenEdge.Net.PercentEncoder:
                 assign encodeChr = yes.
             else
                 assign encodeChr = no.
-            
+
             if encodeChr then
             do:
-                // Section 2.4 https://tools.ietf.org/html/rfc3986#section-2.4 describes how
-                // to deal with unicode
+                // Section 2.4 https://tools.ietf.org/html/rfc3986#section-2.4 describes how to deal with unicode
                 put-string(rawChar, 1) = codepage-convert(chrVal, 'utf-8':u, sourceCodepage).
+
                 // PUT-STRING() adds a NULL\0x00 byte at the end; we don't want that in our pretty encoding
                 assign byteCnt = length(rawChar, 'raw':u) - 1
                        chrVal  = '':u
                        .
+
                 do byteLoop = 1 to byteCnt:
                     put-byte(rawByte, 1) = get-byte(rawChar, byteLoop).
                     /* Replace character with %hh hexidecimal triplet */
                     assign chrVal = chrVal + caps(substitute('%&1':u, hex-encode(rawByte))).
                 end.
+
                 // empty/reset this raw, otherwise if we have a unicode character followed by an ASCII,
                 // it will have a length of 2 bytes, which will add an unnecessary null (%00) to the
                 // encoded string
                 assign length(rawChar) = 0.
             end.
+
             /* add/create a new string because replacing 1 character with 2 messes up our math */
             assign encodedString = encodedString + chrVal.
         end.
-        
+
         return encodedString.
     end method.
-    
+
     /** Attempts to decode a previously percent-encoded string.
-        
+
         @param  longchar The string to decode
         @return longchar A decoded URL
         @throws AppError If the encoding is malformed */
     method public longchar Decode(input pEncodedString as character):
         return this-object:Decode(pEncodedString, ?).
     end method.
-    
+
     /** Attempts to decode a previously percent-encoded string.
-        
+
         @param  longchar The string to decode
         @param  character The target codepage to encode into. Defaults to UTF-8
         @return longchar A decoded string. This is longchar since it may contain non-ASCII or Unicode characters.
@@ -182,19 +186,19 @@ class OpenEdge.Net.PercentEncoder:
         define variable decodedChar   as character no-undo.
         define variable codepoint     as integer   no-undo.
         define variable strLen        as integer no-undo.
-        
+
         if pEncodedString eq ?
         or pEncodedString eq '':u
         then
             return pEncodedString.
-        
+
         if pTargetCodepage eq ?
         or pTargetCodepage eq '':u
         then
             assign pTargetCodepage = 'utf-8':u.
-        
+
         fix-codepage(decodedString) = pTargetCodepage.
-        
+
         assign startAt = 1
                pctPos  = index(pEncodedString, '%':u, startAt)
                strLen  = length(pEncodedString)
@@ -218,7 +222,7 @@ class OpenEdge.Net.PercentEncoder:
                        .
                 next STRING-LOOP.
             end.
-            
+
             // chop off stuff before the %
             assign decodedString = decodedString + substring(pEncodedString, startAt, (pctPos - startAt))
                    codepoint     = get-byte(rawChar, 1)
@@ -248,7 +252,7 @@ class OpenEdge.Net.PercentEncoder:
             else
             // MALFORMED
                 assign numBytes = -1.
-            
+
             if numBytes gt 1 then
             do:
                 assign length(rawChar) = numBytes
@@ -267,14 +271,14 @@ class OpenEdge.Net.PercentEncoder:
                     else
                         assign numBytes = -1.
                 end.
-                
+
                 if numBytes gt 0 then
                     assign decodedChar = codepage-convert(get-string(rawChar, 1, numBytes),
                                                           pTargetCodepage,
                                                           'utf-8':u)
                            startAt     = pctPos.
             end.    //UTF-8
-            
+
             // Malformed data
             if numBytes eq -1 then
                 return error new AppError(substitute('Cannot decode malformed string &1', pEncodedString), 0).
@@ -283,9 +287,9 @@ class OpenEdge.Net.PercentEncoder:
                        pctPos        = index(pEncodedString, '%':u, startAt)
                        .
         end.
-        
+
         /* add any characters that appear after the last % */
         return decodedString + substring(pEncodedString, startAt).
     end method.
-    
+
 end class.

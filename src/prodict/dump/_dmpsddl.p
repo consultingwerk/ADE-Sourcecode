@@ -1,9 +1,9 @@
-/*************************************************************************************
-* Copyright (C) 2006-2011,2013,2016,2020,2023,2025 by Progress Software Corporation. * 
-* All rights reserved. Prior versions of this work may contain portions              *
-* contributed by participants of Possenet.                                           *
-*                                                                                    *
-**************************************************************************************/
+/********************************************************************************
+* Copyright (C) 2006-2011,2013,2016,2020,2023 by Progress Software Corporation. * 
+* All rights reserved. Prior versions of this work may contain portions         *
+* contributed by participants of Possenet.                                      *
+*                                                                               *
+*********************************************************************************/
 
 
 /* _dmpsddl.p - dump data definitions */

@@ -45,7 +45,7 @@ define variable oVersion   as SemanticVersion no-undo.
 define variable lHasApps   as logical         no-undo.
 define variable lIsMin122  as logical         no-undo.
 define variable lIsMin127  as logical         no-undo.
-define variable lIsMin128  as logical         no-undo.
+//define variable lIsMin128  as logical         no-undo.
 
 /* Manage the server connection to the OEManager webapp */
 define variable oMgrConn  as OEManagerConnection no-undo.
@@ -266,7 +266,7 @@ procedure GetApplications:
     /* Set some simple indicators for minimum OE versions which affects other API calls. */
     assign lIsMin122 = (oVersion:Major eq 12 and oVersion:Minor ge 2) or oVersion:Major gt 12.
     assign lIsMin127 = (oVersion:Major eq 12 and oVersion:Minor ge 7) or oVersion:Major gt 12.
-    assign lIsMin128 = (oVersion:Major eq 12 and oVersion:Minor ge 8) or oVersion:Major gt 12.
+    //assign lIsMin128 = (oVersion:Major eq 12 and oVersion:Minor ge 8) or oVersion:Major gt 12.
 
     catch err as Progress.Lang.Error:
         put unformatted substitute("~nUnable to get application list from PASOE instance: &1", err:GetMessage(1)) skip.

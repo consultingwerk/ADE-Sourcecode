@@ -1,5 +1,5 @@
 /*****************************************************************
-* Copyright (C) 2000-2014,2020 by Progress Software Corporation. *
+* Copyright (C) 2000-2014,2020,2025 by Progress Software Corporation. *
 * All rights reserved.  Prior versions of this work may contain  *
 * portions contributed by participants of Possenet.              *
 *                                                                *
@@ -30,6 +30,7 @@ Last modified on:
 08/21/06 fernando   Fix can-write check on _Index (20051216-011).
 11/16/07 fernando   Support for _aud-audit-data* indexes deactivation
 04/06/20 tmasood    Fix the active toggle box for online added index
+08/13/25 fernando   Cleanup of is-pre-101b-db
 ----------------------------------------------------------------------------*/
 &GLOBAL-DEFINE WIN95-BTN YES
 
@@ -199,24 +200,10 @@ ELSE DO:
       ASSIGN ActRec:LABEL = "Ac&tive"
              ActRec       = b_Index._Active.
 END.
-        
-IF dictdb._File._For-type = ? AND NOT is-pre-101b-db THEN 
-DO:
-    /* for Progress db's, check if large key entries is not enabled, and display
-       information. We only have to do this for 10.1B and later dbs
-    */
-    FIND DICTDB._Database-feature WHERE _DBFeature_Name = "Large Keys" NO-LOCK NO-ERROR.
-    IF AVAILABLE DICTDB._Database-feature THEN DO:
-        IF DICTDB._Database-feature._DBFeature_Enabled EQ "1" THEN
-            s_msg = "".
-        ELSE
-            s_msg = "** Large key entries support not enabled".
 
-        RELEASE DICTDB._Database-feature.
-    END.
-    ELSE
-        s_msg = "".
-END.
+/* This used to be used for displaying large keys not enabled message, but now it is always
+    enabled so don't set it to anything */
+s_msg = "".
 
 /* we will allow some of the indexes on the _aud-audit-data tables to be
    deactivated. The primary index and the _audit-time index cannot be

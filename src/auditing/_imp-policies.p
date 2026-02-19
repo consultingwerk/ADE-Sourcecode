@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*************************************************************/  
-/* Copyright (c) 1984-2007 by Progress Software Corporation  */
+/* Copyright (c) 1984-2007,2025 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -20,7 +20,7 @@
 
     Author(s)   : Fernando de Souza
     Created     : Feb 23,2005
-    Notes       :
+    Notes       : tmasood  09/10/25  Updated the message when MD5 seal is used in FIPS mode
   ----------------------------------------------------------------------*/
 /*          This .W file was created with the Progress AppBuilder.      */
 /*----------------------------------------------------------------------*/
@@ -624,7 +624,8 @@ DEFINE VARIABLE lRet    AS LOGICAL NO-UNDO INITIAL NO.
 
     IF NOT lRet THEN DO:
         ASSIGN pErrorMsg = "The file " + pxmlFileName + " has changed since it was exported or " +
-                           "it does not contain the seal information.".
+                           "it does not contain the seal information or " +
+                           "MD5 seal information is denied when FIPS mode is enabled.".
 
         RETURN.
     END.
@@ -751,7 +752,8 @@ DEFINE VARIABLE lRet    AS LOGICAL  NO-UNDO.
 
     IF NOT lRet THEN DO:
         ASSIGN pErrorMsg = "The file " + pxmlFileName + " has changed since it was exported or " +
-                           "it does not contain the seal information.".
+                           "it does not contain the seal information or " +
+                           "MD5 seal information is denied when FIPS mode is enabled.".
 
         RETURN.
     END.

@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006-2007,2009,2011 by Progress Software Corporation. All rights *
+* Copyright (C) 2006-2007,2009,2011,2025 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -40,6 +40,7 @@ run on another database to define those tables. */
  user_env[33] = to use _Width of field or calculate.
  
 History:
+    tmasood     09/03/25    Remove use of ENCODE
     nagaraju    11/12/09    Remove numbers for radio-set options in MSSDS
     nagaraju    10/06/09    Support for computed column to PROGRESS_RECID in MSSDS
     fernando    04/03/09    Support for MSS's sequence generator and 2008 data types
@@ -995,7 +996,7 @@ IF alltables THEN
   &ENDIF
 
   /* if cr tab and cr idx both going to same file, wipe out idx fil name */
-  IF foi = fot AND (OPSYS <> "UNIX" OR ENCODE(foi) = ENCODE(fot)) THEN foi = "".
+  IF foi = fot AND (OPSYS <> "UNIX" OR COMPARE(foi, "EQ", fot, "CASE-SENSITIVE")) THEN foi = "".
 
   ASSIGN
     l_i          = lookup(ft,l_dbtyp)
@@ -1124,7 +1125,7 @@ ELSE /*Single table*/
   &ENDIF
 
   /* if cr tab and cr idx both going to same file, wipe out idx fil name */
-  IF foi = fot AND (OPSYS <> "UNIX" OR ENCODE(foi) = ENCODE(fot)) THEN foi = "".
+  IF foi = fot AND (OPSYS <> "UNIX" OR COMPARE(foi, "EQ", fot, "CASE-SENSITIVE")) THEN foi = "".
 
   ASSIGN
     l_i          = lookup(ft,l_dbtyp)

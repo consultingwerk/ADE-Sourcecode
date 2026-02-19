@@ -205,6 +205,7 @@ CustomDetail,_Custom-role-detail"
     method public void AfterRoleRow(dataset-handle hds):
         define variable hbuffer as handle no-undo.
         define variable iSource as integer no-undo.
+                
         assign
             hBuffer             = hds:get-buffer-handle("ttRole":u)
             hBuffer::url        = substitute('&1/roles/&2':u,

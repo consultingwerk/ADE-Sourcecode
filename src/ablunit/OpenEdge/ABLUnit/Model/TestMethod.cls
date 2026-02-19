@@ -1,33 +1,33 @@
 /************************************************
 Copyright (c)  2013-2014, 2020 by Progress Software Corporation. All rights reserved.
-*************************************************/  
- /*------------------------------------------------------------------------
-    File        : TestMethod
-    Purpose     : 
-    Syntax      : 
-    Description : 
-    Author(s)   : svutla
-    Created     : Wed Sep 18 11:52:47 IST 2013
-    Notes       : 
-  ----------------------------------------------------------------------*/
-BLOCK-LEVEL ON ERROR UNDO, THROW.
+*************************************************/
+/*------------------------------------------------------------------------
+   File        : TestMethod
+   Purpose     :
+   Syntax      :
+   Description :
+   Author(s)   : svutla
+   Created     : Wed Sep 18 11:52:47 IST 2013
+   Notes       :
+ ----------------------------------------------------------------------*/
+block-level on error undo, throw.
 
 using OpenEdge.ABLUnit.Model.TestEntity.
 using OpenEdge.ABLUnit.Reflection.TestInfo.
 
-CLASS OpenEdge.ABLUnit.Model.TestMethod INHERITS TestEntity: 
-    
-    DEFINE PRIVATE VARIABLE testInfo AS TestInfo NO-UNDO. 
-        
-    CONSTRUCTOR PUBLIC TestMethod ( INPUT id1 AS INTEGER ):
-        SUPER (INPUT id1).
-    END CONSTRUCTOR.
-    
-    METHOD PUBLIC VOID setTestInfo(INPUT testInfo1 AS TestInfo):
+class OpenEdge.ABLUnit.Model.TestMethod inherits TestEntity:
+
+    define private variable testInfo as TestInfo no-undo.
+
+    constructor public TestMethod ( input id1 as integer ):
+        super (input id1).
+    end constructor.
+
+    method public void setTestInfo(input testInfo1 as TestInfo):
         testInfo = testInfo1.
-    END METHOD.
-    
-    METHOD PUBLIC TestInfo getTestInfo():
-        RETURN testInfo.
-    END METHOD.
-END CLASS.
+    end method.
+
+    method public TestInfo getTestInfo():
+        return testInfo.
+    end method.
+end class.

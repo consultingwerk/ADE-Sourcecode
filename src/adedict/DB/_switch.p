@@ -1,5 +1,5 @@
 /**********************************************************************
-* Copyright (C) 2000,2006,2014 by Progress Software Corporation. All  *
+* Copyright (C) 2000,2006,2014,2025 by Progress Software Corporation. All  *
 * rights reserved.  Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                            *
 *                                                                     *
@@ -20,7 +20,7 @@ Author: Laura Stern
 Date Created: 01/31/92 
      History: D. McMann 02/21/03 Replaced GATEWAYS with DATASERVERS
               fernando  06/12/06 Support for int64
-
+              fernando  08/13/25 Cleanup of is-pre-101b-db
 ----------------------------------------------------------------------------*/
   
 {adedict/dictvar.i shared}
@@ -99,12 +99,7 @@ do:
    */
    run adedict/_setid.p (INPUT {&OBJ_DB}, OUTPUT s_DbRecId).   
    
-   /* check if this is a 10.1B db at least, so that we complain about int64 and
-      int64 values. If the LARGE_KEYS feature is not known by this db, then this
-      is a pre-101.B db 
-   */
-   ASSIGN is-pre-101b-db = YES
-          s_Large_Seq = ?.
+   ASSIGN s_Large_Seq = ?.
 
    RUN prodict/user/_usrinf3.p 
       (INPUT  LDBNAME("DICTDB"),
@@ -116,11 +111,6 @@ do:
        OUTPUT isMultitenant,
        OUTPUT isPartitioned,
        OUTPUT isCDCEnabled).
-      
-  /* if large_keys is not known by db, answer will be ? */
-  IF answer NE ? THEN
-     ASSIGN is-pre-101b-db = NO.
-
 end.
 else do:
    s_DictState = {&STATE_NO_DB_SELECTED}.

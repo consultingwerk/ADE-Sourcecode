@@ -51,11 +51,11 @@ implements IStringKeyedMap:
         return this-object:mBackingHashMap:Count.
     end.
 
-    /* A collection (OE.Core.Set) of only the values in the Map, ordered by key */
+    /* A collection (OE.Core.Collections.List) of only the values in the Map, as ordered by key */
     define public property Values as ICollection no-undo
     get():
         var Progress.Collections.IIterator<ILongcharHolder> iter.
-        var ICollection mapValues = new Set().
+        var ICollection oMapValues = new OpenEdge.Core.Collections.List().
         var Object oVal.
 
         // Iterate over the key List, returning a ILongcharHolder to look up the HashMap value.
@@ -65,48 +65,48 @@ implements IStringKeyedMap:
                 // Add the object (or unknown value) directly to the new set of values.
                 oVal = this-object:mBackingHashMap:GetValue(iter:Current).
                 if valid-object(oVal) then
-                    mapValues:Add(oVal).
+                    oMapValues:Add(oVal).
                 else
-                    mapValues:AddNull(). // Purposefully add an unknown value to the Set.
+                    oMapValues:AddNull(). // Purposefully add an unknown value to the Set.
         end.
 
-        return mapValues.
+        return oMapValues.
     end.
 
     /* A set (OE.Core.Set) of only the keys (in order of entry) from the Map */
     define public property KeySet as ISet no-undo
     get():
         var Progress.Collections.IIterator<ILongcharHolder> iter.
-        var ISet mapKeys = new Set().
+        var ISet oMapKeys = new Set().
 
         // Iterate over the key List, returning a single ILongcharHolder for each entry.
         iter = this-object:mKeyList:GetIterator().
         repeat while iter:MoveNext():
             // Keys should always be a valid object, but let's just make 100% sure.
             if valid-object(iter:Current) then
-                mapKeys:Add(iter:Current).
+                oMapKeys:Add(iter:Current).
             else
-                mapKeys:Add(new String(StringConstant:UNKNOWN)).
+                oMapKeys:Add(new String(StringConstant:UNKNOWN)).
         end.
 
-        return mapKeys.
+        return oMapKeys.
     end.
 
     /* A set (OE.Core.Set) of key-value pairs (in order of entry) from the Map */
     define public property EntrySet as ISet no-undo
     get():
         var Progress.Collections.IIterator<ILongcharHolder> iter.
-        var ISet entrySet = new Set().
+        var ISet oEntrySet = new Set().
 
         // Iterate over the key List, returning a single ILongcharHolder for each entry.
         iter = this-object:mKeyList:GetIterator().
         repeat while iter:MoveNext():
             // Create a new MapEntry which points back to this StringKeyedMap object and a specific key object.
             // When a value is needed, it will use the Get() on the parent StringKeyedMap object by this Key.
-            entrySet:Add(new MapEntry(this-object, iter:Current)).
+            oEntrySet:Add(new MapEntry(this-object, iter:Current)).
         end.
 
-        return entrySet.
+        return oEntrySet.
     end.
 
     /* Destructor */

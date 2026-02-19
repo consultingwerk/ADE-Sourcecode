@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2000-2011 by Progress Software Corporation.            *
+* Copyright (C) 2000-2011,2025 by Progress Software Corporation.       *
 * All rights reserved.  Prior versions of this work may contain        *
 * portions contributed by participants of Possenet.                    *
 *                                                                      *
@@ -18,6 +18,9 @@
         D. McMann 10/23/02  Changed BLANK to PASSWORD-FIELD
         fernando  09/22/09  Reset other can-fields when unsetting sec admin
         Rajinder  04/18/11 OE00208533  fixed error if domain name is empty.
+        talha     04/16/25  Replaced ENCODE with GENERATE-PASSWORD-HASH to support FIPS
+        talha     05/14/25  Allowed _Password to have value greater than 16 characters
+        talha     05/28/25  Allowed SysAdmin to update password from UI
                             
 -------------------------------------------------------------------*/
 
@@ -76,6 +79,7 @@ DEFINE VARIABLE user_cnt_out  AS INTEGER INITIAL 0     NO-UNDO.
 DEFINE VARIABLE ix            AS INTEGER INITIAL 0     NO-UNDO.
 DEFINE VARIABLE num  	      AS INTEGER               NO-UNDO.
 DEFINE VARIABLE lhasPassword  AS LOGICAL               NO-UNDO.
+DEFINE VARIABLE cpwd          AS CHARACTER             NO-UNDO.
  
 
 DEFINE VARIABLE domainType    AS CHARACTER INITIAL "_oeusertable" NO-UNDO.
@@ -88,8 +92,18 @@ DEFINE VARIABLE cmb-domain-name AS CHARACTER FORMAT "X(256)":U
       NO-UNDO.
 */
 define button btnDomain size 19 by 1.
+DEFINE BUTTON btn_ChgPwd LABEL "Change Password" SIZE 19 by 1.
 
 define buffer b_user for dictdb._user.
+
+FUNCTION GetPassword RETURNS Logical (cpwd AS char):
+    IF SECURITY-POLICY:FIPS-MODE OR cpwd begins "uphA1::" THEN
+       lhasPassword = NOT SECURITY-POLICY:VALIDATE-PASSWORD("", cpwd).
+    ELSE
+       lhasPassword = cpwd <> ENCODE("").
+       
+    RETURN lhasPassword.
+END.
 
 DEFINE QUERY qUser FOR  b_user SCROLLING.
 
@@ -98,8 +112,7 @@ DEFINE BROWSE bUser QUERY qUser
             b_User._Domain-Name  column-label "Domain Name" 
             width 42      
             b_User._User-Name  column-label "User Name"  width 20
-            b_User._Password <> ENCODE("") @ lhasPassword 
-                                          column-label "Password"        
+            GetPassword(b_User._Password) @ lhasPassword       column-label "Password"        
             b_User._Sql-only-user column-label "SQL Only"
             
     WITH NO-ROW-MARKERS SEPARATORS 6 down.
@@ -126,7 +139,7 @@ FORM
    _User._User-Name   {&STDPH_FILL} LABEL "User Name"     COLON 16 
     view-as fill-in size 64 by 1   SKIP ({&VM_WID})
    _User._Password    {&STDPH_FILL} LABEL "Password"     COLON 16 PASSWORD-FIELD  
-    view-as fill-in size 17 by 1   SKIP ({&VM_WID})
+    view-as fill-in size 64 by 1 FORMAT "X(80)"   btn_ChgPwd SKIP ({&VM_WID})
    _User._sql-only-user {&STDPH_FILL} LABEL "SQL Only"  COLON 16
    {prodict/user/userbtns.i}
    WITH FRAME usr_mod 
@@ -361,6 +374,12 @@ do:
     run selectDomain.
 end.
 
+/*----- HIT OF Modify Password BUTTON -----*/
+ON CHOOSE OF btn_ChgPwd IN FRAME usr_mod 
+do: 
+    RUN prodict/user/_usrupwd.p.
+end.
+
 /*----- HIT OF ADD BUTTON -----*/
 ON CHOOSE OF btn_add IN FRAME usr_lst 
 DO:
@@ -389,7 +408,7 @@ DO:
       /* Verify password if one was typed in */
       passwd = INPUT FRAME usr_mod _User._Password.
       IF passwd = ? THEN passwd = "".
-      encpwd = ENCODE(passwd).
+      encpwd = GENERATE-PASSWORD-HASH(passwd,?,"_oeuser-uphA1").
       
       IF _User._Domain-Name:screen-value <> "" then
       DO:
@@ -474,31 +493,52 @@ END.
 /*----- HIT OF MODIFY BUTTON -----*/
 ON CHOOSE OF btn_mod IN FRAME usr_lst 
 DO:
+   DEFINE VARIABLE cpasswd AS CHARACTER NO-UNDO.
+   DEFINE VARIABLE cencpwd AS CHARACTER NO-UNDO.
+
    FRAME usr_mod:TITLE = new_lang[10].
-   
+   RUN "prodict/_dctadmn.p" (INPUT USERID(user_dbname),OUTPUT answer).
+
    /* we avoid combo for domain-name since the combo has _oeusertable domains
       but we do allow a domain to change to another type even if it has users */
    
    btnDomain:hidden = yes.  
+   IF NOT answer THEN btn_ChgPwd:HIDDEN = yes.
+   ELSE btn_ChgPwd:HIDDEN = no.
    find _user where rowid(_user) = rowid(b_user) exclusive no-error.
   
    if avail _user then 
    do:
+       user_env[43] = _User._Userid.
+       IF SECURITY-POLICY:FIPS-MODE OR _User._Password BEGINS "uphA1::"  THEN DO:
+           IF SECURITY-POLICY:VALIDATE-PASSWORD("", _User._Password) THEN 
+             cpwd = "".
+           ELSE
+             cpwd = "aaaaaaaaaaaa".
+       END.    
+       ELSE DO:
+           IF _User._Password <> ENCODE("") THEN
+             cpwd = "".
+           ELSE
+             cpwd = "aaaaaaaaaaaa".
+       END.
        DISPLAY _User._Userid 
                _User._domain-name 
-               IF _User._Password = ENCODE("") THEN "" ELSE "aaaaaaaaaaaa" @ _User._Password
+               cpwd @ _User._Password
                _User._sql-only-user 
        
        WITH FRAME usr_mod.
        DO ON ERROR UNDO, LEAVE  ON ENDKEY UNDO, LEAVE:
           UPDATE _User._Domain-Name  
-                 btnDomain         
-                 _User._User-name 
+                 btnDomain 
+                 btn_ChgPwd        
+                 _User._User-name
                 _User._sql-only-user
           	     btn_OK btn_Cancel {&HLP_BTN_NAME}
           	     WITH FRAME usr_mod.
     
     /*      _User._Domain-Name = cmb-domain-name:INPUT-VALUE. */
+          
           changed = yes.
           reposition qUser to rowid rowid(_user).
           display b_User._User-name with browse buser.    

@@ -1,5 +1,5 @@
 /**************************************************************************
-Copyright (c) 2022-2024 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2022-2023 by Progress Software Corporation. All rights reserved.
 **************************************************************************/
 /*------------------------------------------------------------------------
     File        : OEManagerEndpoint

@@ -1,10 +1,9 @@
-/*************************************************************/
+/******************************************************************/
 /* Copyright (c) 2010-2016,2024 by progress Software Corporation. */
-/*                                                           */
-/* all rights reserved.  no part of this program or document */
-/* may be  reproduced in  any form  or by  any means without */
-/* permission in writing from progress Software Corporation. */
-/*************************************************************/ 
+/* all rights reserved.  no part of this program or document      */
+/* may be  reproduced in  any form  or by  any means without      */
+/* permission in writing from progress Software Corporation.      */
+/******************************************************************/ 
 /*------------------------------------------------------------------------
     File        : FieldDataSource
     Purpose     : 
@@ -40,7 +39,7 @@ trowid,rowid(_Field),~
 IsMultiTenant,_File-attributes[1]"
  no-undo.
  
-    define protected property DBConfig as DBConfig no-undo
+ define protected property DBConfig as DBConfig no-undo
     get():
         if not valid-object(DBConfig) then 
         do:       
@@ -153,14 +152,14 @@ IsMultiTenant,_File-attributes[1]"
         assign
             mBuffer::AreaName = cArea
             mBuffer::AreaURL  = cAreaRef.
-			
-	IF DBConfig:IsDDMAdmin THEN DO:
+          
+        IF DBConfig:IsDDMAdmin THEN DO:
            DBConfig:getFieldDDMConfig (mBuffer::Tablename,mBuffer::name, output cMask, output cAuthTag).  
            assign  
               mBuffer::MaskValue    = cMask
               mBuffer::AuthTagValue = cAuthTag.
         END.
-		
+        
     end method.
     
     /* rename here to be added to _field expressions and handled in ColumnExpression */

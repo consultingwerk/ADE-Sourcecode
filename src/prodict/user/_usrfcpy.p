@@ -1,5 +1,5 @@
 /**************************************************************************
-* Copyright (C) 2000,2006,2013,2020 by Progress Software Corporation. All  *
+* Copyright (C) 2000,2006,2013,2020,2025 by Progress Software Corporation. All  *
 * rights reserved.  Prior versions of this work may contain portions       *
 * contributed by participants of Possenet.                                 *                         
 ****************************************************************************/
@@ -12,6 +12,7 @@
                                to FIND of _File.
             d> McMann 07/29/03 Added support for BLOBS and CLOBS
             Kberlia   10/29/20 Added argument in _pro_area_list.p to support default area.
+            fernando  08/13/25 Fixing .p call
 */
 
 { prodict/dictvar.i }
@@ -290,7 +291,7 @@ DO TRANSACTION i = 1 TO pik_return:
                   APPLY "GO" TO FRAME selectarea.
               END.
               
-              run prodict/pro/_pro_area_list(drec_file,{&INVALID_AREAS},cmbArea:delimiter,"Lob", output  AreaList).
+              run prodict/pro/_pro_area_list.p(drec_file,{&INVALID_AREAS},cmbArea:delimiter,"Lob", output  AreaList).
           
               cmbArea:list-items = AreaList.
               cmbArea:screen-value = cmbArea:entry(1).

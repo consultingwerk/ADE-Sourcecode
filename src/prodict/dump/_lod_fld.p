@@ -1,5 +1,5 @@
 /*************************************************************************
-* Copyright (C) 2005-2011,2019 by Progress Software Corporation.         *
+* Copyright (C) 2005-2011,2019,2025 by Progress Software Corporation.         *
 * All rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                               *
 *                                                                        *
@@ -26,6 +26,7 @@
       10/02/07 Error handling - OE00158774
       04/30/08 Fix handling of Order values - OE00166224
       11/24/08 Changes for clob field - OE00177533
+      08/13/25 Cleanup of is-pre-101b-db
 */    
     
 define input-output parameter minimum-index as integer.
@@ -115,8 +116,7 @@ IF imod = "a" THEN DO: /*---------------------------------------------------*/
   END.
 
   /* allow int64 for 10.1B an later */
-  IF LOOKUP(wfld._Data-type,"CHARACTER,CHAR,DATE,DECIMAL,DEC,INTEGER,INT,LOGICAL,DATETIME,DATETIME-TZ,BLOB,CLOB,RAW,RECID"
-                            + (IF NOT is-pre-101b-db THEN ",INT64" ELSE "")) = 0 THEN 
+  IF LOOKUP(wfld._Data-type,"CHARACTER,CHAR,DATE,DECIMAL,DEC,INTEGER,INT,LOGICAL,DATETIME,DATETIME-TZ,BLOB,CLOB,RAW,RECID,INT64") = 0 THEN 
     ASSIGN ierror = 47.
 
   IF (wfld._Data-type = "CLOB" OR wfld._Data-type = "BLOB") AND 
@@ -202,9 +202,9 @@ END. /*---------------------------------------------------------------------*/
 ELSE
 IF imod = "m" THEN DO: /*---------------------------------------------------*/
   IF _Field._Data-type <> wfld._Data-type THEN DO:
-    /* allow integer to int64 updates for 10.1B and later */
+    /* allow integer to int64 updates */
     IF (_Field._Data-type = "int" OR _Field._Data-type = "integer") AND 
-        wfld._Data-type = "int64" AND NOT is-pre-101b-db THEN
+        wfld._Data-type = "int64" THEN
         _Field._Data-type  = wfld._Data-type.
     ELSE
         ierror = 10. /* "Cannot change datatype of existing field" */

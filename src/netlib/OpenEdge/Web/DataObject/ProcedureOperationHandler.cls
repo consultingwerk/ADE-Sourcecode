@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2019, 2021-2022 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2019,2021-2022,2024 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : ProcedureOperationHandler
@@ -31,14 +31,14 @@ using Progress.Collections.IList.
 using Progress.Lang.AppError.
 
 class OpenEdge.Web.DataObject.ProcedureOperationHandler inherits OperationHandler:
-    
+
     /* Default constructor */
     constructor public ProcedureOperationHandler():
         super().
     end constructor.
-    
+
     /* Executes the operation.
-    
+
        @param IWebRequest The request that resulting in the exception
        @param P.L.Object The message body of the incoming request. Typically
                          will be transformed from bytes into something useful; may also have an envelope removed.
@@ -65,7 +65,7 @@ class OpenEdge.Web.DataObject.ProcedureOperationHandler inherits OperationHandle
         define variable idx as integer no-undo.
         define variable loop as integer no-undo.
         define variable cnt as integer no-undo.
-        
+
         /* 32 array vars per data-type */
         {OpenEdge/Web/DataObject/doh_execute_defvar.i &data-type=character}
         {OpenEdge/Web/DataObject/doh_execute_defvar.i &data-type=longchar}
@@ -84,7 +84,7 @@ class OpenEdge.Web.DataObject.ProcedureOperationHandler inherits OperationHandle
         {OpenEdge/Web/DataObject/doh_execute_defvar.i &data-type=recid}
         {OpenEdge/Web/DataObject/doh_execute_defvar.i &data-type=rowid}
         {OpenEdge/Web/DataObject/doh_execute_defvar.i &data-type=Progress.Lang.Object &name-suffix=plo}
-        
+
         Assert:NotNull(poRequest,   'Web request').
         Assert:NotNull(poResponse,  'Web response').
         Assert:NotNull(poOperation, 'Mapped operation').
@@ -92,25 +92,25 @@ class OpenEdge.Web.DataObject.ProcedureOperationHandler inherits OperationHandle
 
         Assert:IsType(poEntity, get-class(IHandleHolder)).
         Assert:NotNull(cast(poEntity, IHandleHolder):Value, 'Procedure handle').
-        
+
         assign cSignature = cast(poEntity, IHandleHolder):Value:get-signature(poOperation:TargetFunction).
         if cSignature eq '':u then
             undo, throw new SendExceptionError(StatusCodeEnum:NotImplemented,
                                                new AppError(substitute('Unable to find target function for &1',
                                                     string(poOperation)),
                                                     0)).
-        
+
         /* create Call object from operation params (IN, IN-OUT, OUT ) */
         create call hDynCall.
         assign iMax                    = poOperation:Parameters:Size
-               
+
                hDynCall:num-parameters = iMax
                hDynCall:call-name      = poOperation:TargetFunction
                cReturnType             = entry(2, cSignature)
                .
         if not poOperation:TargetFunction eq ? then
             assign hDynCall:in-handle = cast(poEntity, IHandleHolder):Value.
-        
+
         case entry(1, cSignature):
             when 'FUNCTION':u  then hDynCall:call-type = function-call-type.
             when 'PROCEDURE':u then hDynCall:call-type = procedure-call-type.
@@ -120,7 +120,7 @@ class OpenEdge.Web.DataObject.ProcedureOperationHandler inherits OperationHandle
                                                         entry(1, cSignature), string(poOperation)),
                                                         0)).
         end case.
-        
+
         // make sure there are the right number of params. If there are no params, there's still a trailing comma
         if num-entries(cSignature) - 2 /* -type - return-data-type */ ne iMax and
            not (iMax eq 0 and entry(3, cSignature) eq '':u) then
@@ -128,12 +128,12 @@ class OpenEdge.Web.DataObject.ProcedureOperationHandler inherits OperationHandle
                                                new AppError(substitute('Unsupported call type &1 for &2',
                                                     entry(1, cSignature), string(poOperation)),
                                                     0)).
-        
+
         Logger:Trace(substitute('Using internal procedure "&1" for operation &2', cSignature, poOperation:ToString())).
-        
+
         assign args = BuildArguments(poRequest, poMessageBody, poResponse, pService, poOperation).
         Assert:NotUnknown(args, 'Operation args').
-        
+
         assign cnt = args:Count.
         do loop = 2 to cnt:
             assign idx     += 1
@@ -147,7 +147,7 @@ class OpenEdge.Web.DataObject.ProcedureOperationHandler inherits OperationHandle
                                string(oOperArg:ArgumentValue),
                                oOperArg:Parameter:ABLName,
                                string(oOperArg:Parameter:IsArray, '[]/  ':u))).
-            
+
             if oOperArg:Parameter:IsArray then
             case oOperArg:Parameter:DataType:
                 {OpenEdge/Web/DataObject/poh_execute_setparam_array.i &PARAM-IDX=idx &OPER-ARG=oOperArg &ARG-TYPE=int64       &ARG-VALUE-TYPE=Ccs.Common.Support.IInt64ArrayHolder        }
@@ -186,17 +186,17 @@ class OpenEdge.Web.DataObject.ProcedureOperationHandler inherits OperationHandle
                 {OpenEdge/Web/DataObject/poh_execute_setparam_scalar.i &PARAM-IDX=idx &OPER-ARG=oOperArg  &ARG-TYPE=plo        &ARG-VALUE-TYPE=Progress.Lang.Object                &SWITCH-VALUE=class          }
             end case.    /* scalar */
         end.    // PARAM-LOOP
-        
+
         /* INVOKE & HANDLE RETURN-VALUE */
         /* RUNIT */
         assign execTime[1] = now.
         hDynCall:invoke().
         assign execTime[2] = now.
-        
+
         Logger:Trace(substitute('Execution time for &1:&2 = &3 (ms)',
                         poOperation:TargetName, poOperation:TargetFunction,
                         interval(execTime[2], execTime[1], string(DateTimeAddIntervalEnum:Milliseconds)))).
-        
+
         // PROCESS THE RETURN VALUE
         assign oOperArg = args:Get(1).
         if valid-object(oOperArg)
@@ -211,7 +211,7 @@ class OpenEdge.Web.DataObject.ProcedureOperationHandler inherits OperationHandle
         end.
         else
             assign oValueWriter = ?.
-        
+
         if valid-object(oValueWriter) then
         do:
             // AVM magic takes care of type conversions. The Write() call will barf if needed
@@ -238,14 +238,14 @@ class OpenEdge.Web.DataObject.ProcedureOperationHandler inherits OperationHandle
             end.
             else
                 oValueWriter:Write(return-value).
-            
+
             oValueWriter:Close().
-            
+
             assign oOperArg:ArgumentValue = oValueWriter:Value.
-            
+
             SetOutputValue(oOperArg, poResponse).
         end.
-        
+
         /* HANDLE OUTPUT args */
         OUTPUT-ARGS-LOOP:
         do loop = 2 to cnt:
@@ -253,18 +253,18 @@ class OpenEdge.Web.DataObject.ProcedureOperationHandler inherits OperationHandle
             // We've done INPUT (we want OUTPUT and INPUT-OUTPUT)
             if not oOperArg:Parameter:IoMode:IsFlagSet(IOModeEnum:Output) then
                 next OUTPUT-ARGS-LOOP.
-            
+
             assign oValueWriter = ArgumentValueWriterBuilder:Build(oOperArg)
                                     :Logger(this-object:Logger)
                                     :Writer.
             Assert:NotNull(oValueWriter, 'Argument value writer').
-            
+
             // If this is an IN-OUT operation we can reuse the ArgValue object
             if valid-object(oOperArg:ArgumentValue) then
                 assign oValueWriter:Value = oOperArg:ArgumentValue.
-            
+
             oValueWriter:Open().
-            
+
             /* The datatype of the ABL parameter. */
             case oOperArg:Parameter:DataType:
                 {OpenEdge/Web/DataObject/doh_execute_setargvalues.i &OPER-ARG=oOperArg &DATA-TYPE=integer     }
@@ -287,15 +287,17 @@ class OpenEdge.Web.DataObject.ProcedureOperationHandler inherits OperationHandle
                 otherwise
                     undo, throw new AppError(substitute('Unsupported data type &1', oOperArg:Parameter:ABLType), 0).
             end case.   /* oOperParam:ABLType */
-            
+
             oValueWriter:Close().
             /* get the values from the writer, incl object writers */
             assign oOperArg:ArgumentValue = oValueWriter:Value.
-            
+
             SetOutputValue(oOperArg, poResponse).
         end.
-        
-        return integer(StatusCodeEnum:None).
+
+        {&_proparse_ prolint-nowarn(overflow)}
+        return integer(StatusCodeEnum:None:GetValue()).
+
         finally:
             delete object hDynCall no-error.
             assign oValueWriter = ?
@@ -305,7 +307,7 @@ class OpenEdge.Web.DataObject.ProcedureOperationHandler inherits OperationHandle
             set-size(retval_scalar_memptr) = 0.
             do loop = extent(retval_arr_memptr) to 1 by -1: set-size(retval_arr_memptr[loop]) = 0. end.
             do loop = extent(arg_scalar_memptr) to 1 by -1: set-size(arg_scalar_memptr[loop]) = 0. end.
-            
+
             do loop = extent(arg_arr_memptr_01) to 1 by -1: set-size(arg_arr_memptr_01[loop]) = 0. end.
             do loop = extent(arg_arr_memptr_02) to 1 by -1: set-size(arg_arr_memptr_02[loop]) = 0. end.
             do loop = extent(arg_arr_memptr_03) to 1 by -1: set-size(arg_arr_memptr_03[loop]) = 0. end.
@@ -340,5 +342,5 @@ class OpenEdge.Web.DataObject.ProcedureOperationHandler inherits OperationHandle
             do loop = extent(arg_arr_memptr_32) to 1 by -1: set-size(arg_arr_memptr_32[loop]) = 0. end.
         end finally.
     end method.
-    
+
 end class.

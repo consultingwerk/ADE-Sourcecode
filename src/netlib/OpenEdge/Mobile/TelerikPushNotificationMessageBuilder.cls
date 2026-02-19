@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015-2016, 2021, 2025 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2015-2016,2021,2024-2025 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : TelerikPushNotificationMessageBuilder

@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2018, 2021, 2023, 2025 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2018, 2021, 2023-2025 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : OpenAPI30ServiceWriter

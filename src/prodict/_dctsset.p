@@ -1,5 +1,5 @@
 /**********************************************************************
-* Copyright (C) 2000,2006 by Progress Software Corporation. All rights*
+* Copyright (C) 2000,2006,2025 by Progress Software Corporation. All rights*
 * reserved.  Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                            *
 *                                                                     *
@@ -28,6 +28,7 @@ history:
                             to _File Finds
         D. McMann 02/21/03 Replaced GATEWAYS with DATASERVERS
         fernando  06/12/06 Support for int64
+        fernando  08/13/25 Cleanup of is-pre-101b-db
 ---------------------------------------------------------------------- */
 /*h-*/
 
@@ -85,11 +86,6 @@ if NOT CAN-DO(DATASERVERS, DICTDB._Db._Db-type)
     "This module does not support connections to this Data Server type."
     view-as alert-box.
 
-
-/* check if this is a 10.1B db at least, so that we complain about int64 and
-   int64 values. We know we can't connect to V10 dbs anymore.
-*/
-ASSIGN  is-pre-101b-db = NO.  
 
 /* -------------------- recreate file-list cache --------------------- */
 

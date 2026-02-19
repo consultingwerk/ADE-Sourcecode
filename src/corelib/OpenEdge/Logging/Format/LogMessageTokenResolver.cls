@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2022-2023,2025 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2022-2024 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
  /*------------------------------------------------------------------------
     File        : LogMessageTokenResolver
@@ -37,7 +37,7 @@ abstract
        @param ISet<Token> A set of tokens.
        @param LogEvent The current logevent (message). Provides context for the tokens. */
     method protected void ResolveMessageTokens(input pTokens as ISet<Token>,
-                                               input pEvent as LogEvent):
+                                               input pEvent  as LogEvent):
         var character formatString.
         var IIterator<Token> iter.
         var integer idx.
@@ -88,21 +88,21 @@ abstract
                     case entry(1, iter:Current:Arg, '.':u):
                         when 'grp':u then
                             assign iter:Current:Value = pEvent:Message:GroupName.
-
+    
                         when 'logger':u then
                         do:
                             if num-entries(iter:Current:Arg, '.':u) gt 1 then
                                 assign formatString = trim(entry(2, iter:Current:Arg, '.':u)).
                             else
                                 assign formatString = '':u.
-
+    
                             // use the pre-formatted logger name if possible
                             if pEvent:ShortNameFormat eq formatString then
                                 assign iter:Current:Value = pEvent:LoggerShortName.
                             else
                                 assign iter:Current:Value = TokenResolver:ResolveName(formatString, pEvent:LoggerName).
                         end.    //logger
-
+    
                         when 'stack':u then
                         do:
                             case true:
@@ -114,14 +114,14 @@ abstract
                                 otherwise
                                     assign idx = 1.
                             end case.
-
+    
                             if idx gt 0 then
                                 assign iter:Current:Value = pEvent:CallStack[idx].
                         end.    // stack
-
+    
                         when 'level':u  then
                             assign iter:Current:Value = pEvent:LogLevel:ToString().
-
+    
                         when 'err':u  then
                             // the tokenArg is ERR.<SOMETHING> or just ERR
                             assign iter:Current:Value = TokenResolver:ResolveError(substring(iter:Current:Arg, 5), pEvent:Error).
@@ -141,4 +141,5 @@ abstract
             end case.
         end.
     end method.
+
 end class.

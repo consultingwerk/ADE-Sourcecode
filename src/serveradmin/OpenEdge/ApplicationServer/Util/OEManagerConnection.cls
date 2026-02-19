@@ -289,7 +289,7 @@ class OpenEdge.ApplicationServer.Util.OEManagerConnection implements ISupportLog
         end. /* failure */
 
         catch err as Progress.Lang.Error:
-            define variable oReturnObj as JsonObject.
+            define variable oReturnObj as JsonObject no-undo.
             assign oReturnObj = new JsonObject().
 
             /* Always report any errors during the API requests, and return an empty JSON object allowing remaining logic to continue. */

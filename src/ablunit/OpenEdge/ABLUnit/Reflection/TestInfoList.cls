@@ -32,27 +32,28 @@ using OpenEdge.Core.Collections.IList.
 class OpenEdge.ABLUnit.Reflection.TestInfoList
 inherits Array
 implements ITestInfoList:
-    
+
     constructor public TestInfoList (  ):
         super ().
         this-object:AutoExpand = true.
     end constructor.
-    
+
     method override public logical Add(input pIndex as integer, input pElement as Object ):
         // The backing of this collection is an Array, which allows null items, rather than
         // a List, which does not. So we act like a List here
         if not valid-object(pElement) then
             return false.
-        
+
         return super:Add(pIndex, pElement).
     end method.
-    
+
     method override public logical Add(input pElement as Object):
         // The backing of this collection is an Array, which allows null items, rather than
         // a List, which does not. So we act like a List here
         if not valid-object(pElement) then
             return false.
-        
+
         return super:Add(pElement).
     end method.
+
 end class.

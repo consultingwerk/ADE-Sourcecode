@@ -61,11 +61,11 @@ To get the MSS-to-PROGRESS tables copied to the environment:
            knavneet   04/28/09  BLOB support for MSS (OE00178319)
            knavneet   05/27/09  OE00185197            
            sgarg      05/22/09  ROWGUID support for MSS
+           fernando   08/13/25  Cleanup of is-pre-101b-db
 */ 
 &SCOPED-DEFINE GATE_CONFIG_ENTRIES 63
 DEFINE VARIABLE gate-config AS CHARACTER EXTENT {&GATE_CONFIG_ENTRIES} NO-UNDO.
 /* from prodict/dictvar.i */
-DEFINE SHARED VARIABLE is-pre-101b-db  AS LOGICAL NO-UNDO.
 { prodict/user/uservar.i }
 
 DEFINE INPUT-OUTPUT PARAMETER io-dtype     AS INTEGER   NO-UNDO.
@@ -135,10 +135,9 @@ IF io-gate-type <> ? AND io-pro-type = "get-list" THEN DO:
   END.
   io-pro-type = "".
   DO WHILE TRIM(ENTRY(2,gate-config[i])) = io-gate-type:
-    /* dont' allow int64 if a pre-10.1B schema holder */
-    IF NOT is-pre-101b-db OR TRIM(ENTRY(5,gate-config[i])) NE "int64" THEN
-        io-pro-type = io-pro-type + (IF io-pro-type = "" THEN "" ELSE ",") +
-          	       	  TRIM(ENTRY(5,gate-config[i])).
+    
+    io-pro-type = io-pro-type + (IF io-pro-type = "" THEN "" ELSE ",") +
+                  TRIM(ENTRY(5,gate-config[i])).
     i = i + 1.
   END.
   RETURN.
@@ -149,8 +148,6 @@ END.
    array (leaving just the format in gate-config itself).
 */
 DO i = 1 TO i + 1 WHILE gate-config[i] <> ?:
-  /* dont' allow int64 if a pre-10.1B schema holder */
-  IF NOT is-pre-101b-db OR TRIM(ENTRY(5,gate-config[i])) NE "int64" THEN
       ASSIGN
         gate_desc      = gate_desc    + TRIM(ENTRY(1,gate-config[i])) + ","
         gate_type      = gate_type    + TRIM(ENTRY(2,gate-config[i])) + ","

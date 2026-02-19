@@ -1,9 +1,9 @@
-/**************************************************************************************
-* Copyright (C) 2005-2014,2020,2021,2022,2023,2025 by Progress Software Corporation.  *
-* All rights reserved. Prior versions of this work may contain                        *
-* portions contributed by participants of Possenet.                                   *
-*                                                                                     *
-**************************************************************************************/
+/*********************************************************************************
+* Copyright (C) 2005-2014,2020,2021,2022,2023 by Progress Software Corporation.  *
+* All rights reserved. Prior versions of this work may contain                   *
+* portions contributed by participants of Possenet.                              *
+*                                                                                *
+**********************************************************************************/
 
 /* _dmpincr.p - phase 2 of incremental .df maker 
 
@@ -454,7 +454,7 @@ PROCEDURE checkEPolicy:
                 END.
                 ELSE DO:
                    if p-silentincrd THEN 
-                       undo, throw new Progress.Lang.AppError(new_lang[32] + "~n" +
+                       undo, throw new AppError(new_lang[32] + "~n" +
                             new_lang[33] + "~n" +
                             new_lang[34] + "~n" +
                             new_lang[35]). 
@@ -483,7 +483,7 @@ PROCEDURE checkEPolicy:
                     VIEW-AS ALERT-BOX WARNING.
             ELSE DO:
                    if p-silentincrd THEN 
-                       undo, throw new Progress.Lang.AppError(new_lang[36] + "~n" + cTmp). 
+                       undo, throw new AppError(new_lang[36] + "~n" + cTmp). 
                    ELSE
                        MESSAGE new_lang[36] SKIP cTmp.
             END.
@@ -567,7 +567,7 @@ PROCEDURE checkObjectAttributes:
                 END.
                 ELSE DO:
                    if p-silentincrd THEN 
-                       undo, throw new Progress.Lang.AppError(new_lang[37] + "~n" + new_lang[38]). 
+                       undo, throw new AppError(new_lang[37] + "~n" + new_lang[38]). 
                    ELSE
                     MESSAGE new_lang[37] SKIP
                             new_lang[38].
@@ -594,7 +594,7 @@ PROCEDURE checkObjectAttributes:
                     VIEW-AS ALERT-BOX WARNING.
             ELSE DO:
                    if p-silentincrd THEN 
-                       undo, throw new Progress.Lang.AppError(new_lang[38] + "~n" + cTmp).
+                       undo, throw new AppError(new_lang[38] + "~n" + cTmp).
                    ELSE
                        MESSAGE new_lang[38] SKIP cTmp.
             END.

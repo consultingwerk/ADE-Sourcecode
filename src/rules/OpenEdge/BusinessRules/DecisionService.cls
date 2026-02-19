@@ -704,13 +704,13 @@ class OpenEdge.BusinessRules.DecisionService use-widget-pool:
                                 integer(entry(3, mcCurrentFieldValue, '-')),
                                 integer(entry(1, mcCurrentFieldValue, '-'))).
                     when 'datetime' then
-                        {&_proparse_ prolint-nowarn(varusage)}
+                        {&_proparse_ prolint-nowarn(overflow)}
                         mhBufferField:buffer-value = TimeStamp:ToABLDateTimeFromISO(string(mcCurrentFieldValue)).
                     when 'datetime-tz' then
-                        {&_proparse_ prolint-nowarn(varusage)}
+                        {&_proparse_ prolint-nowarn(overflow)}
                         mhBufferField:buffer-value = TimeStamp:ToABLDateTimeTzFromISO(string(mcCurrentFieldValue)).
                     when 'character' then 
-                        {&_proparse_ prolint-nowarn(varusage)}
+                        {&_proparse_ prolint-nowarn(overflow)}
                         mhBufferField:buffer-value = string(mcCurrentFieldValue).
                     when 'clob' then
                         mhBufferField:buffer-value = mcCurrentFieldValue. 

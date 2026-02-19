@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2000-2011 by Progress Software Corporation.            *
+* Copyright (C) 2000-2011,2025 by Progress Software Corporation.       *
 * All rights reserved.  Prior versions of this work may contain        *
 * portions contributed by participants of Possenet.                    *
 *                                                                      *
@@ -11,6 +11,9 @@ History: 07/09/98 D. McMann Added AND _File._Owner = "PUB" to FIND _File
          10/23/02 D. McMann Changed BLANK to PASSWORD-FIELD
          09/22/09 fernando  Reset other can-fields when unsetting sec admin
          04/18/11 Rajinder  OE00208533  fixed error if domain name is empty.
+         04/16/25 Talha     Replaced ENCODE with GENERATE-PASSWORD-HASH to support FIPS
+         05/14/25 Talha     Allowed _Password to have value greater than 16 characters
+         05/28/25 Talha     Allowed SysAdmin to update password from UI
 
 */
 
@@ -87,6 +90,7 @@ define variable fi-domain-name as character
                 label "Domain Name".
                 
 define button btnDomain label "Select Domain...".
+define button btn_ChgPwd label "Change Password".
 define variable  hasPassword as logical no-undo.
  
 
@@ -123,7 +127,7 @@ FORM
   btndomain
   _User._User-Name   colon {&col} label "User Name"
              view-as fill-in size 40 by 1 
-  _User._Password    colon {&col} label "Password" password-field
+  _User._Password    colon {&col} view-as fill-in size 40 by 1 FORMAT "X(80)" label "Password" password-field btn_ChgPwd
   _User._sql-only    colon {&col} label "SQL Only" 
   WITH FRAME usr_edit  view-as dialog-box
   OVERLAY ROW 4 centered side-LABELS ATTR-SPACE.
@@ -144,6 +148,7 @@ DEFINE VARIABLE redraw     AS LOGICAL INITIAL TRUE  NO-UNDO.
 DEFINE VARIABLE user-cnt-i AS INTEGER INITIAL 0     NO-UNDO.
 DEFINE VARIABLE user-cnt-o AS INTEGER               NO-UNDO.
 DEFINE VARIABLE istrans AS LOGICAL INITIAL TRUE. /*UNDO (not no-undo!) */
+DEFINE VARIABLE cpasswd    AS CHARACTER             NO-UNDO.
 
 /** Functions ***********************************/
 function FullUserId returns char(id as char, name as char):
@@ -166,6 +171,14 @@ ON CHOOSE OF btnDomain IN FRAME usr_edit
 do: 
      
     run selectDomain(fi-domain-name:handle in frame usr_edit).
+    
+end.
+
+/*----- HIT OF Change Password BUTTON -----*/
+ON CHOOSE OF btn_ChgPwd IN FRAME usr_edit 
+do: 
+     
+    run prodict/user/_usrupwd.p.
     
 end.
 
@@ -376,7 +389,7 @@ DO FOR _User TRANSACTION ON ERROR UNDO,RETRY:
                 _Password 
                 _sql-only.
           END.
-          passwd = ENCODE(INPUT _Password).
+          passwd = GENERATE-PASSWORD-HASH(INPUT _Password,?,"_oeuser-uphA1").
           IF KEYFUNCTION(LASTKEY) = "END-ERROR" THEN LEAVE _qbf5.
           IF fi-domain-name:screen-value <> "" then
           DO:
@@ -417,17 +430,23 @@ DO FOR _User TRANSACTION ON ERROR UNDO,RETRY:
     DO ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE WITH FRAME usr_edit:
       FRAME usr_edit:title = "Modify User".
       
+      RUN "prodict/_dctadmn.p" (INPUT USERID(user_dbname),OUTPUT answer).
       btnDomain:hidden = yes.
+      IF NOT answer THEN btn_ChgPwd:HIDDEN = yes.
+      ELSE btn_ChgPwd:HIDDEN = no.
+      
+      user_env[43] = _User._Userid.
       DISPLAY _Userid 
               _Domain-name @ fi-domain-name
               _User-name
               _sql-only.
       PROMPT-FOR  
                  fi-domain-name
-                 btndomain 
+                 btndomain
+                 btn_ChgPwd 
                  _User-name 
-/*                _Password*/
                 _sql-only.
+
       ASSIGN
         in_trans   = in_trans OR _User-name ENTERED
         _User-name = INPUT FRAME usr_edit _User-name 

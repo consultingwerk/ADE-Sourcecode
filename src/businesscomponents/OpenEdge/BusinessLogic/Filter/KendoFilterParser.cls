@@ -114,12 +114,12 @@ class OpenEdge.BusinessLogic.Filter.KendoFilterParser inherits FilterParser:
                        oFieldValue = new OpenEdge.Core.String("":u)
                        .
             when "isnullorempty":u then
-                /* @TODO: This may need more work. */
+                /* This may need more work, but not sure what that may be. */
                 assign oOperator   = QueryOperatorEnum:Eq
                        oFieldValue = new OpenEdge.Core.String("":u)
                        .
             when "isnotnullorempty":u then
-                /* @TODO: This may need more work. */
+                /* This may need more work, but not sure what that may be. */
                 assign oOperator   = QueryOperatorEnum:Ne
                        oFieldValue = new OpenEdge.Core.String("":u)
                        .

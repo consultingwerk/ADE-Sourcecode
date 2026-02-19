@@ -24,5 +24,7 @@ using OpenEdge.Core.Collections.IList.
 **/
 interface OpenEdge.ABLUnit.Reflection.ITestInfoList
 inherits IList:
+
     // comment to stop SQ complaining
+
 end interface.

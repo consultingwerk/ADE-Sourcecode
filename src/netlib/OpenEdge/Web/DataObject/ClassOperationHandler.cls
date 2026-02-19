@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2019, 2021-2023 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2019,2021-2024 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : ClassOperationHandler
@@ -292,7 +292,9 @@ class OpenEdge.Web.DataObject.ClassOperationHandler  inherits OperationHandler:
                                 poOperation:TargetName, poOperation:TargetFunction, poOperation:Parameters:Size,
                                 interval(execTime[2], execTime[1], string(DateTimeAddIntervalEnum:Milliseconds)))).
 
-        return integer(StatusCodeEnum:None).
+        {&_proparse_ prolint-nowarn(overflow)}
+        return integer(StatusCodeEnum:None:GetValue()).
+
         finally:
             /* clean variables */
             define variable iCleanLoop as integer no-undo.

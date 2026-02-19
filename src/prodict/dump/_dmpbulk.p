@@ -1,15 +1,15 @@
-/*********************************************************************
+/**********************************************************************
 * Copyright (C) 2000,2007,2020,2025 by Progress Software Corporation. *
-* All rights reserved. Prior versions of this work may contain       *
-* portions contributed by participants of Possenet.                  *
-*********************************************************************/
+* All rights reserved. Prior versions of this work may contain        *
+* portions contributed by participants of Possenet.                   *
+***********************************************************************/
 
 /* _dmpbulk.p - Make .fd file for _proutil -C bulkload 
 
    D. McMann 04/09/03 Added logic for LOB Directory
    fernando  12/12/07 Handle large list of tables.
    tmasood   06/04/20 Fix the issue with Bulk load description file.
-   tmasood   05/27/25 Allowed dump of BLOB fields
+   tmasood   05/21/25 Allowed dump of BLOB fields
 
 */
 

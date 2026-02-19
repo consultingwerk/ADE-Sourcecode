@@ -1,5 +1,5 @@
 /****************************************************************************
-* Copyright (C) 2008,2010,2020 by Progress Software Corporation. All rights *
+* Copyright (C) 2008,2010,2020,2025 by Progress Software Corporation. All rights *
 * reserved. Prior versions of this work may contain portions                *
 * contributed by participants of Possenet.                                  *
 *                                                                           *
@@ -39,6 +39,7 @@ Date Created: 02/05/92
               06/26/08 fernando Removed encryption area from list
               02/22/08 fernando Adjust display data type length for Dsrv schemas
               10/29/20 Kberlia Added Parameter in _pro_area_list.p to support default area.
+              08/13/25 fernando Cleanup of is-pre-101b-db
 ----------------------------------------------------------------------------*/
 
 
@@ -101,12 +102,8 @@ DEFINE VARIABLE s_res AS LOGICAL NO-UNDO.
 
    if IsPro THEN DO:
       assign
-               types = "CHARACTER,DATE,DECIMAL,INTEGER,LOGICAL,DATETIME,DATETIME-TZ,BLOB,CLOB,RAW,RECID"
-               num = 11.
-      IF NOT is-pre-101b-db THEN
-          /* not a pre-10.1B db, include int64 */
-          ASSIGN types = REPLACE(types, "INTEGER","INTEGER,INT64")
-              num = 12.
+               types = "CHARACTER,DATE,DECIMAL,INTEGER,INT64,LOGICAL,DATETIME,DATETIME-TZ,BLOB,CLOB,RAW,RECID"
+               num = 12.
    END.
    else do:
       /* Compose a string to pass to list-items function where each entry
@@ -778,7 +775,7 @@ IF dictdb._File._For-type <> ?
 OR (dictdb._File._file-Attributes[1] and dictdb._File._file-Attributes[2] = false) or (dictdb._File._file-Attributes[3]) THEN
   ASSIGN s_lob_Area = "".
 ELSE DO with frame newfld:   
-   run prodict/pro/_pro_area_list(recid(dictdb._File),{&INVALID_AREAS},s_lst_lob_area:DELIMITER in frame newfld ,"Lob", output AreaList).
+   run prodict/pro/_pro_area_list.p(recid(dictdb._File),{&INVALID_AREAS},s_lst_lob_area:DELIMITER in frame newfld ,"Lob", output AreaList).
    assign
        s_lst_lob_area:list-items in frame newfld = AreaList
        /* NOTE: entry will realize fldprop unless in frame is used (in spite of do with frame)*/

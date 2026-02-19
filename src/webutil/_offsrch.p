@@ -1,9 +1,9 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
+* Copyright (C) 2000, 2024 by Progress Software Corporation.         *
+* All rights reserved. Prior versions of this work may contain       *
+* portions contributed by participants of Possenet.                  *
 *                                                                    *
 **********************************************************************
 
@@ -34,7 +34,6 @@ Created: March 1997
 &IF "{&WINDOW-SYSTEM}" EQ "TTY":U &THEN
 { src/web/method/cgidefs.i }
 &ENDIF
-{ webutil/tagextr.i }
 
 DEFINE INPUT        PARAMETER pWebFile    AS CHARACTER NO-UNDO. /* WEB-FILE   */
 DEFINE INPUT        PARAMETER pRunName    AS CHARACTER NO-UNDO. /* procedure file */
@@ -47,7 +46,6 @@ DEFINE VARIABLE cPath           AS CHARACTER NO-UNDO.
 DEFINE VARIABLE file-ext        AS CHARACTER NO-UNDO.
 DEFINE VARIABLE file-name       AS CHARACTER NO-UNDO.
 DEFINE VARIABLE html-file       AS CHARACTER NO-UNDO.
-DEFINE VARIABLE i-scrap         AS INTEGER   NO-UNDO. /* scrap */
 DEFINE VARIABLE offset-file     AS CHARACTER NO-UNDO.
 DEFINE VARIABLE proc-file       AS CHARACTER NO-UNDO. /* web object, not used */
 DEFINE VARIABLE rslt            AS LOGICAL   NO-UNDO.
@@ -207,10 +205,6 @@ ELSE DO:
   ASSIGN
     FILE-INFO:FILE-NAME = pOffsetFile
     pOffsetFile         = FILE-INFO:FULL-PATHNAME.
-
-  /* Note: TE_needToMakeOffsets needs a FULL path to each input file. */
-  IF html-file ne ? THEN
-    RUN TE_needToMakeOffsets (html-file, pOffsetFile, OUTPUT i-scrap).
 END.
 
 /* Generate offset file because we can't find it or because its date/time stamp
@@ -222,23 +216,10 @@ PUT STREAM debug UNFORMATTED
   "html-file      " html-file SKIP.
 &ENDIF
 
-IF pOffsetFile = ? OR i-scrap = 1 THEN DO:  
-  RUN webutil/_genoff.p (html-file, OUTPUT pOffsetFile).
-  /* Was the offset file generation successful? */
-  IF RETURN-VALUE = "error":U THEN DO:
-    &IF "{&WINDOW-SYSTEM}" EQ "TTY":U &THEN
-    RUN HtmlError IN web-utilities-hdl
-      ("The offset file was not successfully generated. [_offsrch.p]").
-    &ELSE
-    MESSAGE "The offset file was not successfully generated. [_offsrch.p]"
-      VIEW-AS ALERT-BOX.
-    &ENDIF
-    
-    &IF {&debug} &THEN
-    OUTPUT STREAM debug CLOSE.
-    &ENDIF
+IF pOffsetFile = ? THEN DO:
+    // If there is no offset file, there's nothing more we can do
+    // here since re-generation of these files is no longer possible.
     RETURN "Error":U.
-  END.
 END.
 
 &IF {&debug} &THEN

@@ -29,6 +29,7 @@ using OpenEdge.ABLUnit.Results.TestTestResult.
 **/
 
 class OpenEdge.ABLUnit.Results.TestResultList inherits Array:
+
     /* Default constructor */
     constructor public TestResultList (  ):
         super ().
@@ -40,16 +41,16 @@ class OpenEdge.ABLUnit.Results.TestResultList inherits Array:
         // a List, which does not. So we act like a List here
         if not valid-object(pElement) then
             return false.
-        
+
         return super:Add(pIndex, pElement).
     end method.
-    
+
     method override public logical Add(input pElement as Object):
         // The backing of this collection is an Array, which allows null items, rather than
         // a List, which does not. So we act like a List here
         if not valid-object(pElement) then
             return false.
-        
+
         return super:Add(pElement).
     end method.
 

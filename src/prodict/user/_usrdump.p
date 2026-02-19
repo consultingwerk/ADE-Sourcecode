@@ -79,7 +79,7 @@ history:
     rkamboj     08/16/11   Added new terminology for security items and windows.
     rkamboj 	11/11/2011 Fixed issue of dump data for Lob field. bug OE00214956.
     tmasood     06/02/2020 Fix the issue with Bulk load description file.
-    tmasood     05/27/2025 Allowed dump of BLOB fields
+    tmasood     05/22/2025 Allowed dump of BLOB fields
 */
 /*h-*/
 

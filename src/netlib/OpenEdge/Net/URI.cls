@@ -1,5 +1,5 @@
 /**********************************************************************************
-Copyright (c) 2014-2019, 2021-2023 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014-2019, 2021-2024 by Progress Software Corporation. All rights reserved.
 ************************************************************************************/
 /*------------------------------------------------------------------------
     File        : URI
@@ -165,7 +165,7 @@ class OpenEdge.Net.URI serializable:
 
     /* Static constructor */
     constructor static URI():
-        assign encoder = new UriEncoder().
+        assign Encoder = new UriEncoder().
     end constructor.
 
     /** Constructor. Defaults to HTTP scheme.
@@ -526,7 +526,7 @@ class OpenEdge.Net.URI serializable:
             assign segment = entry(loop, pPath, '/':u)
                    cpath   = cpath + delim
                              // encode the paths (especially for unicode chars); leave any %-encoding alone though
-                             + encoder:EncodePath(segment)
+                             + Encoder:EncodePath(segment)
 
                    delim   = '/':u
                    .
@@ -559,7 +559,7 @@ class OpenEdge.Net.URI serializable:
             assign pDecode = true.
 
         if pDecode then
-            assign pAuthority = encoder:Decode(pAuthority).
+            assign pAuthority = Encoder:Decode(pAuthority).
 
         /* get username/password out of real host */
         assign chrPos = r-index(pAuthority, '@':u).
@@ -640,7 +640,7 @@ class OpenEdge.Net.URI serializable:
             if chrPos eq 0 then
             do:
                 if pDecode then
-                    assign qryPart = encoder:Decode(qryPart).
+                    assign qryPart = Encoder:Decode(qryPart).
                 this-object:AddQuery(qryPart).
             end.
             else
@@ -651,12 +651,12 @@ class OpenEdge.Net.URI serializable:
                     assign qryVal = '':u.
                 else
                 if pDecode then
-                    assign qryVal = encoder:Decode(qryVal).
+                    assign qryVal = Encoder:Decode(qryVal).
 
                 // query-name
                 assign qryPart = substring(qryPart, 1, chrPos - 1).
                 if pDecode then
-                    assign qryPart = encoder:Decode(qryPart).
+                    assign qryPart = Encoder:Decode(qryPart).
                 this-object:AddQuery(qryPart, qryVal).
             end.
         end.
@@ -698,9 +698,9 @@ class OpenEdge.Net.URI serializable:
         // component parts first
         // Don't decode the path , since the decoded values may contain slashes
         if pDecode then
-            assign uriParts[SCHEME_PART_IDX]    = encoder:Decode(uriParts[SCHEME_PART_IDX])
-                   uriParts[AUTHORITY_PART_IDX] = encoder:Decode(uriParts[AUTHORITY_PART_IDX])
-                   uriParts[FRAGMENT_PART_IDX]  = encoder:Decode(uriParts[FRAGMENT_PART_IDX])
+            assign uriParts[SCHEME_PART_IDX]    = Encoder:Decode(uriParts[SCHEME_PART_IDX])
+                   uriParts[AUTHORITY_PART_IDX] = Encoder:Decode(uriParts[AUTHORITY_PART_IDX])
+                   uriParts[FRAGMENT_PART_IDX]  = Encoder:Decode(uriParts[FRAGMENT_PART_IDX])
                    .
         // Build a URI from the component parts
         assign newURI = new URI(uriParts[SCHEME_PART_IDX],
@@ -729,7 +729,7 @@ class OpenEdge.Net.URI serializable:
                extent(pSegments) = segmentCnt - 1
                .
         do segmentLoop = 2 to segmentCnt:
-            assign pSegments[segmentLoop - 1] = encoder:Decode(entry(segmentLoop, this-object:Path, '/':u)).
+            assign pSegments[segmentLoop - 1] = Encoder:Decode(entry(segmentLoop, this-object:Path, '/':u)).
         end.
 
         return (segmentCnt - 1).
@@ -753,7 +753,7 @@ class OpenEdge.Net.URI serializable:
                pathDelim  = '':u.
         SEGMENT-LOOP:
         do segmentLoop = 1 to segmentCnt:
-            assign segment = encoder:EncodePath(pcSegments[segmentLoop]).
+            assign segment = Encoder:EncodePath(pcSegments[segmentLoop]).
             // Don't add empty segments
             case segment:
                 // skip empty paths
@@ -778,7 +778,7 @@ class OpenEdge.Net.URI serializable:
        @param character A path segment */
     method public void AddPathSegment (input pcSegment as character):
         // unknown and empty values return empty, which we ignore
-        assign pcSegment = encoder:EncodePath(pcSegment).
+        assign pcSegment = Encoder:EncodePath(pcSegment).
 
         // Don't add empty segments
         if pcSegment ne '':u then
@@ -807,7 +807,7 @@ class OpenEdge.Net.URI serializable:
         if pcValue eq ? then
            assign lcValue = ?.
         else
-           assign lcValue = encoder:EncodeQuery(pcValue). // Encode character.
+           assign lcValue = Encoder:EncodeQuery(pcValue). // Encode character.
 
         // Create a new list for values of key.
         if not this-object:QueryParams:ContainsKey(pcName) then
@@ -833,7 +833,7 @@ class OpenEdge.Net.URI serializable:
         if poValue:Value eq ? then
            assign cValue = ?.
         else
-           assign cValue = encoder:EncodeQuery(poValue). // Encode a String.
+           assign cValue = Encoder:EncodeQuery(poValue). // Encode a String.
 
         // Create a new list for values of key.
         assign cKey = string(poName:Value).
@@ -911,7 +911,7 @@ class OpenEdge.Net.URI serializable:
                 extent(decoded) = iCount.
                 do iLoop = 1 to iCount:
                     // When calling AddQuery() we always encode the value, so decode it now (stored as a new String).
-                    decoded[iLoop] = encoder:Decode(string(original:Get(iLoop))).
+                    decoded[iLoop] = Encoder:Decode(string(original:Get(iLoop))).
                 end.
             end.
         end.
@@ -1012,9 +1012,9 @@ class OpenEdge.Net.URI serializable:
 
         if this-object:User ne ? then
         do:
-            assign cRootURI = cRootURI + encoder:EncodeUserinfo(this-object:User).
+            assign cRootURI = cRootURI + Encoder:EncodeUserinfo(this-object:User).
             if this-object:Password ne ? then
-                assign cRootURI = cRootURI + substitute(':&1':u, encoder:EncodeUserinfo(this-object:Password)).
+                assign cRootURI = cRootURI + substitute(':&1':u, Encoder:EncodeUserinfo(this-object:Password)).
             assign cRootURI = cRootURI + '@':u.
         end.
 
@@ -1078,14 +1078,14 @@ class OpenEdge.Net.URI serializable:
         define variable encodedUri as character no-undo.
 
         //scheme first
-        assign encodedUri = encoder:EncodeScheme(this-object:Scheme) + '://':u.
+        assign encodedUri = Encoder:EncodeScheme(this-object:Scheme) + '://':u.
 
         // authority: user, pw
         if this-object:User ne ? then
-            assign encodedUri = encodedUri + encoder:EncodeUserinfo(this-object) + '@':u.
+            assign encodedUri = encodedUri + Encoder:EncodeUserinfo(this-object) + '@':u.
 
         // host
-        assign encodedUri = encodedUri + encoder:EncodeHost(this-object:Host).
+        assign encodedUri = encodedUri + Encoder:EncodeHost(this-object:Host).
 
         if this-object:Port ne ? then
             assign encodedUri = encodedUri + ':':u + string(this-object:Port).
@@ -1093,11 +1093,11 @@ class OpenEdge.Net.URI serializable:
         // path & query
         assign encodedUri = encodedUri
                           + this-object:Path      // assumed to be already-encoded
-                          + encoder:EncodeQuery(this-object:QueryParams)
+                          + Encoder:EncodeQuery(this-object:QueryParams)
                           .
         // Fragment
         if not this-object:Fragment eq '':u then
-            assign encodedUri = encodedUri + '#':u + encoder:EncodeFragment(this-object:Fragment).
+            assign encodedUri = encodedUri + '#':u + Encoder:EncodeFragment(this-object:Fragment).
 
         return encodedUri.
     end method.
@@ -1127,7 +1127,7 @@ class OpenEdge.Net.URI serializable:
 
        @return character An encoded string */
     method public character EncodeScheme ():
-        return encoder:EncodeScheme(this-object:Scheme).
+        return Encoder:EncodeScheme(this-object:Scheme).
     end method.
 
     /* Encodes a string per URI Scheme encoding rules
@@ -1137,7 +1137,7 @@ class OpenEdge.Net.URI serializable:
        @param character A string to encode
        @return character An encoded string */
     method static public character EncodeScheme (input pcString as character):
-        return encoder:EncodeScheme(pcString).
+        return Encoder:EncodeScheme(pcString).
     end method.
 
     /* Encodes a string per URI Scheme encoding rules
@@ -1147,7 +1147,7 @@ class OpenEdge.Net.URI serializable:
        @param String A string to encode
        @return character An encoded string */
     method static public character EncodeScheme (input pString as String):
-        return encoder:EncodeScheme(pString).
+        return Encoder:EncodeScheme(pString).
     end method.
 
     /* Encodes a string per URI Host encoding rules
@@ -1157,7 +1157,7 @@ class OpenEdge.Net.URI serializable:
        @param character A string to encode
        @return character An encoded string */
     method static public character EncodeHost (input pcString as character):
-        return encoder:EncodeHost(pcString).
+        return Encoder:EncodeHost(pcString).
     end method.
 
     /* Encodes this uri's Host per URI Host encoding rules
@@ -1166,7 +1166,7 @@ class OpenEdge.Net.URI serializable:
 
        @return character An encoded string */
     method public character EncodeHost ():
-        return encoder:EncodeHost(this-object:Host).
+        return Encoder:EncodeHost(this-object:Host).
     end method.
 
     /* Encodes a string per URI userinfo encoding rules
@@ -1176,7 +1176,7 @@ class OpenEdge.Net.URI serializable:
        @param String A string to encode
        @return character An encoded string */
     method static public character EncodeUserinfo (input pString as String):
-        return encoder:EncodeUserinfo(pString).
+        return Encoder:EncodeUserinfo(pString).
     end method.
 
     /* Encodes a string per URI userinfo encoding rules.
@@ -1186,7 +1186,7 @@ class OpenEdge.Net.URI serializable:
        @param character A string to encode
        @return character An encoded string */
     method static public character EncodeUserinfo (input pcString as character):
-        return encoder:EncodeUserinfo(pcString).
+        return Encoder:EncodeUserinfo(pcString).
     end method.
 
     /* Encodes this uri's Host per URI Host encoding rules
@@ -1195,7 +1195,7 @@ class OpenEdge.Net.URI serializable:
 
        @return character An encoded string */
     method public character EncodeUserinfo ():
-        return encoder:EncodeUserinfo(this-object).
+        return Encoder:EncodeUserinfo(this-object).
     end method.
 
     /* Encodes a string per URI Host encoding rules
@@ -1205,7 +1205,7 @@ class OpenEdge.Net.URI serializable:
        @param String A string to encode
        @return character An encoded string */
     method static public character EncodeHost (input pString as String):
-        return encoder:EncodeHost(pString).
+        return Encoder:EncodeHost(pString).
     end method.
 
     /* Encodes a string per URI Path encoding rules
@@ -1215,7 +1215,7 @@ class OpenEdge.Net.URI serializable:
        @param character A string to encode
        @return character An encoded string */
     method static public character EncodePath (input pcString as character):
-        return encoder:EncodePath(pcString).
+        return Encoder:EncodePath(pcString).
     end method.
 
     /* Encodes a string per URI Path encoding rules
@@ -1225,7 +1225,7 @@ class OpenEdge.Net.URI serializable:
        @param String A string to encode
        @return character An encoded string */
     method static public character EncodePath (input pString as String):
-        return encoder:EncodePath(pString).
+        return Encoder:EncodePath(pString).
     end method.
 
     /* Encodes this URI's Query string per URI Query encoding rules.
@@ -1234,7 +1234,7 @@ class OpenEdge.Net.URI serializable:
 
        @return character An encoded path string */
     method public character EncodeQuery ():
-        return encoder:EncodeQuery(this-object:QueryParams).
+        return Encoder:EncodeQuery(this-object:QueryParams).
     end method.
 
     /* Encodes a URI's Query string per URI Query encoding rules.
@@ -1246,7 +1246,7 @@ class OpenEdge.Net.URI serializable:
     method static public character EncodeQuery (input poURI as URI):
         Assert:NotNull(poURI, 'URI').
 
-        return encoder:EncodeQuery(poURI:QueryParams).
+        return Encoder:EncodeQuery(poURI:QueryParams).
     end method.
 
     /* Encodes a string per URI Query encoding rules
@@ -1256,7 +1256,7 @@ class OpenEdge.Net.URI serializable:
        @param character A string to encode
        @return character An encoded string */
     method static public character EncodeQuery (input pcString as character):
-        return encoder:EncodeQuery(pcString).
+        return Encoder:EncodeQuery(pcString).
     end method.
 
     /* Encodes a string per URI Query encoding rules
@@ -1266,7 +1266,7 @@ class OpenEdge.Net.URI serializable:
        @param String A string to encode
        @return character An encoded string */
     method static public character EncodeQuery (input pString as String):
-        return encoder:EncodeQuery(pString).
+        return Encoder:EncodeQuery(pString).
     end method.
 
     /* Encodes this URI's Fragment per URI Fragment encoding rules
@@ -1275,7 +1275,7 @@ class OpenEdge.Net.URI serializable:
 
        @return character An encoded string */
     method public character EncodeFragment ():
-        return encoder:EncodeFragment(this-object:Fragment).
+        return Encoder:EncodeFragment(this-object:Fragment).
     end method.
 
     /* Encodes a string per URI Fragment encoding rules
@@ -1285,7 +1285,7 @@ class OpenEdge.Net.URI serializable:
        @param character A string to encode
        @return character An encoded string */
     method static public character EncodeFragment (input pcString as character):
-        return encoder:EncodeFragment(pcString).
+        return Encoder:EncodeFragment(pcString).
     end method.
 
     /* Encodes a string per URI Fragment encoding rules
@@ -1295,7 +1295,7 @@ class OpenEdge.Net.URI serializable:
        @param String A string to encode
        @return character An encoded string */
     method static public character EncodeFragment (input pString as String):
-        return encoder:EncodeFragment(pString).
+        return Encoder:EncodeFragment(pString).
     end method.
 
     /* Encodes a string per Cookie encoding rules. This method is here for historical reasons.
@@ -1305,7 +1305,7 @@ class OpenEdge.Net.URI serializable:
        @param character A string to encode
        @return character An encoded string */
     method static public character EncodeCookie (input pcString as character):
-        return encoder:EncodeCookie(pcString).
+        return Encoder:EncodeCookie(pcString).
     end method.
 
     /* Encodes a string per Cookie encoding rules. This method is here for historical reasons.
@@ -1315,7 +1315,7 @@ class OpenEdge.Net.URI serializable:
        @param String A string to encode
        @return character An encoded string */
     method static public character EncodeCookie (input pString as String):
-        return encoder:EncodeCookie(pString).
+        return Encoder:EncodeCookie(pString).
     end method.
 
     /* Encodes a string per URI Default encoding rules
@@ -1325,7 +1325,7 @@ class OpenEdge.Net.URI serializable:
        @param character A string to encode
        @return character An encoded string */
     method static public character EncodeString (input pcString as character):
-        return encoder:EncodeDefault(pcString).
+        return Encoder:EncodeDefault(pcString).
     end method.
 
     /* Encodes a string per URI Default encoding rules
@@ -1335,7 +1335,7 @@ class OpenEdge.Net.URI serializable:
        @param String A string to encode
        @return character An encoded string */
     method static public character EncodeString (input pString as String):
-        return encoder:EncodeDefault(pString).
+        return Encoder:EncodeDefault(pString).
     end method.
 
 
@@ -1349,7 +1349,7 @@ class OpenEdge.Net.URI serializable:
         @return character the encoded string */
     method static public character Encode (input pcString as character,
                                            input poEncodingType as UriEncodingTypeEnum):
-        return encoder:Encode(pcString, poEncodingType, false).
+        return Encoder:Encode(pcString, poEncodingType, false).
     end method.
 
     /** Encodes a string for a particular purpose. Usage of Encode<encoding-type> is recommended,
@@ -1364,7 +1364,7 @@ class OpenEdge.Net.URI serializable:
     method static public character Encode (input pString as character,
                                            input pEncodingType as UriEncodingTypeEnum,
                                            input pReEncode as logical):
-        return encoder:Encode(pString, pEncodingType, pReEncode).
+        return Encoder:Encode(pString, pEncodingType, pReEncode).
     end method.
 
     /** Attempts to decode a previously-encoded URL.
@@ -1373,7 +1373,7 @@ class OpenEdge.Net.URI serializable:
 
         @return character A decoded URL */
     method public character Decode ():
-        return encoder:Decode(this-object:ToString(), ?).
+        return Encoder:Decode(this-object:ToString(), ?).
     end method.
 
     /** Attempts to decode a previously percent-encoded string.
@@ -1384,7 +1384,7 @@ class OpenEdge.Net.URI serializable:
         @return character A decoded URL
         @throws AppError If the encoding is malformed */
     method static public character Decode (input pcEncodedString as character):
-        return encoder:Decode(pcEncodedString, ?).
+        return Encoder:Decode(pcEncodedString, ?).
     end method.
 
     /** Attempts to decode a previously percent-encoded string.
@@ -1394,7 +1394,7 @@ class OpenEdge.Net.URI serializable:
         @param  String The string to decode
         @throws AppError If the encoding is malformed */
     method static public character Decode (input pString as String):
-        return encoder:Decode(pString:ToString(), pString:Encoding).
+        return Encoder:Decode(pString:ToString(), pString:Encoding).
     end method.
 
     /** Returns an array of query names

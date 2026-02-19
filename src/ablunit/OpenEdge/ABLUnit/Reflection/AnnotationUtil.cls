@@ -4,87 +4,84 @@ Copyright (c) 2013-2020 by Progress Software Corporation. All rights reserved.
 /*------------------------------------------------------------------------
     File        : AnnotationUtil
     Purpose     : A utility class to work with the annotation collection.
-    Syntax      : 
-    Description : 
+    Syntax      :
+    Description :
     Author(s)   : psajja
     Created     : Thu Feb 25 19:26:35 IST 2016
-    Notes       : 
+    Notes       :
   ----------------------------------------------------------------------*/
 
-BLOCK-LEVEL ON ERROR UNDO, THROW.
+block-level on error undo, throw.
 
-USING OpenEdge.ABLUnit.Reflection.AnnotationInfo FROM PROPATH.
-USING OpenEdge.Core.Collections.Array FROM PROPATH.
+using OpenEdge.ABLUnit.Reflection.AnnotationInfo from propath.
+using OpenEdge.Core.Collections.Array from propath.
 
-CLASS OpenEdge.ABLUnit.Reflection.AnnotationUtil FINAL: 
+class OpenEdge.ABLUnit.Reflection.AnnotationUtil final:
 
-	/*------------------------------------------------------------------------------
-	 Purpose:
-	 Notes:
-	------------------------------------------------------------------------------*/
-		
-	CONSTRUCTOR PRIVATE AnnotationUtil (  ):
-		SUPER ().
-		
-	END CONSTRUCTOR.
+    /*------------------------------------------------------------------------------
+     Purpose:
+     Notes:
+    ------------------------------------------------------------------------------*/
+
+    constructor private AnnotationUtil ( ):
+        super ().
+    end constructor.
 
     /*------------------------------------------------------------------------------
      Purpose: Given an Array which contains AnnotationInfo objects this method checks whether there
                 exists an annotation with 'Ignore'.
-     Notes: 
+     Notes:
     ------------------------------------------------------------------------------*/
+    method public static logical HasIgnoreAnnotation ( annotations as Array ):
+        define variable i  as             integer no-undo.
+        define variable annotation as AnnotationInfo no-undo.
 
-    METHOD PUBLIC STATIC LOGICAL HasIgnoreAnnotation( annotations AS Array ):
-        DEFINE VARIABLE i AS INTEGER NO-UNDO.
-        DEFINE VARIABLE annotation AS AnnotationInfo NO-UNDO.
-        
         if valid-object(annotations) then
-        DO i=1 TO annotations:Size ON ERROR UNDO, THROW :
-            annotation = CAST(annotations:GetValue(i), AnnotationInfo).
-            IF annotation NE ? AND annotation:AnnotationType EQ "Ignore"THEN
-                RETURN TRUE.
-        END.
-        
-        RETURN FALSE.
-    END METHOD.
+        do i=1 to annotations:Size on error undo, throw :
+            annotation = cast(annotations:GetValue(i), AnnotationInfo).
+            if annotation ne ? and annotation:AnnotationType eq "Ignore" then
+                return true.
+        end.
+
+        return false.
+    end method.
 
     /*------------------------------------------------------------------------------
-     Purpose: Given an Array which contains AnnotationInfo objects this method  
+     Purpose: Given an Array which contains AnnotationInfo objects this method
                 returns the expected exception that is configured with test.
      Notes:
     ------------------------------------------------------------------------------*/
+    method public static character GetExpectedExceptionName ( annotations as Array ):
+        define variable i  as             integer no-undo.
+        define variable annotation as AnnotationInfo no-undo.
 
-    METHOD PUBLIC STATIC CHARACTER GetExpectedExceptionName(annotations AS Array):
-        DEFINE VARIABLE i AS INTEGER NO-UNDO.
-        DEFINE VARIABLE annotation AS AnnotationInfo NO-UNDO.
-        
         if valid-object(annotations) then
-        DO i=1 TO annotations:Size ON ERROR UNDO, THROW :
-            annotation = CAST(annotations:GetValue(i), AnnotationInfo).
-            IF annotation NE ? AND annotation:AnnotationType EQ "Test" AND annotation:AttributeName EQ "expected" THEN
-                RETURN annotation:AttributeValue.
-        END.
-        
-        RETURN "".
-    END METHOD.
-    
-     /*------------------------------------------------------------------------------
-     Purpose: Given an Array which contains AnnotationInfo objects this method  
-                checks whether there exists an annotation with the given name.
-     Notes:
-    ------------------------------------------------------------------------------*/
+        do i=1 to annotations:Size on error undo, throw :
+            annotation = cast(annotations:GetValue(i), AnnotationInfo).
+            if annotation ne ? and annotation:AnnotationType eq "Test" and annotation:AttributeName eq "expected" then
+                return annotation:AttributeValue.
+        end.
 
-    METHOD PUBLIC STATIC LOGICAL HasAnnotation(annotations AS Array, annotationName AS CHARACTER):
-        DEFINE VARIABLE i AS INTEGER NO-UNDO.
-        DEFINE VARIABLE annotation AS AnnotationInfo NO-UNDO.
-        
+        return "".
+    end method.
+
+    /*------------------------------------------------------------------------------
+    Purpose: Given an Array which contains AnnotationInfo objects this method
+               checks whether there exists an annotation with the given name.
+    Notes:
+   ------------------------------------------------------------------------------*/
+    method public static logical HasAnnotation ( annotations as Array, annotationName as character ):
+        define variable i          as integer no-undo.
+        define variable annotation as AnnotationInfo no-undo.
+
         if valid-object(annotations) then
-        DO i=1 TO annotations:Size ON ERROR UNDO, THROW :
-            annotation = CAST(annotations:GetValue(i), AnnotationInfo).
-            IF annotation NE ? AND annotation:AnnotationType EQ annotationName THEN
-                RETURN TRUE.
-        END.
-        
-        RETURN FALSE.
-    END METHOD.
-END CLASS.
+        do i=1 to annotations:Size on error undo, throw :
+            annotation = cast(annotations:GetValue(i), AnnotationInfo).
+            if annotation ne ? and annotation:AnnotationType eq annotationName then
+                return true.
+        end.
+
+        return false.
+    end method.
+
+end class.

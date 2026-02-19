@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000,2011,2020 by Progress Software Corporation. All *
+* Copyright (C) 2000,2011,2020,2025 by Progress Software Corporation. All *
 * rights reserved. Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -36,7 +36,7 @@ History:
      D. McMann 02/24/03  Added BLOB support
      D. McMann 10/08/03  Added CLOB support 20031007-038
      Kberlia   10/29/20  Added argument in _pro_area_list to support default area.
-     
+     fernando  08/13/25  Fixing .p call
 ----------------------------------------------------------------------------*/
 
 
@@ -362,7 +362,7 @@ do:
                  if AreaList = "" then
                  do:
                      cmbArea:delimiter  = chr(1).
-                     run prodict/pro/_pro_area_list(s_TblRecId,{&INVALID_AREAS},cmbArea:delimiter,"Lob", output  AreaList).
+                     run prodict/pro/_pro_area_list.p(s_TblRecId,{&INVALID_AREAS},cmbArea:delimiter,"Lob", output  AreaList).
                      cmbArea:list-items = AreaList.
                      cmbArea:inner-lines = min(cmbArea:num-items ,10).
                      cmbArea:screen-value = cmbArea:entry(1).

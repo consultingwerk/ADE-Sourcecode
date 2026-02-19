@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015, 2022 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2015,2022,2024 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : StatusCodeWriterBuilder
@@ -46,20 +46,20 @@ class OpenEdge.Net.HTTP.Filter.Writer.StatusCodeWriterBuilder:
     method static private void InitializeRegistry(input poRegistry as BuilderRegistry):
         /* redirects */
         // 301 - permanent redirect -- clients should use the newly-given URL for future requests.
-        poRegistry:Put(string(integer(StatusCodeEnum:MovedPermanently)),
+        poRegistry:Put(string(StatusCodeEnum:MovedPermanently:GetValue()),
                        get-class(RedirectStatusFilter)).
 
         // 302 - temporary redirect -- clients should check back at the original URL in future requests.
-        poRegistry:Put(string(integer(StatusCodeEnum:Found)),
+        poRegistry:Put(string(StatusCodeEnum:Found:GetValue()),
                        get-class(RedirectStatusFilter)).
 
         // 303 - redirect a POST request to a GET resource (as a standard page request)
-        poRegistry:Put(string(integer(StatusCodeEnum:SeeOther)),
+        poRegistry:Put(string(StatusCodeEnum:SeeOther:GetValue()),
                        get-class(RedirectStatusFilter)).
 
         /* authorization */
         // 401
-        poRegistry:Put(string(integer(StatusCodeEnum:Unauthorized)),
+        poRegistry:Put(string(StatusCodeEnum:Unauthorized:GetValue()),
                        get-class(AuthorizationStatusFilter)).
     end method.
 

@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2019-2022 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2019-2022,2025 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : JsonConfigLoggerBuilder
@@ -32,7 +32,7 @@ using Progress.Lang.AppError.
 using OpenEdge.Logging.JsonConfigLoggerBuilder.
 
 class OpenEdge.Logging.JsonConfigLoggerBuilder inherits LoggerBuilder:
-    
+
     // variables to hold the JSON property names
     define static private variable PROP_DEFAULT_LOGGER  as character initial 'DEFAULT_LOGGER':u no-undo.
     define static private variable PROP_LOGGER          as character initial 'logger':u         no-undo.
@@ -43,9 +43,9 @@ class OpenEdge.Logging.JsonConfigLoggerBuilder inherits LoggerBuilder:
     define static private variable PROP_TYPE            as character initial 'type':u           no-undo.
     define static private variable PROP_HASH            as character initial 'hash':u           no-undo.
     define static private variable PROP_BUILDER         as character initial 'builder':u        no-undo.
-    
+
     /** Registry for mapping builder types to their implementations
-        
+
         This is the registry of LogFilterBuilders and not the registry of
         log writers. */
     {&_proparse_ prolint-nowarn(varusage)}
@@ -53,69 +53,69 @@ class OpenEdge.Logging.JsonConfigLoggerBuilder inherits LoggerBuilder:
         get():
             if not valid-object(JsonConfigLoggerBuilder:FilterBuilders) then
                 assign JsonConfigLoggerBuilder:FilterBuilders = new BuilderRegistry(get-class(LogFilterBuilder)).
-            
+
             return JsonConfigLoggerBuilder:FilterBuilders.
         end get.
         private set.
-    
+
     // Registry for holding this factory's logger filters
     {&_proparse_ prolint-nowarn(varusage)}
     define static private property Filters as BuilderRegistry no-undo
         get():
             if not valid-object(JsonConfigLoggerBuilder:Filters) then
                 assign JsonConfigLoggerBuilder:Filters = new BuilderRegistry(get-class(ILoggerFilter)).
-            
+
             return JsonConfigLoggerBuilder:Filters.
         end get.
         private set.
-    
+
     define static private temp-table LoggerConfig no-undo
         field LoggerName     as character
         field LogLevel       as character
-        
+
         index idx1 as primary unique LoggerName
         .
-    
+
     define static private temp-table LogFilter no-undo
         field LoggerName        as character
         field FilterName        as character
         field Order             as integer
         field FilterOptions     as Progress.Lang.Object     // JsonObject
-        
+
         index idx1 as primary unique LoggerName Order
         .
-    
+
     /* Constructor
-       
+
        @param character The logger type being built */
     constructor public JsonConfigLoggerBuilder (input pcLoggerType as character):
         super(pcLoggerType).
     end constructor.
-    
+
     /* Clears all the current logger configurations */
     method static public void ClearConfig():
         define buffer lbConfig for LoggerConfig.
         define buffer lbFilter for LogFilter.
-        
+
         for each lbConfig:
             // try individual name and groups
             // we don't care about the return values, since the config may have been
             // updated before any loggers were created from the config
             LoggerBuilder:RemoveFromCache(lbConfig.LoggerName).
             LoggerBuilder:RemoveGroupFromCache(lbConfig.LoggerName).
-            
+
             delete lbConfig.
         end.
         empty temp-table lbFilter.
-        
+
         JsonConfigLoggerBuilder:FilterBuilders:Clear().
         JsonConfigLoggerBuilder:Filters:Clear().
     end method.
-    
+
     /* Loads logging configuration from JSON. Is an ADDITIVE operation - existing
        config is not cleared. To remove existing config, call the ClearConfig()
        static method.
-       
+
        @param JsonObject JSON representation of the lgging configuration */
     method static public void LoadConfig(input pConfig as JsonObject):
         define variable iLoop as integer no-undo.
@@ -129,16 +129,16 @@ class OpenEdge.Logging.JsonConfigLoggerBuilder inherits LoggerBuilder:
         define variable oData as JsonObject no-undo.
         define variable oFilters as JsonArray no-undo.
         define variable resolvedType as class Progress.Lang.Class no-undo.
-        
+
         define buffer lbLogger for LoggerConfig.
         define buffer lbFilter for LogFilter.
-        
+
         if not valid-object(pConfig) then
             return.
-        
+
         if JsonPropertyHelper:HasTypedProperty(pConfig, PROP_DEFAULT_LOGGER, JsonDataType:STRING) then
             assign JsonConfigLoggerBuilder:DefaultLogger = pConfig:GetCharacter(JsonConfigLoggerBuilder:PROP_DEFAULT_LOGGER).
-        
+
         if JsonPropertyHelper:HasTypedProperty(pConfig, PROP_LOGGER, JsonDataType:OBJECT) then
         do:
             assign oConfig = pConfig:GetJsonObject(PROP_LOGGER)
@@ -153,21 +153,21 @@ class OpenEdge.Logging.JsonConfigLoggerBuilder inherits LoggerBuilder:
                 // first in wins
                 if can-find(lbLogger where lbLogger.LoggerName eq propertyName) then
                     next PROP-LOOP.
-                
+
                 if not oConfig:GetType(propertyName) eq JsonDataType:OBJECT then
                     next PROP-LOOP.
-                
+
                 // if there's a cached instance with this logger name, remove it, since its configuration
                 // may differ from this one
                 LoggerBuilder:RemoveFromCache(propertyName).
-                
+
                 create lbLogger.
                 assign oData               = oConfig:GetJsonObject(propertyName)
                        lbLogger.LoggerName = propertyName
                        .
                 if JsonPropertyHelper:HasTypedProperty(oData, PROP_LEVEL, JsonDataType:STRING) then
                     assign lbLogger.LogLevel = oData:GetCharacter(PROP_LEVEL).
-                
+
                 if JsonPropertyHelper:HasTypedProperty(oData, PROP_FILTER_LIST, JsonDataType:ARRAY) then
                 do:
                     assign oFilters  = oData:GetJsonArray(PROP_FILTER_LIST)
@@ -196,7 +196,7 @@ class OpenEdge.Logging.JsonConfigLoggerBuilder inherits LoggerBuilder:
                 end.
             end.
         end.
-        
+
         // Register FORMAT filters
         if JsonPropertyHelper:HasTypedProperty(pConfig, PROP_FILTER_GROUP, JsonDataType:OBJECT) then
         do:
@@ -213,7 +213,7 @@ class OpenEdge.Logging.JsonConfigLoggerBuilder inherits LoggerBuilder:
                        .
                 if valid-object(resolvedType) then
                     JsonConfigLoggerBuilder:Filters:Put(propertyName, resolvedType).
-                
+
                 // is there a builder for the filter?
                 if oConfig:GetType(propertyName) eq JsonDataType:OBJECT then
                 do:
@@ -230,53 +230,53 @@ class OpenEdge.Logging.JsonConfigLoggerBuilder inherits LoggerBuilder:
                                      LogLevelEnum:ERROR).
         end catch.
     end method.
-    
+
     /* Constructs the actual logger instance
-       
+
        @return ILogWriter A new or cached logged */
     method override protected ILogWriter GetLoggerInstance():
         define variable filter as ILoggerFilter no-undo.
         define variable logLevel as LogLevelEnum no-undo.
         define variable filterBuilder as LogFilterBuilder no-undo.
-        
+
         define buffer lbLogger for LoggerConfig.
         define buffer lbFilter for LogFilter.
-        
+
         if FindLogger(this-object:LoggerType, buffer lbLogger) then
         do:
             // use the cached version of the logger if there is one for this config
             if LoggerBuilder:IsCached(this-object:LoggerType) then
                 return LoggerBuilder:GetCachedInstance(this-object:LoggerType).
-            
+
             // Set the level
             if HasOption(PROP_LEVEL) then
                 assign logLevel = cast(GetOptionObjectValue(PROP_LEVEL), LogLevelEnum).
-            
+
             if not valid-object(logLevel) then
                 assign logLevel = FindLevel(lbLogger.LoggerName).
-            
+
             if valid-object(logLevel) then
                 LogAt(logLevel).
-            
+
             // build the filters
             for each lbFilter where
                      lbFilter.LoggerName eq lbLogger.LoggerName
                      by lbFilter.Order:
-                
+
                 if JsonConfigLoggerBuilder:FilterBuilders:Has(lbFilter.FilterName) then
                     assign filterBuilder = LogFilterBuilder:Build(lbFilter.FilterName, JsonConfigLoggerBuilder:FilterBuilders).
                 else
                     assign filterBuilder = LogFilterBuilder:Build(lbFilter.FilterName).
-                
+
                 if JsonConfigLoggerBuilder:Filters:Has(lbFilter.FilterName) then
                     filterBuilder:FromRegistry(JsonConfigLoggerBuilder:Filters).
-                
+
                 // add JSON options to the filter builder
                 filterBuilder:Options(cast(lbFilter.FilterOptions, JsonObject)).
-                
+
                 // now build the filter and add to the config
                 assign filter = filterBuilder:Filter.
-                
+
                 if valid-object(filter) then
                     AddFilter(filter).
                 else
@@ -286,27 +286,27 @@ class OpenEdge.Logging.JsonConfigLoggerBuilder inherits LoggerBuilder:
                                LogLevelEnum:WARN).
             end.
         end.
-        
+
         // Let the config-driven builder build the logger: if we don't have config for it,
         // try the default (which is typically log-manager-based)
         return super:GetLoggerInstance().
     end method.
-    
+
     /* Finds the log level for a logger to use, based on the logger type
-       
+
        Algorithm is
        1) exact match
        2) chop off the trailing .-delimited entry, repeating
        3) find the logger defined as DEFAULT_LOGGER, folling steps 1 & 2
-       
+
        @param  character The logger type to find
        @return LogLevelEnum returns a log level , if any */
     method private LogLevelEnum FindLevel(input pcLoggerType as character):
         define variable logLevel as LogLevelEnum no-undo.
         define variable dotPos as integer no-undo.
-        
+
         define buffer lbLogger for LoggerConfig.
-        
+
         if can-find(lbLogger where lbLogger.LoggerName eq pcLoggerType) then
             /* Intentional lack of no-error on find. */
             {&_proparse_ prolint-nowarn(findnoerror)}
@@ -316,7 +316,7 @@ class OpenEdge.Logging.JsonConfigLoggerBuilder inherits LoggerBuilder:
                    no-error.
         if valid-object(logLevel) then
             return logLevel.
-        
+
         assign dotPos = r-index(pcLoggerType, '.':u).
         // if there's only one entry then we've checked already
         do while not valid-object(logLevel) and dotPos gt 0:
@@ -330,23 +330,23 @@ class OpenEdge.Logging.JsonConfigLoggerBuilder inherits LoggerBuilder:
                 assign logLevel = LogLevelEnum:GetEnum(lbLogger.LogLevel)
                        no-error.
         end.
-        
+
         if not valid-object(logLevel)
            // don't loop forever
            and JsonConfigLoggerBuilder:DefaultLogger ne pcLoggerType
         then
             assign logLevel = FindLevel(JsonConfigLoggerBuilder:DefaultLogger).
-        
+
         if not valid-object(logLevel) then
             assign logLevel = LogLevelEnum:DEFAULT.
-        
+
         return logLevel.
         finally:
             // for cases where the LogLevelEnum:GetEnum() fails
             assign error-status:error = no.
         end finally.
     end method.
-    
+
     /* Returns a type name from a property we expect to have a type. Basically resolving the
        typeName / typeProperty values into an P.L.C
           "definitions": {
@@ -373,7 +373,7 @@ class OpenEdge.Logging.JsonConfigLoggerBuilder inherits LoggerBuilder:
               ]
             }
           },
-      
+
       @param JsonObject The JSON containign the type property
       @param character  The name of the propert
       @return P.L.Class A resolve ABL type name. May be unknown */
@@ -381,19 +381,19 @@ class OpenEdge.Logging.JsonConfigLoggerBuilder inherits LoggerBuilder:
                                                                input pcPropName as character):
         define variable typeName as character no-undo.
         define variable typeData as JsonObject no-undo.
-        
+
         if    pcPropName eq '':u
            or pcPropName eq ?
            or not valid-object(poParent)
         then
             return ?.
-        
+
         if poParent:Has(pcPropName) then
         do:
             case poParent:GetType(pcPropName):
                 when JsonDataType:STRING then
                     assign typeName = poParent:GetCharacter(pcPropName).
-                
+
                 when JsonDataType:OBJECT then
                 do:
                     assign typeData = poParent:GetJsonObject(pcPropName)
@@ -405,22 +405,22 @@ class OpenEdge.Logging.JsonConfigLoggerBuilder inherits LoggerBuilder:
                 otherwise
                     assign typeName = ?.
             end case.
-            
+
             if typeName ne ? then
                 return Progress.Lang.Class:GetClass(typeName).
         end.
-        
+
         return ?.
     end method.
-    
+
     /* Find a temp-table record/config for a logger to use
-       
+
        Algorithm is
        1) exact match
        2) chop off the trailing .-delimited entry, repeating
        3) find the logger defined as DEFAULT_LOGGER, following steps 1 & 2
        4) return a void logger (just to have a reference)
-       
+
        @param  character The logger type to find
        @param  buffer A buffer reference to the logger temp-table
        @return logical TRUE if a logger record was found. If TRUE, the
@@ -429,23 +429,23 @@ class OpenEdge.Logging.JsonConfigLoggerBuilder inherits LoggerBuilder:
                                       buffer pbLogger for LoggerConfig):
         define variable dotPos as integer no-undo.
         define variable isDefault as logical no-undo.
-        
+
         // so we don't end up with a previously-found buffer
         release pbLogger.
-        
+
         // if there's no logger name, return
         if    pcLoggerType eq ?
            or pcLoggerType eq '':u
         then
             return false.
-        
+
         if can-find(pbLogger where pbLogger.LoggerName eq pcLoggerType) then
             /* Intentional lack of no-error on find. */
             {&_proparse_ prolint-nowarn(findnoerror)}
             find pbLogger where pbLogger.LoggerName eq pcLoggerType.
         if available pbLogger then
             return true.
-        
+
         // if there's only one entry then we've checked already
         assign dotPos    = r-index(pcLoggerType, '.':u)
                // check for the default against the input value now, since we chop it up in a sec
@@ -461,16 +461,17 @@ class OpenEdge.Logging.JsonConfigLoggerBuilder inherits LoggerBuilder:
             if available pbLogger then
                 return true.
         end.
-        
+
         // don't recurse
         if not isDefault then
             return FindLogger(JsonConfigLoggerBuilder:DefaultLogger, buffer pbLogger).
-    
+
         return false.
     end method.
-    
-    /* Ensures that a Filter type is the one we were expecting.
-        
+
+    /* Ensures that a Filter type is the one we were expecting. This requires that the
+       filter be configured with a "hash" property containing a valid (non-empty) hash.
+
        @param character (mandatory) The ABL Filter name used to process the event
        @param character (optional) A hash used to verify the Filter's authenticity
        @throws AppError If a hash is passed and the Filter type's hash does not match */
@@ -478,12 +479,19 @@ class OpenEdge.Logging.JsonConfigLoggerBuilder inherits LoggerBuilder:
                                               input pcFilterHash as character ):
         if pcFilterHash eq '':u or pcFilterHash eq ? then
             return.
-        
+
         Assert:NotNullOrEmpty(pcFilterType, 'Filter type').
-        
+
+        /**
+         * Note that this previously used rcode-info:md5-value which was a 32 character hexadecimal number, but
+         * only present if the GENERATE-MD5 option was used on the COMPILE statement. Otherwise, this attribute
+         * returns the Unknown value (?). Or at least it used to, as the property has since been deprecated and
+         * now always returns the Unknown value (?). It has since been replaced with the signature-value
+         * property, which is a Base64-encoded value.
+         */
         assign rcode-info:file-name = replace(pcFilterType, '.':u, '/':u).
-        if rcode-info:md5-value ne pcFilterHash then
+        if rcode-info:signature-value ne pcFilterHash then
             return error new AppError(substitute('Filter error: invalid Filter &1', pcFilterType), 0).
     end method.
-    
+
 end class.

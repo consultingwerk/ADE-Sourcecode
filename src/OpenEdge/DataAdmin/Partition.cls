@@ -1,393 +1,387 @@
 /*************************************************************/
-/* Copyright (c) 2010-2012,2024-2025 by Progress Software Corporation  */
+/* Copyright (c) 2010-2012,2024 by Progress Software Corporation */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
 /* permission in writing from Progress Software Corporation. */
-/*************************************************************/ 
+/*************************************************************/
  /*------------------------------------------------------------------------
     File        : Partition
-    Purpose     : 
-    Syntax      : 
-    Description : 
+    Purpose     :
+    Syntax      :
+    Description :
     Author(s)   : hdaniels
     Created     : Tue Jun 22 23:30:48 EDT 2010
-    Notes       : 
+    Notes       :
   ----------------------------------------------------------------------*/
 routine-level on error undo, throw.
+
 using Progress.Lang.* from propath.
 using Progress.Json.ObjectModel.JsonObject from propath.
 using OpenEdge.DataAdmin.* from propath.
-
 using OpenEdge.DataAdmin.Binding.* from propath.
 using OpenEdge.DataAdmin.Binding.Query.* from propath.
- 
-using OpenEdge.DataAdmin.Error.* from propath. 
+using OpenEdge.DataAdmin.Error.* from propath.
 
-class OpenEdge.DataAdmin.Partition implements IPartition,IDataAdminElement,IDataAdminSerializable use-widget-pool:  
-    
+class OpenEdge.DataAdmin.Partition implements IPartition,IDataAdminElement,IDataAdminSerializable use-widget-pool:
+
     define private variable mDataset as handle no-undo.
     define private variable mDefaultBuffer as handle no-undo.
-    define private variable mBuffer as handle no-undo. 
+    define private variable mBuffer as handle no-undo.
     define private variable mchild as logical no-undo.
-	
-	define public property Error     as Error no-undo           get.           
-    
-    define public property IsMultiTenant  as logical no-undo    
+
+	define public property Error     as error no-undo           get.
+
+    define public property IsMultiTenant  as logical no-undo
         get():
             if valid-handle(mBuffer) then
-               return  (mBuffer::TenantName <> "" and mBuffer::TenantName <> ?) 
-                        or 
-                       (mBuffer::TenantGroupName <> "" and mBuffer::TenantGroupName <> ?). 
-                      
+               return  (mBuffer::TenantName <> "" and mBuffer::TenantName <> ?)
+                        or
+                       (mBuffer::TenantGroupName <> "" and mBuffer::TenantGroupName <> ?).
+
             return true. /* non case.. partitions should always have mbuffer. */
-        end.           
-    
-    define public property IsPartitioned  as logical no-undo    
+        end.
+
+    define public property IsPartitioned  as logical no-undo
         get():
             if valid-handle(mBuffer) then
-               return  (mBuffer::PartitionPolicyDetailName <> "" 
+               return  (mBuffer::PartitionPolicyDetailName <> ""
                         and mBuffer::PartitionPolicyDetailName <> ?).
             return true. /* non case.. partitions should always have mbuffer. */
-        end.        
-    
+        end.
+
     /** defines the context (or scope?) for the instance.
-        Used in Equals() to check entities with the same keys not 
+        Used in Equals() to check entities with the same keys not
         are equals if different context */
-       
-    define protected property Context   as IDataAdminModel no-undo 
-        get. 
-        private set(cntxt as IDataAdminModel ):     
+
+    define protected property Context   as IDataAdminModel no-undo
+        get.
+        private set(cntxt as IDataAdminModel ):
             mDefaultBuffer = cntxt:TableHandle:default-buffer-handle.
             if not valid-handle(mBuffer) then
-            do:                
+            do:
                 if mDefaultBuffer:avail then
-                do:       
+                do:
                     create buffer mBuffer for table mDefaultBuffer.
                     mBuffer:serialize-name = mDefaultBuffer:serialize-name.
                     mBuffer:find-by-rowid(mDefaultBuffer:rowid).
                 end.
-                else 
+                else
                     undo, throw new IllegalArgumentError("Context set with no corresponding row").
             end.
-            if valid-object(Context) then 
+            if valid-object(Context) then
               Context:AddedToContext:Unsubscribe(NewContext).
-           Context = cntxt.  
-           Context:AddedToContext:Subscribe(NewContext).       
+           Context = cntxt.
+           Context:AddedToContext:Subscribe(NewContext).
         end.
-        
-    define public property ContextId as char no-undo           
+
+    define public property ContextId as char no-undo
         get():
-            if valid-object(Context) then 
+            if valid-object(Context) then
             do:
                 return Context:Id.
             end.
-            return "".    
-        end.    
-    
-    define public property Attached as logical no-undo 
+            return "".
+        end.
+
+    define public property Attached as logical no-undo
         get():
-            return valid-object(Context) and Context:RootId = ?. 
-        end.      
-        
-    /** Tells whether the instance is newly created (not saved to service). 
+            return valid-object(Context) and Context:RootId = ?.
+        end.
+
+    /** Tells whether the instance is newly created (not saved to service).
         Always true if Attached is false. Modified is always false when Created is true  */
-    define public property Created as logical no-undo           
+    define public property Created as logical no-undo
         get().
             if valid-handle(mbuffer) then
                  return mBuffer:row-state = row-created.
             return true.
         end.
-        
-    /** Tells whether an instance is modified after it was read from the service. 
+
+    /** Tells whether an instance is modified after it was read from the service.
         Always false if Created. Can only be true for an Attached object.
          */
-    define public property Modified as logical no-undo            
+    define public property Modified as logical no-undo
         get().
             if valid-handle(mbuffer) then
                  return mBuffer:row-state = row-modified.
             return false.
         end.
-        
-    define public property CodeExtension as char no-undo init "download" get. set.  
-             
-    define public property Service as IDataAdminService no-undo 
+
+    define public property CodeExtension as char no-undo init "download" get. set.
+
+    define public property Service as IDataAdminService no-undo
         get():
             if valid-object(Context) then
                 /* can be unknown */
-                return this-object:Context:Service. 
-            return ?. 
-        end. 
-  
-    define public property SerializeName as char no-undo 
+                return this-object:Context:Service.
+            return ?.
+        end.
+
+    define public property SerializeName as char no-undo
         get():
-            if valid-handle(mDefaultBuffer) then 
+            if valid-handle(mDefaultBuffer) then
                 return mDefaultBuffer:serialize-name.
-            return "".       
-        end.        
-	
-	define public property ObjectType as character no-undo 
+            return "".
+        end.
+
+	define public property ObjectType as character no-undo
     	get():
              return mBuffer::ObjectType.
         end.
-    
-    define public property Area as  IArea no-undo 
+
+    define public property Area as  IArea no-undo
         get():
-             define variable lTrack as logical no-undo. 
-             if valid-handle(mBuffer) and mBuffer::AreaName > "" 
+             define variable lTrack as logical no-undo.
+             if valid-handle(mBuffer) and mBuffer::AreaName > ""
              and valid-object(Service) then
              do:
-                 return Service:GetArea(mBuffer::AreaName).   
+                 return Service:GetArea(mBuffer::AreaName).
              end.
              return Area.
         end.
         set(parea as IArea).
-            if IsMultiTenant = false and isPartitioned = false then    
-                undo, throw new ReadOnlyPropertyError(GetName(),"","Area","The " + ObjectType +  " is not multi-tenant enabled or partitioned").         
+            if IsMultiTenant = false and isPartitioned = false then
+                undo, throw new ReadOnlyPropertyError(GetName(),"","Area","The " + ObjectType +  " is not multi-tenant enabled or partitioned").
             if not valid-object(parea) then
             do:
                undo, throw new UnknownValueError("Partition Area").
 /*                   undo, throw new InvalidPropertyValueError("Partition","","Area","unknown").*/
-            end.    
-            
+            end.
+
             if valid-handle(mBuffer) then
             do:
-               
-                mDefaultBuffer:find-by-rowid(mBuffer:rowid).  
+
+                mDefaultBuffer:find-by-rowid(mBuffer:rowid).
                 mdefaultbuffer::AreaName = parea:Name.
             end.
             Area = parea.
         end.
-    
-    define public property AllocationState as char no-undo         
+
+    define public property AllocationState as char no-undo
         get():
             if valid-handle(mBuffer) then
                 return mBuffer::AllocationState.
             else
-                return AllocationState. 
+                return AllocationState.
         end.
         set(pAllocationState as char):
-            
+
             if ObjectType <> "Table" then
                 undo, throw new ReadOnlyPropertyError(lc(ObjectType) + " " + lc(Context:name),"","AllocationState","Allocation state can only be changed in table partitions").
-            
-            if IsMultiTenant = false and isPartitioned = false then    
-                undo, throw new ReadOnlyPropertyError(GetName(),"","AllocationState","The " + ObjectType +  " is not multi-tenant enabled or partitioned").         
-            
+
+            if IsMultiTenant = false and isPartitioned = false then
+                undo, throw new ReadOnlyPropertyError(GetName(),"","AllocationState","The " + ObjectType +  " is not multi-tenant enabled or partitioned").
+
             SetProperty("AllocationState",pAllocationState).
 
-            /*  
-            if not Created and AllocationState = "Allocated" then 
+            /*
+            if not Created and AllocationState = "Allocated" then
                 undo, throw new ReadOnlyPropertyError(GetName(),"","AllocationState","The partition is already allocated").
-            
             */
-        end.    
-    
-    define public property BufferPool as char no-undo         
+        end.
+
+    define public property BufferPool as char no-undo
         get():
             if valid-handle(mBuffer) then
                 return mBuffer::BufferPool.
             else
-                return BufferPool. 
+                return BufferPool.
         end.
         set(pBufferPool as char):
             if lookup(pBufferPool,"Alternate,Primary") = 0 then
-                 undo, throw new InvalidPropertyValueError ("Partition", "","BufferPool", pBufferPool, "Alternate,Primary").                      
+                 undo, throw new InvalidPropertyValueError ("Partition", "","BufferPool", pBufferPool, "Alternate,Primary").
             if valid-handle(mBuffer) then
             do:
-                mDefaultBuffer:find-by-rowid(mBuffer:rowid).  
+                mDefaultBuffer:find-by-rowid(mBuffer:rowid).
                 mdefaultbuffer::BufferPool = pBufferPool.
-            end.          
+            end.
             BufferPool = pBufferPool.
-        end.    
+        end.
 
-    define public property CanAssignAlternateBufferPool as logical no-undo         
+    define public property CanAssignAlternateBufferPool as logical no-undo
         get():
             if valid-handle(mBuffer) then
                 return mBuffer::CanAssignAlternateBufferPool.
             else
-                return CanAssignAlternateBufferPool. 
+                return CanAssignAlternateBufferPool.
         end.
-     
-	define public property Element as ISchemaElement no-undo 
+
+	define public property Element as ISchemaElement no-undo
         get():
             define variable tbl as ITable no-undo.
             define variable fld as IField no-undo.
             define variable idx as IIndex no-undo.
             if valid-handle(mBuffer)and valid-object(Service) then
             do:
-               tbl = service:GetTable(mBuffer::Tablename). 
+               tbl = service:GetTable(mBuffer::Tablename).
                case ObjectType:
                    when "Table" then
-                      if valid-object(tbl) then 
+                      if valid-object(tbl) then
                          return cast(tbl,ISchemaElement).
-                   when "Field" then 
+                   when "Field" then
                    do:
                       fld = tbl:LOBFields:Find(mBuffer::FieldName).
-                      if valid-object(fld) then 
-                          return cast(fld,ISchemaElement). 
+                      if valid-object(fld) then
+                          return cast(fld,ISchemaElement).
                    end.
-                   when "Index" then 
-                   do: 
+                   when "Index" then
+                   do:
                       idx = tbl:Indexes:Find(mBuffer::IndexName).
-                      if valid-object(idx) then 
-                          return cast(idx,ISchemaElement). 
-                   end. 
+                      if valid-object(idx) then
+                          return cast(idx,ISchemaElement).
+                   end.
                end.
             end.
             return ?.
         end.
-        
-    define public property TenantGroup as ITenantGroup no-undo 
+
+    define public property TenantGroup as ITenantGroup no-undo
         get():
             define variable lTrack as logical no-undo.
-            if not valid-object(TenantGroup) 
-            and valid-handle(mBuffer) and mBuffer::TenantGroupName > "" 
+            if not valid-object(TenantGroup)
+            and valid-handle(mBuffer) and mBuffer::TenantGroupName > ""
             and valid-object(Service) then
             do:
-                return Service:GetTenantGroup(mBuffer::TenantGroupName).    
+                return Service:GetTenantGroup(mBuffer::TenantGroupName).
             end.
             return TenantGroup.
         end.
         private set(pTenantGroup as ITenantGroup).
             if valid-handle(mBuffer) then
             do:
-                mDefaultBuffer:find-by-rowid(mBuffer:rowid).  
+                mDefaultBuffer:find-by-rowid(mBuffer:rowid).
                 mdefaultbuffer::TenantGroupName = pTenantGroup:Name.
             end.
             TenantGroup = pTenantGroup.
         end.
-    
-	define public property Tenant as ITenant no-undo 
+
+	define public property Tenant as ITenant no-undo
         get():
-            define variable lTrack as logical no-undo. 
-            if not valid-object(Tenant) 
-            and valid-handle(mBuffer) and mBuffer::TenantName > "" 
+            define variable lTrack as logical no-undo.
+            if not valid-object(Tenant)
+            and valid-handle(mBuffer) and mBuffer::TenantName > ""
             and valid-object(Service) then
             do:
-                return Service:GetTenant(mBuffer::TenantName).    
+                return Service:GetTenant(mBuffer::TenantName).
             end.
             return Tenant.
         end.
         private set(pTenant as ITenant).
             if valid-handle(mBuffer) then
             do:
-                mDefaultBuffer:find-by-rowid(mBuffer:rowid).  
+                mDefaultBuffer:find-by-rowid(mBuffer:rowid).
                 mdefaultbuffer::TenantName = pTenant:Name.
             end.
             Tenant = pTenant.
         end.
-    
+
     define public property RequestInfo as IRequestInfo no-undo get. protected set.
-     
+
     constructor public Partition (cntxt as IDataAdminModel,preq as IRequestInfo):
-        super ().     
+        super ().
         Context = cntxt.
         RequestInfo = preq.
     end constructor.
-      
-    method public logical CanAttach(cntxt as IDataAdminContext):   
+
+    method public logical CanAttach(cntxt as IDataAdminContext):
         if valid-object(cntxt) then
-        do: 
+        do:
             /* no context - assume transition ok - collection:Add will deal with type checking */
             if ContextId = "" then
                 return true.
-                
-            return cntxt:CanCopy(Context).     
-        
+
+            return cntxt:CanCopy(Context).
+
         end.
         return false.
-    end method.  
-      
-    method public void Attach(cntxt as IDataAdminContext):   
+    end method.
+
+    method public void Attach(cntxt as IDataAdminContext):
         define variable oldcntxt as IDataAdminModel no-undo.
         define variable newcntxt as IDataAdminModel no-undo.
         define variable lLocal as logical no-undo.
 
         if not valid-object(cntxt) then
-            undo, throw new UnknownValueError("Attach","context").  
-        
+            undo, throw new UnknownValueError("Attach","context").
+
         if type-of(cntxt,IFilteredContext) then
-            newcntxt = cast(cntxt,IFilteredContext):Model. 
+            newcntxt = cast(cntxt,IFilteredContext):Model.
         else if type-of(cntxt,IDataAdminModel) then
             newcntxt = cast(cntxt,IDataAdminModel).
-        else      
-            undo, throw new IllegalArgumentError("Context passed to attach must be model or filter.").  
-        
-      
+        else
+            undo, throw new IllegalArgumentError("Context passed to attach must be model or filter.").
+
+
         if ContextId = "" then
-        do: 
+        do:
             mChild = true.
             cntxt:CreateRow(this-object).
-            Context = newcntxt.          
+            Context = newcntxt.
         end.
         else do:
             oldcntxt = Context.
             llocal = mbuffer:rowid = oldcntxt:Rootid.
             /* only once - after this we are managed by collection or added to service
-               the mchild deals with only copying this into a context once 
+               the mchild deals with only copying this into a context once
                From the first copy the data is managed by its collection or service.
-               
              */
-            if not mChild then 
-                cntxt:Copy(Context).    
-            else 
-                Context = newcntxt.          
-            
-            mChild = true.           
+            if not mChild then
+                cntxt:Copy(Context).
+            else
+                Context = newcntxt.
+
+            mChild = true.
         end.
-  
-        /* this is not handled in newcontext since root id always goes through here */    
+
+        /* this is not handled in newcontext since root id always goes through here */
         if valid-object(oldcntxt) and llocal then
             delete object oldcntxt.
-       
-    end method.  
-    
-    
-    
+
+    end method.
+
+
+
     /* the context we attached to changed */
     method protected void NewContext(cntxt as IDataAdminModel):
-        define variable hNewDefaultBuffer as handle no-undo. 
-        define variable hNewBuffer as handle no-undo. 
+        define variable hNewDefaultBuffer as handle no-undo.
+        define variable hNewBuffer as handle no-undo.
         hNewDefaultbuffer = cntxt:TableHandle:default-buffer-handle.
         create buffer hNewBuffer for table hNewDefaultbuffer.
         hNewBuffer:serialize-name = hNewDefaultbuffer:serialize-name.
         hNewBuffer:find-unique ("where " + Context:GetKeyWhere(GetKeyValues())).
         delete object mbuffer no-error.
-        mBuffer = hNewBuffer.      
+        mBuffer = hNewBuffer.
         Context = cntxt.
     end method.
-    
+
     /*
     method private character GetKeyWhere(phHandle as handle):
         define variable cKeyFields as character  no-undo.
         define variable iField     as integer    no-undo.
         define variable cField     as character  no-undo.
         define variable cKeyWhere  as character  no-undo.
-    
         if valid-handle(phHandle) then
         do iField = 1 to num-entries(Context:KeyFields):
            assign
               cField     = entry(iField,Context:KeyFields)
               cField     = entry(num-entries(cField,'.'),cField,'.')
-              cKeyWhere  = cKeyWhere 
+              cKeyWhere  = cKeyWhere
                          + (if iField > 1 then ' and ' else '')
                          + phHandle:name
-                         + '.' 
+                         + '.'
                          + cField
-                         + ' = ' 
+                         + ' = '
                          + quoter(phHandle:buffer-field(cField):buffer-value,"'":U).
         end.
-  
-        return cKeyWhere. 
-
-    end method.     
+        return cKeyWhere.
+    end method.
     */
     method public logical Allocate():
-       
-        if IsMultiTenant = false and IsPartitioned = false then    
-            undo, throw new IllegalOperationError("Allocate non multi-tenant partition.").         
-       
+
+        if IsMultiTenant = false and IsPartitioned = false then
+            undo, throw new IllegalOperationError("Allocate non multi-tenant partition.").
+
         if ObjectType = "Table" then
         do:
             if AllocationState <> "Allocated" then
@@ -395,41 +389,41 @@ class OpenEdge.DataAdmin.Partition implements IPartition,IDataAdminElement,IData
                 AllocationState = "Allocated".
                 return true.
             end.
-            return false.    
+            return false.
         end.
-        else 
-            undo, throw new UnsupportedOperationError("Allocate can only be performed in table partitions."). 
-    end method. 
-    
+        else
+            undo, throw new UnsupportedOperationError("Allocate can only be performed in table partitions.").
+    end method.
+
     /*
     method public logical Deallocate():
         if ObjectType = "Table" then
         do:
-            if type-of(Context,PartitionContext) then 
+            if type-of(Context,PartitionContext) then
             do:
                 if valid-object(Tenant) then
                 do:
-                    return cast(Context,PartitionContext):DeallocateTenantTablePartition(Tenant:Name,Element:Name). 
+                    return cast(Context,PartitionContext):DeallocateTenantTablePartition(Tenant:Name,Element:Name).
                 end.
                 else if valid-object(TenantGroup) then
-                    return cast(Context,PartitionContext):DeallocateGroupPartition(TenantGroup:Name). 
+                    return cast(Context,PartitionContext):DeallocateGroupPartition(TenantGroup:Name).
             end.
             else if type-of(Context,TenantPartitionQuery) then
             do:
                 return cast(Context,TenantPartitionQuery):DeallocateTable(Element:Name).
-            end.    
+            end.
             else if type-of(Context,TenantGroupPartitionQuery) then
-               return cast(Context,TenantGroupPartitionQuery):Deallocate().  
+               return cast(Context,TenantGroupPartitionQuery):Deallocate().
         end.
         else if AllocationState = "Allocated" then
         do:
             AllocationState = "None".
             return true.
         end.
-        return false.    
-    end method. 
+        return false.
+    end method.
     */
-    
+
 /*     /* write the object with urls to children */                                  */
 /*    method public void WriteObjectTo(writer as IDataAdminWriter):                  */
 /*        writer:WriteContext(Context).                                              */
@@ -444,43 +438,42 @@ class OpenEdge.DataAdmin.Partition implements IPartition,IDataAdminElement,IData
 /*    method public void WriteTree(writer as IDataAdminWriter,pcCollections as char):*/
 /*         WriteAllTo(writer).                                                       */
 /*    end method.                                                                    */
-    
+
     method public void WriteTree(tree as IContextTree,pcCollections as char):
-       undo, throw new UnsupportedOperationError("WriteTree to ContextTree").        
+       undo, throw new UnsupportedOperationError("WriteTree to ContextTree").
     end method.
-    
+
     method public void WriteTree(tree as IContextTree):
-        undo, throw new UnsupportedOperationError("WriteTree to ContextTree").        
+        undo, throw new UnsupportedOperationError("WriteTree to ContextTree").
     end method.
-    
+
     method public void ExportAsProcedure(pcfile as char ):
-        undo, throw new UnsupportedOperationError("Generation of code for " + Context:Name). 
-    end method. 
-    
+        undo, throw new UnsupportedOperationError("Generation of code for " + Context:Name).
+    end method.
+
     method public void ExportAsProcedure(pcfile as char,pcCollectionlist as char):
-        undo, throw new UnsupportedOperationError("Generation of code for " + Context:Name). 
-    end method. 
-    
+        undo, throw new UnsupportedOperationError("Generation of code for " + Context:Name).
+    end method.
+
     method public void ExportTree(pcfile as char):
         this-object:Export(pcFile).
-    end method.     
-    
+    end method.
+
     method public void ExportTree(pcfile as char,pcCollectionlist as char):
-        undo, throw new UnsupportedOperationError("ExportTree " + quoter(pcCollectionlist)).       
-    end method.     
-    
+        undo, throw new UnsupportedOperationError("ExportTree " + quoter(pcCollectionlist)).
+    end method.
+
     method public void Export(  ):
          Export("partition.json").
     end method.
-    
+
     method public void Export(cFile as char):
         this-object:ExportToJson():WriteFile(cFile, yes).
     end method.
 
     method public JsonObject ExportToJson ( ):
         define variable htbl as handle no-undo.
-        define variable oJson as JsonObject no-undo.
-        oJson = new JsonObject().
+        var JsonObject oJson = new JsonObject().
 
         if not valid-handle(mDefaultBuffer) then
         do:
@@ -500,32 +493,32 @@ class OpenEdge.DataAdmin.Partition implements IPartition,IDataAdminElement,IData
             delete object htbl no-error.
         end finally.
     end method.
-        
-    method public void ImportTree(pcFile as char). 
-        undo, throw new UnsupportedOperationError("ImportTree of single Partition.").        
-    end method. 
- 
+
+    method public void ImportTree(pcFile as char).
+        undo, throw new UnsupportedOperationError("ImportTree of single Partition.").
+    end method.
+
     method public void Import(cFile as char):
-        undo, throw new UnsupportedOperationError("Import of single Partition.").        
-    end method.   
-    
+        undo, throw new UnsupportedOperationError("Import of single Partition.").
+    end method.
+
     method protected character extent GetKeyValues():
         define variable cKey as character no-undo.
-        define variable hFld as handle no-undo. 
+        define variable hFld as handle no-undo.
         define variable i as integer no-undo.
         define variable cValues as char extent no-undo.
-        
+
         extent(cValues) = num-entries(Context:KeyFields).
         do i = 1 to num-entries(Context:KeyFields):
            hFld = mBuffer:buffer-field (entry(i,Context:KeyFields)).
            cValues[i] = string(hfld:buffer-value).
-        end. 
+        end.
         return cValues.
         catch e as Progress.Lang.Error :
-            undo, throw new IllegalArgumentError("KeyFields does not match buffer" + e:GetMessage(1)).  
-        end catch. 
-    end method. 
-    
+            undo, throw new IllegalArgumentError("KeyFields does not match buffer" + e:GetMessage(1)).
+        end catch.
+    end method.
+
     method override final logical Equals(obj as Object):
         define variable lOk as logical no-undo.
         lok = super:Equals(obj).
@@ -534,77 +527,77 @@ class OpenEdge.DataAdmin.Partition implements IPartition,IDataAdminElement,IData
             lok = obj:ToString() = ToString().
         end.
         return lok.
-        
+
     end method.
-    
+
     method private character GetName ():
-        return GetName(mBuffer). 
+        return GetName(mBuffer).
     end method.
-      
+
     method private character GetName (phbuffer as handle):
          define variable cName as character no-undo.
          define variable ckey as character no-undo.
          define variable cTenant as character no-undo.
          define variable cGroup as character no-undo.
-         ckey = phBuffer::Tablename. 
+         ckey = phBuffer::Tablename.
          cTenant = phbuffer::Tenantname.
          cGroup = phbuffer::TenantGroupName.
          if cTenant = ? or cTenant = "" then
-            
+
          if phbuffer::ObjectType = "field" then
              cKey = cKey + " " + phBuffer::Fieldname.
          else if phbuffer::ObjectType = "index" then
-             cKey = cKey + " " + phBuffer::Indexname.  
-        
-         cName = "Partition for " + phbuffer::ObjectType + " " + quoter(cKey) 
+             cKey = cKey + " " + phBuffer::Indexname.
+
+         cName = "Partition for " + phbuffer::ObjectType + " " + quoter(cKey)
               + if cTenant > "" then " Tenant " + quoter(cTenant)
                 else if cGroup > "" then " Group " + quoter(cGroup)
                 else "".
-         
-         return if cName = ? then "<unknown>" else cName.    
-    end method.    
-    
+
+         return if cName = ? then "<unknown>" else cName.
+    end method.
+
     method protected logical SetProperty(pcPropName as char, pcValue as char):
-        return context:SetProperty(mBuffer:rowid,pcPropName,pcValue).  
-    end method.  
-      
-    method public int Serialize(phHandle as Handle). 
+        return context:SetProperty(mBuffer:rowid,pcPropName,pcValue).
+    end method.
+
+    method public int Serialize(phHandle as Handle).
         undo, throw new UnsupportedOperationError("Serialize to stream handle for " + this-object:GetClass():TypeName).
     end method.
-    
+
     method public final override char ToString():
         define variable cKeyFields as character no-undo.
         define variable i as integer no-undo.
         define variable hField as handle no-undo.
         define variable cOut as character no-undo.
-        cout = super:ToString(). 
-        
+        cout = super:ToString().
+
         if valid-object(Context) then
         do:
             cOut = Contextid.
             cKeyFields = Context:KeyFields.
-             
+
             do i = 1 to num-entries(cKeyFields).
               hfield = mBuffer:buffer-field (entry(i,cKeyfields)).
-              if valid-handle(hField) then 
+              if valid-handle(hField) then
               do:
-                  cOut = cOut 
-                       + " "  
-                       + (if hField:buffer-value <> ? then hField:buffer-value else "?") 
+                  cOut = cOut
+                       + " "
+                       + (if hField:buffer-value <> ? then hField:buffer-value else "?")
                        .
               end.
               else
-                  undo, throw New IllegalArgumentError("KeyFields does not match object.").  
-            end.  
+                  undo, throw New IllegalArgumentError("KeyFields does not match object.").
+            end.
         end.
         return cout.
-    end method.    
-    
-       /* optional call back from context tree. 
+    end method.
+
+       /* optional call back from context tree.
         called when parse is complete
          override to return json  to export instead  of dataset
          returns unknown to use standard dataset. write-json  */
     method public JSONObject GetJSONExport(tree as IContextTree):
         return Context:GetJSONExport(tree).
-    end.   
+    end.
 end class.

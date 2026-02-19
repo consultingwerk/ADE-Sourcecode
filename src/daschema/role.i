@@ -1,3 +1,9 @@
+/*************************************************************/
+/* Copyright (c) 2010 by progress Software Corporation       */
+/* all rights reserved.  no part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from progress Software Corporation. */
+/*************************************************************/
 /*------------------------------------------------------------------------
     File        : role.i
     Purpose     : 

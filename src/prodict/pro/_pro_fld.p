@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2008,2013,2020 by Progress Software Corporation. All *
+* Copyright (C) 2008,2013,2020,2025 by Progress Software Corporation. All *
 * rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -41,7 +41,8 @@ form.
     fernando   08/10/06 Handle too many tables in db - 20060717-022
     fernando   06/26/08 Filter out schema tables for encryption
     kberlia    10/29/20 Added default area support for LOB Fields.
-    tmasood    11/18/20 Fix the default area issue with BLOB 
+    tmasood    11/18/20 Fix the default area issue with BLOB
+    fernando   08/13/25 Cleanup of is-pre-101b-db
 */     
 
 DEFINE INPUT  PARAMETER ronly   AS CHARACTER             NO-UNDO.
@@ -798,11 +799,7 @@ IF NEW dfields THEN DO:
       dfields._Data-type
         VALIDATE(dfields._Data-type <> ?,"")
       WITH FRAME pro_fld.
-    IF dfields._Data-type = ? OR 
-        /* don't allow int64 if this is a pre-101b db */
-        (is-pre-101b-db AND dfields._Data-type = "int64") THEN DO:
-        IF dfields._Data-type = "int64" THEN
-           MESSAGE new_lang[11].
+    IF dfields._Data-type = ? THEN DO:
         UNDO,RETRY.
     END.
   END.
@@ -815,8 +812,7 @@ IF NEW dfields THEN DO:
 END.
 ELSE DO:
     
-    /* if this is a pre-101b db, don't allow type change */
-    IF dfields._Data-type = "integer" AND NOT is-pre-101b-db THEN
+    IF dfields._Data-type = "integer" THEN
        ASSIGN allow_type_change = YES
               s_Dtype = dfields._Data-type.
 END.

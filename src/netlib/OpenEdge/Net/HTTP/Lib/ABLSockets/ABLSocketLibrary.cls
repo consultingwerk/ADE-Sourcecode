@@ -162,7 +162,7 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
         @param SocketReadEventArgs Arguments pertaining to the data received */
     method public void ReadTimeoutHandler(input poSender as ClientSocket,
                                           input poEventArgs as SocketReadEventArgs):
-        return error new HttpRequestError(string(integer(StatusCodeEnum:RequestTimeOut)),
+        return error new HttpRequestError(string(StatusCodeEnum:RequestTimeOut:GetValue()),
                                           'read':u,
                                           moSocketConnectionParam:URI:ToString()).
     end method.
@@ -707,11 +707,11 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
 
         MakeSyncRequest(moSocketLib, poRequest, poResponse, rawRequest).
 
-        // Reset the ProxyURI for tunnelled requests
-        if valid-object(proxyURI) then
-            assign oProxyRequest:ProxyURI = proxyURI.
-
         finally:
+            // Reset the ProxyURI for tunnelled requests
+            if valid-object(proxyURI) then
+                assign oProxyRequest:ProxyURI = proxyURI.
+
             // Only disconnect here because we want to keep the connect open for
             // HTTPS tunnels
             if valid-object(moSocketLib) then

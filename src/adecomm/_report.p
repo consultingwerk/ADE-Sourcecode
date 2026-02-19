@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000,2009,2013 by Progress Software Corporation. All *
-* rights reserved. Prior versions of this work may contain portions  *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/*************************************************************************
+* Copyright (C) 2000,2009,2013,2025 by Progress Software Corporation.    * 
+* All rights reserved. Prior versions of this work may contain portions  *
+* contributed by participants of Possenet.                               *
+*                                                                        *
+**************************************************************************/
 
 /*----------------------------------------------------------------------------
 
@@ -51,6 +51,7 @@ HISTORY
 	gfs         07/22/94    Removed MUST-EXIST option from Files dialog.
 	gfs         11/10/94    Fixed dimensions so that the dialog fits on
 				Jpn WIN
+   tmasood     05/13/25    Adjusted the editor in tty mode to display new column
 
 ----------------------------------------------------------------------------*/
 &GLOBAL-DEFINE WIN95-BTN YES
@@ -122,7 +123,7 @@ FORM
    edit_widg   VIEW-AS EDITOR SCROLLBAR-V
 	       /* Make width one less than we want - we add 1 later */
 	       &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN
-		  SIZE 77 BY 13 
+		  SIZE 80 BY 13 
 	       &ELSEIF "{&WINDOW-SYSTEM}" BEGINS "MS-WIN" &THEN
 		  INNER-CHARS 70 INNER-LINES 17 SCROLLBAR-H LARGE
 	       &ELSE

@@ -443,9 +443,10 @@ class OpenEdge.BusinessLogic.Filter.AblFilterParser inherits FilterParser:
                             assign parentGroup = qryGroup.
                         
                         // Create a group if this is a non-quoted (
-                        assign qryGroup = new QueryGroup().
-                               strValue = '':u
-                               .
+                        assign
+                            qryGroup = new QueryGroup()
+                            strValue = '':u
+                            .
                         // add it to its parent
                         AddToGroup(parentGroup, qryGroup, joinWith).
                         

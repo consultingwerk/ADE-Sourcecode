@@ -1,8 +1,8 @@
-/********************************************************************************
-* Copyright (C) 2005-2009,2011,2021,2023,2025 by Progress Software Corporation. *
-* All rights reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                                      *
-*********************************************************************************/
+/***************************************************************************
+* Copyright (C) 2005-2009,2011,2021,2023 by Progress Software Corporation. *
+* All rights reserved. Prior versions of this work may contain portions    *
+* contributed by participants of Possenet.                                 *
+**************************************************************************/
 
 /* _loddata.p */ /**** Data Dictionary load contents module ****/
 

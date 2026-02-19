@@ -1,6 +1,5 @@
 /*************************************************************/
 /* Copyright (c) 2010-2016,2024 by progress Software Corporation  */
-/*                                                           */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
 /* permission in writing from progress Software Corporation. */
@@ -33,10 +32,10 @@ define temp-table ttField no-undo serialize-name "fields" {1}
     field DisplayFormat   as character serialize-name "displayFormat"
 /*     field Label       as character*/
 /*     field ColumnLabel     as character*/
-    field InitialValue    as character serialize-name "initialValue" 
-    field MaskValue       as character serialize-name "maskValue"
-    field AuthTagValue    as character serialize-name "authtagValue"
-    field Order           as integer   serialize-name "order"
+       field InitialValue    as character serialize-name "initialValue" 
+       field MaskValue       as character serialize-name "maskValue"
+       field AuthTagValue    as character serialize-name "authtagValue"
+       field Order           as integer serialize-name "order" 
 /*     field NumDecimals     as integer  */
 /*     field NumExtents      as integer  */
 /*     field Position        as integer  */

@@ -1,42 +1,42 @@
 /************************************************
 Copyright (c) 2013-2014, 2020 by Progress Software Corporation. All rights reserved.
-*************************************************/ 
- /*------------------------------------------------------------------------
-    File        : TestInfo
-    Purpose     : 
-    Syntax      : 
-    Description : 
-    Author(s)   : hgarapat
-    Created     : Mon Aug 06 12:55:45 IST 2012
-    Notes       : 
-  ----------------------------------------------------------------------*/
+*************************************************/
+/*------------------------------------------------------------------------
+   File        : TestInfo
+   Purpose     :
+   Syntax      :
+   Description :
+   Author(s)   : hgarapat
+   Created     : Mon Aug 06 12:55:45 IST 2012
+   Notes       :
+ ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
 using OpenEdge.Core.Collections.Array.
 
-CLASS OpenEdge.ABLUnit.Reflection.TestInfo: 
+class OpenEdge.ABLUnit.Reflection.TestInfo:
 
-    DEFINE PUBLIC PROPERTY annotations AS Array NO-UNDO GET. 
-        PRIVATE SET.
-    DEFINE PUBLIC PROPERTY annotationsCount AS INTEGER NO-UNDO GET. 
-        PRIVATE SET.
-    DEFINE PUBLIC PROPERTY testName AS CHARACTER NO-UNDO GET. 
-        PRIVATE SET.
-    DEFINE PUBLIC PROPERTY isStatic AS LOGICAL INIT FALSE NO-UNDO GET. SET .
-    
-    CONSTRUCTOR PUBLIC TestInfo(INPUT poAnnotationInfo AS Array, INPUT piAnnotationsCount AS INTEGER, INPUT pcTestN AS CHARACTER):
-        annotations = poAnnotationInfo.    
-        THIS-OBJECT:annotationsCount = piAnnotationsCount.
+    define public property annotations as Array no-undo get.
+        private set.
+    define public property annotationsCount as integer no-undo get.
+        private set.
+    define public property testName as character no-undo get.
+        private set.
+    define public property isStatic as logical init false no-undo get. set .
+
+    constructor public TestInfo(input poAnnotationInfo as Array, input piAnnotationsCount as integer, input pcTestN as character):
+        annotations = poAnnotationInfo.
+        this-object:annotationsCount = piAnnotationsCount.
         testName = pcTestN.
-    END CONSTRUCTOR.
+    end constructor.
 
 
     /*------------------------------------------------------------------------------
-            Purpose: Returns the method name                                                                      
-            Notes:                                                                        
+            Purpose: Returns the method name
+            Notes:
     ------------------------------------------------------------------------------*/
-    METHOD PUBLIC CHARACTER getTestName( ):
-        RETURN testName.          
-    END METHOD.
+    method public character getTestName( ):
+        return testName.
+    end method.
 
-END CLASS.
+end class.

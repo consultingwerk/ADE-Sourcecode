@@ -1,8 +1,8 @@
-/********************************************************************************
+/***************************************************************************
 * Copyright (C) 2006-2017,2021,2022,2023,2025 by Progress Software Corporation. *
-* All contributed by participants of Possenet.                                  *
-*                                                                               *
-*********************************************************************************/
+* All contributed by participants of Possenet.                             *
+*                                                                          *
+****************************************************************************/
 /*------------------------------------------------------------------------
     File        : _lodsddl
     Purpose     : 
@@ -62,7 +62,9 @@
    tmasood     02/22/21 Display a message when inactive index added to an existing table
    tmasood     03/03/21 Abort the load when selected section missing from df file
    tmasood     03/10/22 Fixed the error 16621 while loading encryption details of new Index
-   tmasood     07/24/23 Added support for loading DDM schema     
+   tmasood     07/24/23 Added support for loading DDM schema
+   fernando    08/13/25 Cleanup of is-pre-101b-db
+   tmasood     11/28/25 Fixed the error 91 when load df has some warnings
 */
 
 USING Progress.Database.*. 
@@ -217,7 +219,6 @@ DEFINE VARIABLE rules         AS LONGCHAR            NO-UNDO.
 
 DEFINE variable minimum-index AS INTEGER initial 0.
 DEFINE variable new-number    AS INTEGER initial 0.
-DEFINE VARIABLE hBuffer       AS HANDLE              NO-UNDO.
 
 /* messages for frames working2 and backout. */
 DEFINE VARIABLE msg1          AS CHARACTER           NO-UNDO FORMAT "x(53)":u.
@@ -1421,23 +1422,6 @@ do:
         dictLoadOptions:ErrorLog = dbload-e.
 end.
     
-/* check if this is a 10.1B db at least, so that we complain about int64 and
-   int64 values. If the 'Large Keys' feature is not known by this db, then this
-   is a pre-101.B db 
-*/
-is-pre-101b-db = YES.
-
-IF INTEGER(DBVERSION("DICTDB")) >= 10 THEN DO:
-    /* use a dyn buffer since v9 db's don't have the feature tbl */
-    CREATE BUFFER hBuffer FOR TABLE "DICTDB._Code-feature" NO-ERROR.
-    IF VALID-HANDLE(hBuffer) THEN DO:
-       hBuffer:FIND-FIRST('where _Codefeature_Name = "Large Keys"',NO-LOCK) NO-ERROR.
-       IF hBuffer:AVAILABLE THEN
-           is-pre-101b-db = NO.
-       DELETE OBJECT hBuffer.
-    END.
-END.
-
 /* must be before assignment for codepage, since we assign it ourselves and not
   take the one from the trail. We want to check if the .df has settings for
   encryption policies (for encryption) so we can display errors that we can
@@ -1474,6 +1458,7 @@ REPEAT ON ERROR UNDO,RETRY ON ENDKEY UNDO, LEAVE:
            lEndOffline      = FALSE
            lBeginDDMSection = FALSE
            lEndDDMSection   = FALSE
+	   xwarn            = FALSE
            ierror           = 0
            ilin             = ?.    
     
@@ -2580,11 +2565,7 @@ REPEAT ON ERROR UNDO,RETRY ON ENDKEY UNDO, LEAVE:
                                                                    then true 
                                                                    else logical(iarg).
               WHEN "INITIAL"        THEN do:
-                  /* this is just to catch an integer overflow */
-                  IF is-pre-101b-db THEN
-                     ASSIGN wseq._Seq-Init = INT(IARG) NO-ERROR.
-                  ELSE
-                     ASSIGN wseq._Seq-Init = INT64(IARG) NO-ERROR.
+                  ASSIGN wseq._Seq-Init = INT64(IARG) NO-ERROR.
     
                   IF ERROR-STATUS:ERROR THEN
                       ASSIGN ierror = 53.
@@ -2594,11 +2575,7 @@ REPEAT ON ERROR UNDO,RETRY ON ENDKEY UNDO, LEAVE:
               END.
               WHEN "INCREMENT"      THEN DO: 
     
-                  /* this is just to catch an integer overflow */
-                  IF is-pre-101b-db THEN
-                     ASSIGN wseq._Seq-Incr = INT(IARG) NO-ERROR.
-                  ELSE
-                     ASSIGN wseq._Seq-Incr = INT64(IARG) NO-ERROR.
+                  ASSIGN wseq._Seq-Incr = INT64(IARG) NO-ERROR.
     
                   IF ERROR-STATUS:ERROR THEN
                       ASSIGN ierror = 53.
@@ -2608,11 +2585,7 @@ REPEAT ON ERROR UNDO,RETRY ON ENDKEY UNDO, LEAVE:
               END.
               WHEN "CYCLE-ON-LIMIT" THEN wseq._Cycle-Ok = (iarg = "yes").
               WHEN "MIN-VAL"        THEN DO: 
-                  /* this is just to catch an integer overflow */
-                  IF is-pre-101b-db THEN
-                     ASSIGN wseq._Seq-Min = INT(IARG) NO-ERROR.
-                  ELSE
-                     ASSIGN wseq._Seq-Min = INT64(IARG) NO-ERROR.
+                  ASSIGN wseq._Seq-Min = INT64(IARG) NO-ERROR.
     
                   IF ERROR-STATUS:ERROR THEN
                       ASSIGN ierror = 53.
@@ -2620,11 +2593,7 @@ REPEAT ON ERROR UNDO,RETRY ON ENDKEY UNDO, LEAVE:
                      ierror = 0.
               END.
               WHEN "MAX-VAL"        THEN DO:
-                  /* this is just to catch an integer overflow */
-                  IF is-pre-101b-db THEN
-                     ASSIGN wseq._Seq-Max = INT(IARG) NO-ERROR.
-                  ELSE
-                     ASSIGN wseq._Seq-Max = INT64(IARG) NO-ERROR.
+                  ASSIGN wseq._Seq-Max = INT64(IARG) NO-ERROR.
     
                   IF ERROR-STATUS:ERROR THEN
                       ASSIGN ierror = 53.
@@ -2830,24 +2799,6 @@ REPEAT ON ERROR UNDO,RETRY ON ENDKEY UNDO, LEAVE:
               WHEN    "FIELD"     OR WHEN "COLUMN"      THEN wfld._Field-name = iarg.
               WHEN    "DESC"      OR WHEN "DESCRIPTION" THEN wfld._Desc = iarg.
               WHEN    "INITIAL"   OR WHEN "DEFAULT"     THEN DO:
-                  /* check for integer overflow */
-                  IF LOOKUP(wfld._Data-Type,"INT,INTEGER") > 0 THEN DO:
-                      /* if this is a pre-101b db, just make sure initial
-                         value for an integer is not too big. In theory,
-                         this could not happen since a field needs to be int64
-                         to overflow an integer, and we already prevent int64 from
-                         loading into a pre-10.1B db, but just in case the .df
-                         was manually changed.
-                      */
-                      IF is-pre-101b-db THEN DO:
-                          /* this is just to catch an integer overflow */
-                         ASSIGN ierror = INT(iarg) NO-ERROR.
-                         IF ERROR-STATUS:ERROR THEN
-                             ASSIGN ierror = 52.
-                         ELSE
-                             ierror = 0.
-                      END.
-                  END.
                   wfld._Initial = iarg.
               END.
               WHEN    "CAN-READ"  OR WHEN "CAN-SELECT"  THEN wfld._Can-Read = iarg.
@@ -3355,7 +3306,15 @@ REPEAT ON ERROR UNDO,RETRY ON ENDKEY UNDO, LEAVE:
                   MESSAGE msg2 VIEW-AS ALERT-BOX ERROR.
                   IF user_env[6] = "f" OR user_env[6] = "b" THEN
                     MESSAGE msg3 dbload-e msg4 VIEW-AS ALERT-BOX INFORMATION.
-              END.      
+              END.
+	      ELSE IF xwarn THEN DO:
+                  MESSAGE msg3 dbload-e msg4 VIEW-AS ALERT-BOX INFORMATION.
+		  IF lEndOffline OR lEndDDMSection OR (NOT loadBySection) THEN DO:
+                    HIDE MESSAGE no-pause.
+                    RUN adecomm/_setcurs.p ("").
+                    LEAVE section_loop.
+                  END.
+              END.
           END.
           ELSE
           DO:
@@ -3368,6 +3327,9 @@ REPEAT ON ERROR UNDO,RETRY ON ENDKEY UNDO, LEAVE:
              MESSAGE msg3 dbload-e msg4.
     
              PAUSE.
+	     /* when warnings occur and load is completed, leave the loop gracefully */
+             IF xwarn AND (lEndOffline OR lEndDDMSection OR (NOT loadBySection)) THEN
+                LEAVE section_loop.
           END.
       END.  /* TERMINAL <> "" and not dictloader */
       /* batch or dictloader avoid undo if force commit */ 

@@ -1,6 +1,5 @@
 /*************************************************************/
 /* Copyright (c) 2010-2012,2015,2019,2024 by Progress Software Corporation. */  
-/*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
 /* permission in writing from Progress Software Corporation. */
@@ -42,7 +41,7 @@ define  temp-table ttUser no-undo  serialize-name "users" {1} before-table ttUse
     field Url           as character      serialize-name "url"
     field Createdate    as datetime-tz    serialize-name "createdate"
     field Lastlogin     as datetime-tz    serialize-name "lastlogin"
-    field IsSecAdmin    as logical        serialize-name "isSecAdmin":u
+    field IsSecAdmin    as logical        serialize-name "isSecAdmin":u	
     {daschema/entity.i} 
     index idxDomain   as primary unique DomainName Name  
     index idxTenant TenantName   

@@ -1,22 +1,23 @@
 /************************************************
 Copyright (c) 2013-2014, 2020 by Progress Software Corporation. All rights reserved.
-*************************************************/  
- /*------------------------------------------------------------------------
-    File        : TestRootModel
-    Purpose     : 
-    Syntax      : 
-    Description : 
-    Author(s)   : svutla
-    Created     : Wed Sep 18 12:09:10 IST 2013
-    Notes       : 
-  ----------------------------------------------------------------------*/
-BLOCK-LEVEL ON ERROR UNDO, THROW.
+*************************************************/
+/*------------------------------------------------------------------------
+   File        : TestRootModel
+   Purpose     :
+   Syntax      :
+   Description :
+   Author(s)   : svutla
+   Created     : Wed Sep 18 12:09:10 IST 2013
+   Notes       :
+ ----------------------------------------------------------------------*/
+block-level on error undo, throw.
 
 using OpenEdge.ABLUnit.Model.TestEntity.
 
-CLASS OpenEdge.ABLUnit.Model.TestRootModel INHERITS TestEntity:
-    CONSTRUCTOR PUBLIC TestRootModel ( INPUT id1 AS INTEGER ):
-        SUPER (INPUT id1).
-    END CONSTRUCTOR.
-    
-END CLASS.
+class OpenEdge.ABLUnit.Model.TestRootModel inherits TestEntity:
+
+    constructor public TestRootModel ( input id1 as integer ):
+        super (input id1).
+    end constructor.
+
+end class.

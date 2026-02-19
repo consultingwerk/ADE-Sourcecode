@@ -1,6 +1,6 @@
 &if 1=0 &then
 /************************************************
-Copyright (c) 2022,2023 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2022-2024 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : OpenEdge/Core/Assertion/assertequality.i
@@ -39,6 +39,7 @@ Copyright (c) 2022,2023 by Progress Software Corporation. All rights reserved.
     {&_proparse_ prolint-nowarn(recidkeyword)}
 &endif
     method public static void Equals (input a as {&DataType}, input b as {&DataType}):
+        {&_proparse_ prolint-nowarn(varusage)}
         define variable subMessage as {&MsgType} no-undo initial "Expected: &1 but was: &2":u.
 
     &if "{&Datatype}" eq "Object" &then
@@ -81,6 +82,7 @@ Copyright (c) 2022,2023 by Progress Software Corporation. All rights reserved.
     {&_proparse_ prolint-nowarn(recidkeyword)}
 &endif
     method public static void NotEqual (input a as {&DataType}, input b as {&DataType}):
+        {&_proparse_ prolint-nowarn(varusage)}
         define variable subMessage as {&MsgType} no-undo initial "&1 and &2 are equal":u.
 
     &if "{&Datatype}" eq "Object" &then

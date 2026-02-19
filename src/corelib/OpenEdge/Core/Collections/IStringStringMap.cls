@@ -25,7 +25,7 @@ using OpenEdge.Core.String.
     /** Adds an entry to the map
 
         @param character The key value
-        @param longchar The value
+        @param longchar The value (may be blank or unknown)
         @return longchar The value added (may be blank or unknown) */
     method public longchar Put(input pcKey as character, input pcValue as longchar).
 

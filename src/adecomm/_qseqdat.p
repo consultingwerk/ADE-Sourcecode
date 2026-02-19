@@ -1,5 +1,5 @@
 /**********************************************************************
-* Copyright (C) 2000,2006 by Progress Software Corporation. All rights*
+* Copyright (C) 2000,2006,2025 by Progress Software Corporation. All rights*
 * reserved.  Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                            *
 *                                                                     *
@@ -23,6 +23,7 @@ Date Created: 10/05/92
 Modified on 06/14/94 by Gerry Seidl. Added NO-LOCKs to file accesses.
             08/08/02 D. McMann Eliminated any sequences whose name begins "$" - Peer Direct
             05/25/06 fernando  Added support for large sequences
+            08/14/25 fernando Cleanup code for large sequence support
 ----------------------------------------------------------------------------*/
 
 DEFINE INPUT PARAMETER p_DbId  AS RECID NO-UNDO.
@@ -65,21 +66,16 @@ FORM
 
 FIND FIRST dictdb._db WHERE RECID(dictdb._Db) = p_DbId.
 
-/* let's see if we can use the old format based on the values */
-IF dictdb._Db._db-res1[1] = 1 THEN DO: 
-    /* large sequence support is turned on */
+FIND FIRST dictdb._Sequence NO-LOCK WHERE dictdb._Sequence._Db-recid = p_DbId
+                             AND NOT dictdb._Sequence._Seq-name BEGINS "$" AND
+     (dictdb._Sequence._Seq-incr > 999999999 OR
+      dictdb._Sequence._Seq-max  > 999999999 OR
+      dictdb._Sequence._Seq-min  > 999999999 OR
+      dictdb._Sequence._Seq-init > 999999999) NO-ERROR.
 
-    FIND FIRST dictdb._Sequence NO-LOCK WHERE dictdb._Sequence._Db-recid = p_DbId
-                                 AND NOT dictdb._Sequence._Seq-name BEGINS "$" AND
-         (dictdb._Sequence._Seq-incr > 999999999 OR
-          dictdb._Sequence._Seq-max  > 999999999 OR
-          dictdb._Sequence._Seq-min  > 999999999 OR
-          dictdb._Sequence._Seq-init > 999999999) NO-ERROR.
-
-    IF AVAILABLE dictdb._Sequence THEN
-       /* we will need the expanded report format */
-       ASSIGN large_seq = YES.
-END.
+IF AVAILABLE dictdb._Sequence THEN
+   /* we will need the expanded report format */
+   ASSIGN large_seq = YES.
  
 FOR EACH dictdb._Sequence NO-LOCK WHERE dictdb._Sequence._Db-recid = p_DbId
                                   AND NOT dictdb._Sequence._Seq-name BEGINS "$":

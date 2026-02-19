@@ -1,5 +1,5 @@
 /***************************************************************************
-* Copyright (C) 2006-2013,2016,2020,2023 by Progress Software Corporation. *
+* Copyright (C) 2006-2013,2016,2020,2023,2025 by Progress Software Corporation. *
 * All rights reserved. Prior versions of this work may contain portions    *
 * contributed by participants of Possenet.                                 *
 *                                                                          *
@@ -92,6 +92,7 @@ fernando 04/07/09   Added Alternate Buffer Pool utilities
 kmayur   06/21/11   Added options for constraint creation (Server Attributes in Dataserver) OE00195067
 rkamboj  08/16/11   Added new terminology for security items and windows.
 tmasood  05/22/23   Added new security table in the list when DDM is enabled
+fernando 08/13/25   Removing enable large keys menu item - obsolete
 
 Date Created: 01/04/93 
 ----------------------------------------------------------------------------*/
@@ -396,7 +397,6 @@ Define sub-menu mnu_Admin
    sub-menu  mnu_Import       label "&Import Data"
    menu-item mi_BulkLoad      label "Create &Bulk Loader Description File..."
    MENU-ITEM mi_DbOptions     LABEL "Database &Options..."
-   MENU-ITEM mi_LargeKeys     LABEL "Enable Large &Key Entries"
    sub-menu  mnu_AltBuf       label "&Alternate Buffer Pool"
    .
 
@@ -2015,18 +2015,6 @@ ON CHOOSE OF MENU-ITEM mi_DbOptions     IN MENU mnu_Admin DO:
   RUN Perform_Func ("_db-optn").
 END.
 
-/*----- ENABLE LARGE KEY ENTRIES -----*/
-ON CHOOSE OF MENU-ITEM mi_LargeKeys     IN MENU mnu_Admin DO:
-  IF NOT dbAdmin(USERID("DICTDB")) THEN DO:
-    MESSAGE "You must be a Database Administrator to access this utility!"
-        VIEW-AS ALERT-BOX ERROR BUTTONS OK.
-        
-    user_env = "".
-    RETURN NO-APPLY.
-  END.
-  
-  RUN Perform_Func ("_db-lkey").
-END.
 
 /*----- ALTERNATE BUFFER POOL MAINTENANCE -----*/
 ON CHOOSE OF MENU-ITEM mi_AltBuf_Maint     IN MENU mnu_AltBuf DO:

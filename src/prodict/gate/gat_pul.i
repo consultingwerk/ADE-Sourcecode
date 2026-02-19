@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2019 by Progress Software Corporation. All rights    *
+* Copyright (C) 2019,2025 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -95,6 +95,7 @@ History:
     ashukla     07/08/08  LDAP support (CR#OE00172458)
     knavneet    08/14/08  OE00170417 - Quoting object names if it has special chars.
     kmayur      06/21/11  Added support for Oracle constraint pull - OE00195067
+    fernando    08/13/25  Cleanup of is-pre-101b-db
 */
 
 /*
@@ -523,7 +524,7 @@ for each gate-work
 
         assign
           s_ttb_seq.ds_incr  =   ds_sequences.increment$
-          s_ttb_seq.ds_max   = ( if ds_sequences.maxvalue > (IF is-pre-101b-db THEN 2147483647 ELSE 9223372036854775807)
+          s_ttb_seq.ds_max   = ( if ds_sequences.maxvalue > 9223372036854775807
                                     then ?
                                     else ds_sequences.maxvalue
                                )

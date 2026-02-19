@@ -9,7 +9,7 @@ Copyright (c) 2023 by Progress Software Corporation. All rights reserved.
     Created     : Sun Apr 11 01:35:13 EDT 2010
     Notes       : An implementation of OpenEdge.Core.Collections.IMap
                   which uses the Progress.Collections.HashMap for storage.
-                  
+
                   This class differs from OpenEdge.Core.Collections.Map in
                   the following important ways:
                     - The implicit FIFO ordering of keys is not supported
@@ -58,7 +58,7 @@ implements IMap:
     define public property Values as ICollection no-undo
     get():
         var Progress.Collections.IIterator<KeyValuePair<Object, Object>> iter.
-        var ICollection mapValues = new Set().
+        var ICollection oMapValues = new Set().
         var Object oVal.
 
         // Iterate over the key List, returning a Object to look up the HashMap value.
@@ -68,48 +68,48 @@ implements IMap:
                 // Add the object (or unknown value) directly to the new set of values.
                 oVal = this-object:mBackingHashMap:GetValue(iter:Current:Value).
                 if valid-object(oVal) then
-                    mapValues:Add(oVal).
+                    oMapValues:Add(oVal).
                 else
-                    mapValues:AddNull(). // Purposefully add an unknown value to the Set.
+                    oMapValues:AddNull(). // Purposefully add an unknown value to the Set.
         end.
 
-        return mapValues.
+        return oMapValues.
     end.
 
     /* A set (OE.Core.Set) of only the keys (in order of entry) from the Map */
     define public property KeySet as ISet no-undo
     get():
         var Progress.Collections.IIterator<KeyValuePair<Object, Object>> iter.
-        var ISet mapKeys = new Set().
+        var ISet oMapKeys = new Set().
 
         // Iterate over the key List, returning a single Object for each entry.
         iter = this-object:mBackingHashMap:GetIterator().
         repeat while iter:MoveNext():
             // Keys should always be a valid object, but let's just make 100% sure.
             if valid-object(iter:Current:Key) then
-                mapKeys:Add(iter:Current:Key).
+                oMapKeys:Add(iter:Current:Key).
             else
-                mapKeys:Add(?).
+                oMapKeys:Add(?).
         end.
 
-        return mapKeys.
+        return oMapKeys.
     end.
 
     /* A set (OE.Core.Set) of key-value pairs (in order of entry) from the Map */
     define public property EntrySet as ISet no-undo
     get():
         var Progress.Collections.IIterator<KeyValuePair<Object, Object>> iter.
-        var ISet entrySet = new Set().
+        var ISet oEntrySet = new Set().
 
         // Iterate over the key List, returning a single Object for each entry.
         iter = this-object:mBackingHashMap:GetIterator().
         repeat while iter:MoveNext():
             // Create a new MapEntry which points back to this Map object and a specific key object.
             // When a value is needed, it will use the Get() on the parent Map object by this Key.
-            entrySet:Add(new MapEntry(this-object, iter:Current:Key)).
+            oEntrySet:Add(new MapEntry(this-object, iter:Current:Key)).
         end.
 
-        return entrySet.
+        return oEntrySet.
     end.
 
     /* Destructor */
@@ -305,7 +305,7 @@ implements IMap:
         @return Object The associated value, or unknown if there is no entry. */
     method public Object Remove (input pKey as Object):
         var Object oldValue.
-        var logical lKeyExists, lFound.
+        var logical lFound.
 
         Assert:NotNull(pKey, 'Object map').
 

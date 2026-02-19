@@ -1,10 +1,10 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER UIB_v8r2 GUI
 &ANALYZE-RESUME
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
+* Copyright (C) 2000, 2024 by Progress Software Corporation.         *
+* All rights reserved. Prior versions of this work may contain       *
+* portions contributed by participants of Possenet.                  *
 *                                                                    *
 *********************************************************************/
 
@@ -13,8 +13,8 @@
   File: _loadhtm.p
 
   Description: Call tagext32.dll to parse .htm file and pass back a list of
-               .htm fields, buttons, and offsets in the .htm file.  
-                              
+               .htm fields, buttons, and offsets in the .htm file.
+
                This file has been processed for DBE and string translation.
 
   Input Parameters:
@@ -34,7 +34,6 @@ DEFINE INPUT  PARAMETER p_htmlName AS CHARACTER NO-UNDO.
 DEFINE OUTPUT PARAMETER p_Return   AS LOGICAL   NO-UNDO.
 
 /* Shared variables --                                                       */
-{ webutil/tagextr.i }     /* TagExtract DLL procedures                       */
 { adeweb/htmwidg.i }      /* Design time Web _HTM TEMP-TABLE.                */
 { adeuib/uniwidg.i }      /* Universal Widget TEMP-TABLE definition          */
 
@@ -48,7 +47,7 @@ DEFINE VARIABLE offFile     AS CHARACTER NO-UNDO. /* offset filename */
 &ANALYZE-RESUME
 
 
-&ANALYZE-SUSPEND _UIB-PREPROCESSOR-BLOCK 
+&ANALYZE-SUSPEND _UIB-PREPROCESSOR-BLOCK
 
 /* ********************  Preprocessor Definitions  ******************** */
 
@@ -66,7 +65,7 @@ DEFINE VARIABLE offFile     AS CHARACTER NO-UNDO. /* offset filename */
 &ANALYZE-SUSPEND _PROCEDURE-SETTINGS
 /* Settings for THIS-PROCEDURE
    Type: Procedure
-   Allow: 
+   Allow:
    Frames: 0
    Add Fields to: Neither
    Other Settings: CODE-ONLY COMPILE
@@ -76,17 +75,17 @@ DEFINE VARIABLE offFile     AS CHARACTER NO-UNDO. /* offset filename */
 /* *************************  Create Window  ************************** */
 
 &ANALYZE-SUSPEND _CREATE-WINDOW
-/* DESIGN Window definition (used by the UIB) 
+/* DESIGN Window definition (used by the UIB)
   CREATE WINDOW Procedure ASSIGN
          HEIGHT             = 2
          WIDTH              = 40.
                                                                         */
 &ANALYZE-RESUME
- 
 
 
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Procedure 
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Procedure
 
 
 /* ***************************  Main Block  *************************** */
@@ -103,16 +102,9 @@ IF SEARCH(offFile) = ? THEN DO:
 
   /* Generate offset file always. */
   IF SEARCH(c-scrap) = ? THEN DO:
-    RUN webutil/_genoff.p (p_htmlName, OUTPUT offFile).
-    IF offFile eq ? THEN DO:
-      /*
-      RUN Add-Error IN _err-hdl
-              ("ERROR":U, ?, "TagExtract could not generate the offset file.").
-      */
-      MESSAGE "TagExtract could not generate the offset file."
-        VIEW-AS ALERT-BOX ERROR.
-      RETURN.
-    END.
+    MESSAGE "Could not locate an offset file."
+      VIEW-AS ALERT-BOX ERROR.
+    RETURN.
   END.
 END.
 
@@ -126,13 +118,13 @@ RUN webutil/_relname.p (p_htmlName, "MUST-BE-REL":U, OUTPUT _P._html-file).
    (The directory path will be scrap, just save the file name. */
 IF _P._html-file eq ? THEN
   RUN adecomm/_osprefx.p (p_htmlName, OUTPUT c-scrap, OUTPUT _P._html-file).
- 
+
 /* Load the HTM records from the offset file. Exit if there were errors.*/
 RUN adeweb/_rdoffd.p (INPUT p_proc-id, INPUT offFile).
 IF RETURN-VALUE eq "Error":U  THEN p_return = FALSE.
-ELSE DO: 
+ELSE DO:
   /* Draw the Progress objects associated with this file. */
-  RUN adeweb/_drwhtml.p (p_proc-id, FALSE /* No Messages */, OUTPUT l-scrap).  
+  RUN adeweb/_drwhtml.p (p_proc-id, FALSE /* No Messages */, OUTPUT l-scrap).
 
   /* To be safe...
      Delete any HTM records that were created, but did not draw an associated
@@ -143,7 +135,7 @@ ELSE DO:
 
   /* Return successful load output parameter. */
   ASSIGN p_return = TRUE.
-  
+
 END.
 
 /* _UIB-CODE-BLOCK-END */

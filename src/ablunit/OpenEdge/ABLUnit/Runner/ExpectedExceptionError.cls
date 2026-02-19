@@ -19,19 +19,20 @@ block-level on error undo, throw.
 class OpenEdge.ABLUnit.Runner.ExpectedExceptionError
 serializable
 inherits AppError:
-    
+
     /* The expected error's type name */
     define public property Expected as character no-undo
         get.
         private set.
-    
+
     /* Constructor
-       
+
        @param character The expected error type name. */
     constructor public ExpectedExceptionError(input pExpected as character):
         super(substitute('No exception is raised but expecting &1', pExpected), 0).
-        
-        assign this-object:Expected = pExpected.
+
+        assign 
+            this-object:Expected = pExpected.
     end constructor.
-    
+
 end class.

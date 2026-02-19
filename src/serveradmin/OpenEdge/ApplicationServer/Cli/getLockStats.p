@@ -84,7 +84,7 @@ repeat:
         assign cConnDetail = hConnDetFld:buffer-value().
         if num-entries(cConnDetail, ":") ge 4 then
             assign
-                iConnectPID = integer(entry(3, cConnDetail, ":"))
+                iConnectPID = int64(entry(3, cConnDetail, ":"))
                 iSessionID = if entry(4, cConnDetail, ":") begins "AS-" and num-entries(entry(4, cConnDetail, ":"), "-") gt 1
                              then integer(entry(2, entry(4, cConnDetail, ":"), "-")) else ?
                 .

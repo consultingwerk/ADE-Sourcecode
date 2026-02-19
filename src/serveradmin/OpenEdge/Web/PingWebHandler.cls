@@ -67,10 +67,12 @@ class OpenEdge.Web.PingWebHandler inherits WebHandler:
         
         // ONLY allow instance/webapp/web/<template-uri> and nothing after
         if not trim(pReq:PathInfo, '/':u) eq trim(pReq:UriTemplate, '/':u) then
-            return integer(StatusCodeEnum:NotFound).                // 404
+            {&_proparse_ prolint-nowarn(overflow)}
+            return integer(StatusCodeEnum:NotFound:GetValue()).                // 404
         
         if not CanAcceptContentType(pReq, 'application/json':u) then
-            return integer(StatusCodeEnum:UnsupportedMediaType).    // 415
+            {&_proparse_ prolint-nowarn(overflow)}
+            return integer(StatusCodeEnum:UnsupportedMediaType:GetValue()).    // 415
         
         assign resp             = new WebResponse(StatusCodeEnum:OK)
                resp:ContentType = 'application/json':u
@@ -87,7 +89,7 @@ class OpenEdge.Web.PingWebHandler inherits WebHandler:
             if not valid-object(ass) then
                 assign ass = new AppServerStatus().
             
-            assign pingData       = new JsonObject().
+            assign pingData       = new JsonObject()
                    statusResponse = ass:ServerStatus()
                    .
             // separate ASSIGN for the Parse() operation to avoid trapping errors
@@ -112,7 +114,8 @@ class OpenEdge.Web.PingWebHandler inherits WebHandler:
                                                     pReq:RemoteAddress,
                                                     pReq:RemoteHost,
                                                     pReq:RemotePort), new SendExceptionError(StatusCodeEnum:InternalServerError, pingError)).
-                return integer(StatusCodeEnum:InternalServerError).     // 500
+                {&_proparse_ prolint-nowarn(overflow)}
+                return integer(StatusCodeEnum:InternalServerError:GetValue()).     // 500
             end catch.
             catch pingstop as Progress.Lang.Stop:
                 // Stop conditions are treated as a request timeout (eg. in the case of a stop-after).
@@ -121,7 +124,8 @@ class OpenEdge.Web.PingWebHandler inherits WebHandler:
                                                     pReq:RemoteAddress,
                                                     pReq:RemoteHost,
                                                     pReq:RemotePort), new SendExceptionError(StatusCodeEnum:RequestTimeOut, pingstop)).
-                return integer(StatusCodeEnum:RequestTimeOut).          // 408
+                {&_proparse_ prolint-nowarn(overflow)}
+                return integer(StatusCodeEnum:RequestTimeOut:GetValue()).          // 408
             end catch.
         end.
         
@@ -145,11 +149,13 @@ class OpenEdge.Web.PingWebHandler inherits WebHandler:
     end method.
     
     method override protected integer HandleNotAllowedMethod(input pRequest as IWebRequest):
-        return integer(StatusCodeEnum:MethodNotAllowed).    // 405
+        {&_proparse_ prolint-nowarn(overflow)}
+        return integer(StatusCodeEnum:MethodNotAllowed:GetValue()).    // 405
     end method.
 
     method override protected integer HandleNotImplemented(input pRequest as IWebRequest):
-        return integer(StatusCodeEnum:NotImplemented).      // 501
+        {&_proparse_ prolint-nowarn(overflow)}
+        return integer(StatusCodeEnum:NotImplemented:GetValue()).      // 501
     end method.
     
 end class.

@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000-2025 by Progress Software Corporation. All rights *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -13,6 +13,7 @@ This is useful if you need a workfile to temporarily hold some,
 but not all, of the fields in a database file. */
 /*
 HISTORY:
+    tmasood     09/03/25    Remove use of ENCODE
     mcmann      10/15/03    Added initial value for Datetime and Datetime-tz
     mcmann      09/20/03    Changed size of Data type field.
     mcmann      03/03/03    Removed LOB fields from work-table definition
@@ -72,7 +73,7 @@ FOR EACH _Field OF _File WHERE _Field._Data-type <> "BLOB"
   IF _dtype = 5 THEN
     lin = lin + " DECIMALS " + STRING(_Decimals).
 
-  IF ENCODE(_Format) <> ENCODE(LC(_Format)) /* match u/l case */
+  IF COMPARE(_Format, "NE", LC(_Format), "CASE-SENSITIVE") /* match u/l case */
     OR (_dtype = 1 AND _Format <> "x(8)")         /* character */
     OR (_dtype = 2 AND _Format <> "99/99/99")     /* date */
     OR (_dtype = 3 AND _Format <> "yes/no")       /* logical */

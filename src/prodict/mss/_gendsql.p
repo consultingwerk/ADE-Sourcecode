@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005-2024                by Progress Software        *
+* Copyright (C) 2005-2025                by Progress Software        *
 * Corporation. All rights reserved.  Prior versions of this work may *
 * contain portions contributed by participants of Possenet.          *
 *                                                                    *
@@ -60,7 +60,8 @@
 			  08/20/18 vprasad ODIA-1951 -  ODBC Driver 17 for SQL Server certification
               11/11/20 vmaganti Replacing old sequence generation with Native sequence (OCTA-21826) 
               01/31/24 kberlia  Fixed issue for not considering width option in DSRVR-PRECISION value While generating DF using delta SQL utility (OCTA-56151).
-
+              08/14/25 fernando Cleanup of code supporting large sequences
+              
 If the user wants to have a DEFAULT value of blank for VARCHAR fields, 
 an environmental variable BLANKDEFAULT can be set to "YES" and the code will
 put the DEFAULT ' ' syntax on the definition for a new field. 
@@ -149,7 +150,6 @@ DEFINE VARIABLE recidident    AS CHARACTER             NO-UNDO.
 DEFINE VARIABLE dftname       AS CHARACTER             NO-UNDO.
 DEFINE VARIABLE unsptdt       AS LOGICAL               NO-UNDO.
 DEFINE VARIABLE qualname      AS CHARACTER             NO-UNDO.
-DEFINE VARIABLE large_seq     AS LOGICAL               NO-UNDO.
 DEFINE VARIABLE lnewSeq       AS LOGICAL               NO-UNDO.
 DEFINE VARIABLE dfLongType    AS CHARACTER             NO-UNDO.
 DEFINE VARIABLE seqt_prefix   AS CHARACTER             NO-UNDO INITIAL "_SEQT_". /* new sequence generator for MSS */
@@ -1049,8 +1049,7 @@ PROCEDURE write-seq-sql:
 						  )
         limit = 		  ( IF maxval <> ?
 							THEN maxval
-							ELSE (IF large_seq 
-							THEN "9223372036854775807" ELSE "2147483647")
+							ELSE "9223372036854775807"
 					      ).
      PUT STREAM tosql UNFORMATTED		 
                "  EXEC(' CREATE SEQUENCE " forname " START WITH " STRING (init)
@@ -1070,7 +1069,7 @@ PROCEDURE write-seq-sql:
         PUT STREAM tosql UNFORMATTED "(seq_name, initial_value, increment_value, upper_limit, cycle)" SKIP.
         PUT STREAM tosql UNFORMATTED "values('" forname "'," init "," incre ",".
         IF maxval = ? THEN
-           PUT STREAM tosql UNFORMATTED (IF large_seq THEN "9223372036854775807," ELSE "2147483647,") cyc ")" SKIP.
+           PUT STREAM tosql UNFORMATTED "9223372036854775807," cyc ")" SKIP.
 	ELSE
            PUT STREAM tosql UNFORMATTED  maxval "," cyc ")" SKIP. 
     END.
@@ -2654,11 +2653,6 @@ IF NOT batch_mode THEN
  ASSIGN SESSION:IMMEDIATE-DISPLAY = yes.
 
 RUN adecomm/_setcurs.p ("WAIT").
-
-/* find out if source db supports large sequences */
-FIND FIRST _Db WHERE _db._db-name = ?.
-IF _DB._Db-res1[1] = 1 THEN
-   large_seq = YES.
 
 FIND FIRST _Db WHERE _db._db-name = mss_dbname NO-ERROR.
 IF AVAILABLE(_Db) THEN DO:

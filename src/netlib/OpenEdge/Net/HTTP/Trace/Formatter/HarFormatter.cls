@@ -41,7 +41,7 @@ implements ITraceFormatter:
 
         @param ExchangeData[] An array of trace data
         @return IMemptrHolder The formatted representation of the trace data */
-    method public IMemptrHolder Format(input pTraceData as ExchangeData extent):
+    method public IMemptrHolder Format (input pTraceData as ExchangeData extent):
         var ByteBucket bb = ByteBucket:Instance().
         var JsonObject data, logData, creator, curEntry, curItem.
         var JsonArray entries.
@@ -75,7 +75,6 @@ implements ITraceFormatter:
             assign curEntry = new JsonObject().
             entries:Add(curEntry).
             curEntry:Add('startedDateTime':u, iso-date(pTraceData[loop]:StartedAt)).
-            //TODO
             curEntry:Add('time':u,            GetTime(pTraceData[loop])).
             curEntry:Add('serverIPAddress':u, pTraceData[loop]:ServerHost).
             curEntry:Add('connection':u,      substitute('&1:&2', pTraceData[loop]:ClientHost, pTraceData[loop]:ClientPort)).
@@ -157,7 +156,7 @@ implements ITraceFormatter:
 
         @param character a standard query string
         @param JsonArray An array of objects representing the query string. May be null. */
-    method private JsonArray GetQueryString(input pData as IStringKeyedMap):
+    method private JsonArray GetQueryString (input pData as IStringKeyedMap):
         var IIterator iterator.
         var IMapEntry mapEntry.
         var JsonArray arrData.
@@ -211,9 +210,9 @@ implements ITraceFormatter:
 
         @param character[] An array of header values
         @param JsonObject The parent JSON object. */
-    method private void AddHeaders(input pData as character extent,
-                                   input pParent as JsonObject,
-                                   input pAddRedirectUrl as logical):
+    method private void AddHeaders (input pData as character extent,
+                                    input pParent as JsonObject,
+                                    input pAddRedirectUrl as logical):
         var JsonArray arrData.
         var integer loop, cnt, pos, size.
         var JsonObject itemData.
@@ -271,7 +270,7 @@ implements ITraceFormatter:
 
         @param character[] An array of cookie values
         @return JsonArray  An array of objects representing the cookie. May be null. */
-    method private JsonArray GetCookies(input pData as character extent):
+    method private JsonArray GetCookies (input pData as character extent):
         var JsonArray arrData.
         var integer loop, cnt.
         var JsonObject itemData.
@@ -324,10 +323,10 @@ implements ITraceFormatter:
         @param character The value of the content-type header
         @param JsonObject The parent JSON object
         @param character The property name for the body data. */
-    method private void AddBody(input pBody as IMemptrHolder,
-                                input pContentType as character,
-                                input pParent as JsonObject,
-                                input pPropertyName as character):
+    method private void AddBody (input pBody as IMemptrHolder,
+                                 input pContentType as character,
+                                 input pParent as JsonObject,
+                                 input pPropertyName as character):
         var int64 size.
         var JsonObject bodyData.
 
@@ -361,7 +360,7 @@ implements ITraceFormatter:
 
         @param ExchangeData
         @return integer The elapsed time. Zero or greater. */
-    method private int64 GetTime(input pData as ExchangeData):
+    method private int64 GetTime (input pData as ExchangeData):
         var int64 elapsed = 0.
 
         if not valid-object(pData) then

@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013,2016,2018,2021-2023,2025 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2013, 2016, 2018, 2021-2024 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : TimeStamp

@@ -1,5 +1,5 @@
 /************************************************************************
-* Copyright (C) 2006,2013,2020,2021 by Progress Software Corporation.   *
+* Copyright (C) 2006,2013,2020,2021,2025 by Progress Software Corporation.   *
 * All rights reserved. Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                              *
 *                                                                       *
@@ -26,7 +26,7 @@ History:
     kberlia  11/23/20  Added support to store type II area only in the default area of db objects drop down.
     tmasood  12/04/20  Added the check for default area in pre OE 12.4
     tmasood  02/25/21  Changed return value of DBRESTRICTIONS function
-    
+    fernando 08/13/25  Cleanup of large key/sequence checks
 ----------------------------------------------------------------------------*/
 &GLOBAL-DEFINE WIN95-BTN YES
 
@@ -120,31 +120,14 @@ DO:
     else
             s_Db_CDC_Enabled = "not enabled".
 
-    /* For large key support, we look at the _Database-feature table.
-       For large sequence - if 'Large Keys' is not a valid feature, than this
-       is a pre-10.1B db in which case large sequences is not
-       applicable. Otherwise we look at db-res1[1].
-    */
-    FIND DICTDB._Database-feature WHERE dictdb._Database-feature._DBFeature_Name = "Large Keys" NO-LOCK NO-ERROR.
-    IF AVAILABLE DICTDB._Database-feature THEN DO:
-        if can-find(first dictdb._tenant) then 
-           s_Db_Multi_Tenancy = "enabled".     
-        else 
-           s_Db_Multi_Tenancy = "not enabled".
-        
-        IF DICTDB._Database-feature._DBFeature_Enabled = "1" THEN
-           s_Db_Large_Keys = "enabled".
-        ELSE
-           s_Db_Large_Keys = "not enabled".
-
-         IF hBuffer_DB::_db-res1(1) = 1 THEN 
-             s_Db_Large_Sequence = "enabled".
-         ELSE
-             s_Db_Large_Sequence = "not enabled".
-    END.
-    ELSE 
-        ASSIGN s_Db_Large_Keys = "n/a"
-               s_Db_Large_Sequence = "n/a".
+    if can-find(first dictdb._tenant) then 
+       s_Db_Multi_Tenancy = "enabled".     
+    else 
+       s_Db_Multi_Tenancy = "not enabled".
+    
+    /* These are always enabled for an OpenEdge db*/
+    ASSIGN s_Db_Large_Keys = "enabled".
+           s_Db_Large_Sequence = "enabled".
 END.
 ELSE
     ASSIGN s_Db_Multi_Tenancy = "n/a"
@@ -224,7 +207,7 @@ define input parameter pcObject as character no-undo.
 define variable cAreaList as character no-undo.
 define variable cEmpty    as character initial "" no-undo.
   
-    run prodict/pro/_pro_area_list(if pcObject = "Table" then ? else recid(dictdb._file),{&INVALID_AREAS},s_Db_Table_Area:DELIMITER in frame dbprops,pcObject + ",typeII", output cAreaList).
+    run prodict/pro/_pro_area_list.p(if pcObject = "Table" then ? else recid(dictdb._file),{&INVALID_AREAS},s_Db_Table_Area:DELIMITER in frame dbprops,pcObject + ",typeII", output cAreaList).
     
     case pcObject:
         when "Table" then do:

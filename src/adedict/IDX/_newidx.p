@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2008-2014,2020,2022 by Progress Software Corporation. All *
+* Copyright (C) 2008-2014,2020,2022,2025 by Progress Software Corporation. All *
 * rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -48,6 +48,7 @@ History:
     fernando 06/26/08 Removed encryption area from list 
     Kberlia  10/29/20 Added Argument in _pro_area_list.p to support default area. 
     tmasood  10/14/22 Removed reference of _isdata.i
+    fernando 08/13/25 Fixing .p call
 ----------------------------------------------------------------------------*/
 
 
@@ -103,7 +104,7 @@ procedure FillArea:
     define variable cEmpty    as character no-undo. 
     if plShow then 
     do:
-       run prodict/pro/_pro_area_list(recid(x_File),{&INVALID_AREAS},s_Idx_Area:DELIMITER in frame newidx,"Index", output cAreaList).
+       run prodict/pro/_pro_area_list.p(recid(x_File),{&INVALID_AREAS},s_Idx_Area:DELIMITER in frame newidx,"Index", output cAreaList).
        assign
           s_Idx_Area:list-items in frame newidx = cAreaList
           s_Idx_Area:screen-value in frame newidx = s_Idx_Area:entry(1) in frame newidx 

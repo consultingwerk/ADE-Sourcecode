@@ -58,4 +58,3 @@ case (arg_arr_idx_{&ARG-TYPE} + 1):   // +1 because the variable starts at 0
     {OpenEdge/Web/DataObject/doh_execute_setparam.i &IDX=32 &ARG-TYPE="{&ARG-TYPE}" &ARG-VALUE-TYPE="{&ARG-VALUE-TYPE}" &PARAM-IDX="{&PARAM-IDX}" &OPER-ARG="{&OPER-ARG}" &PARAM-LIST="{&PARAM-LIST}" &SWITCH-VALUE="{&SWITCH-VALUE}" }
     otherwise undo, throw new OpenEdge.Core.System.ArgumentError('Too many values specified for array argument', {&OPER-ARG}:Parameter:ABLType).
 end case.   /* array: index to use */
-            

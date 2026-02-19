@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2000,2006 by Progress Software Corporation. All rights *
+* Copyright (C) 2000,2006-2025 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -7,6 +7,9 @@
 
 /* Progress Lex Converter 7.1A->7.1B Version 1.11
    History:  D. McMann 10/23/02 Changed BLANK to PASSWORD-FIELD
+             Talha     04/16/25 Replaced ENCODE with GENERATE-PASSWORD-HASH to support FIPS
+             Talha     05/14/25 Allowed _Password to have value greater than 16 characters
+             Talha     05/28/25 Allowed SysAdmin to update password from UI
  
  */
 
@@ -36,7 +39,7 @@ DEFINE VARIABLE new-pwd     AS CHARACTER   NO-UNDO.
 
 FORM
   SKIP({&TFM_WID})
-  DICTDB._User._Password {&STDPH_FILL} PASSWORD-FIELD      AT 2 LABEL "New Password"
+  DICTDB._User._Password {&STDPH_FILL} PASSWORD-FIELD      AT 2 VIEW-AS FILL-IN SIZE 34 BY 1 FORMAT "X(80)" LABEL "New Password"
   "(case-sensitive)"
   {prodict/user/userbtns.i}
   WITH FRAME usr_please 
@@ -62,11 +65,13 @@ ON WINDOW-CLOSE OF FRAME usr_please
 
 /*==========================Mainline Code================================*/
 
-/*RUN prodict/_dctadmn.p (INPUT USERID(user_dbname),OUTPUT answer).*/
+IF user_env[43] <> "" THEN DO:
+    RUN prodict/_dctadmn.p (INPUT USERID(user_dbname),OUTPUT answer).
+    IF NOT answer                THEN msg-num = 3. /* secu admin? */
+END.
 IF dict_rog                  THEN msg-num = 10. /* r/o mode   */
 IF NOT CAN-FIND(DICTDB._User WHERE DICTDB._User._Userid = USERID(user_dbname))
                              THEN msg-num = 4. /* not in user */
-/*IF NOT answer              THEN msg-num = 3. /* secu admin? */*/
 IF USERID(user_dbname) = ""  THEN msg-num = 2. /* userid set? */
 IF user_dbtype <> "PROGRESS" THEN msg-num = 1. /* dbtype okay */
 
@@ -89,7 +94,7 @@ DO ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE:
   PROMPT-FOR _Password btn_OK btn_Cancel {&HLP_BTN_NAME} WITH FRAME usr_please.
 
   new-pwd = INPUT FRAME usr_please _Password.
-  new-pwd_enc = ENCODE(new-pwd).
+  new-pwd_enc = GENERATE-PASSWORD-HASH(new-pwd,?,"_oeuser-uphA1").
   canned = FALSE.
 END.
 HIDE FRAME usr_please NO-PAUSE.
@@ -97,7 +102,7 @@ HIDE FRAME usr_please NO-PAUSE.
 IF canned THEN RETURN.
 
 /* Verify the password by having user retype it */
-IF new-pwd_enc <> ENCODE("") THEN DO:
+IF new-pwd <> "" THEN DO:
   RUN "prodict/user/_usrpwd2.p" (INPUT new-pwd_enc, OUTPUT answer).
   if answer = NO THEN DO:
     MESSAGE new_lang[5] SKIP /* didn't type same passwd each time */
@@ -108,15 +113,23 @@ IF new-pwd_enc <> ENCODE("") THEN DO:
   ELSE IF answer = ? THEN RETURN.  /* user cancelled out */
 END.
 
-FIND DICTDB._User WHERE DICTDB._User._Userid = USERID(user_dbname).
+IF user_env[43] = "" THEN
+  FIND DICTDB._User WHERE DICTDB._User._Userid = USERID(user_dbname).
+ELSE
+  FIND DICTDB._User WHERE DICTDB._User._Userid = user_env[43].
 DO ON ERROR UNDO, LEAVE:
   DICTDB._User._Password = new-pwd_enc.
   
   IF new-pwd = "" THEN /* note: user xxx has no passwd */
     MESSAGE new_lang[7] + " ~"" + _Userid + "~" " + new_lang[8]
 	    VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
-  ELSE
-    MESSAGE new_lang[9]	/* password was set */
-	    VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+  ELSE DO:
+    IF user_env[43] = "" THEN
+      MESSAGE new_lang[9]	/* password was set */
+	      VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+    ELSE
+      MESSAGE "Password is changed for " + _Userid
+        VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+  END.
 END.
 RETURN.

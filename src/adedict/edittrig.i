@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2006,2010,2014,2020 by Progress Software Corporation. All   *
+* Copyright (C) 2006,2010,2014,2020,2025 by Progress Software Corporation. All   *
 * rights reserved.  Prior versions of this work may contain portions   *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -26,7 +26,8 @@ Date Created: 02/04/92
                              table properties.
           05/24/2005 Added GO trigger and changed choose trigger to s_btn_cancel in dbprops
           06/08/2006 fernando Added trigger for s_btn_toint64 - support for int64
-          10/29/2020 tmasood  Added default area support	      
+          10/29/2020 tmasood  Added default area support
+          08/13/2025 fernando Fixing .p call
 ----------------------------------------------------------------------------*/
 define variable AreaList as character no-undo.
 define variable lNoArea as logical no-undo.
@@ -268,7 +269,7 @@ do:
     end.
     else do:
 	     /*cannot change area of index */
-        run prodict/pro/_pro_area_list(recid(dictdb._File),{&INVALID_AREAS},s_Idx_Area:DELIMITER in frame idxprops,"Index", output cAreaList).
+        run prodict/pro/_pro_area_list.p(recid(dictdb._File),{&INVALID_AREAS},s_Idx_Area:DELIMITER in frame idxprops,"Index", output cAreaList).
         assign
             s_Idx_Area:list-items in frame idxprops = cAreaList
             s_Idx_Area:screen-value in frame idxprops = s_Idx_Area

@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2015-2018,2020,2022 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2018,2020,2022,2024 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
    Purpose     : Keep a list of customer specified handlers and invoke
@@ -142,7 +142,8 @@ implements ISupportLogging
             logger:Error(substitute('Request timeout (&1) for "&2 &3" using handler &4',
                                     s:GetClass():TypeName, httpMethod, requestPath, pcHandlerName)).
             // All stops are timeouts
-            return integer(StatusCodeEnum:RequestTimeOut).
+            {&_proparse_ prolint-nowarn(overflow)}
+            return integer(StatusCodeEnum:RequestTimeOut:GetValue()).
         end catch.
         // Progress.Lang.StopError is raised for errors, not stops, so should be handled by the below catch block, since
         // it inherits P.L.Error. For example, if the code tries to run a non-existent .P, a StopError is raised.
@@ -151,7 +152,8 @@ implements ISupportLogging
                                      httpMethod, requestPath, pcHandlerName),
                          e).
             // We're not sure exactly what went wrong; send a general error
-            return integer(StatusCodeEnum:InternalServerError).
+            {&_proparse_ prolint-nowarn(overflow)}
+            return integer(StatusCodeEnum:InternalServerError:GetValue()).
         end catch.
     end method.
 

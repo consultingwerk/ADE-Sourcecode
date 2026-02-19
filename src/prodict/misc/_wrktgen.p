@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006-2011 by Progress Software Corporation. All      *
+* Copyright (C) 2006-2011,2025 by Progress Software Corporation. All      *
 * rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -207,6 +207,8 @@ If working with an Oracle Database and the user wants to have a DEFAULT value of
   sdash    05/04/14   Support for native sequence generator for MSS.
   sdash    08/04/14   PSC00307888 - Fix issue with MS SQL Server native sequence qualifier and owner
   vprasad  10/30/2019 Changed the master.dbo.syslogins to testdb.dbo.syslogins to avoid the Database lock error while running tdriver tests parallel
+  kberlia  01/08/2023 Modified the code to generate the correct drop table script while doing migration sql when MSS DB user name having "-" character.
+  fernando 08/14/2025 Cleanup of code supporting large sequenes
 */
 
 { prodict/dictvar.i }
@@ -342,7 +344,6 @@ DEFINE VARIABLE slash               AS INTEGER    NO-UNDO.
 DEFINE VARIABLE unsprtdt            AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE dot                 AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cTmpFmt             AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE large_seq           AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE lUniExpand          AS LOGICAL    NO-UNDO INITIAL FALSE.
 DEFINE VARIABLE lnewSeq             AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE seqt_prefix         AS CHARACTER  NO-UNDO INITIAL "_SEQT_".
@@ -906,7 +907,7 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
           comment_chars "if (select name from sysobjects " SKIP 
           comment_chars "    where name = '" n1 "' and type = 'U' and " SKIP
           comment_chars "    uid = (select uid from sysusers " SKIP  
-          comment_chars "            where sid = (select sid from " user_env[26] ".dbo.syslogins" SKIP 
+          comment_chars "            where sid = (select sid from " if index(user_env[26],"-") > 0 then quoter(user_env[26]) else user_env[26] ".dbo.syslogins" SKIP 
           comment_chars "                         where UPPER(name) = UPPER('" user_env[26] "'))))" skip 
           comment_chars "   is not NULL" SKIP           
           comment_chars "    drop table " n1 SKIP
@@ -2811,10 +2812,7 @@ PUT STREAM CODE UNFORMATTED
      "       " skip.
 
 IF doseq THEN DO:
-  /* find out if source db supports large sequences */
-  FIND FIRST DICTDB._Db WHERE RECID(_Db) = drec_db.
-  IF DICTDB._DB._Db-res1[1] = 1 THEN
-     large_seq = YES.
+  
 
   /* clear it out */
   ASSIGN comment_chars = "".
@@ -3093,7 +3091,7 @@ IF doseq THEN DO:
                   )
         limit =  ( IF DICTDB._Sequence._Seq-Max <> ?
                    THEN STRING(DICTDB._Sequence._Seq-Max)
-                   ELSE (IF large_seq THEN "9223372036854775807" ELSE "2147483647")
+                   ELSE "9223372036854775807" 
                  ).
    /*
         PUT STREAM CODE UNFORMATTED
@@ -3153,7 +3151,7 @@ IF doseq THEN DO:
                   )
           limit = ( IF DICTDB._Sequence._Seq-Max <> ?
                    THEN STRING(DICTDB._Sequence._Seq-Max)
-                   ELSE (IF large_seq THEN "9223372036854775807" ELSE "2147483647")
+                   ELSE "9223372036854775807"
                  ).
 
         PUT STREAM CODE UNFORMATTED
@@ -3212,7 +3210,7 @@ IF doseq THEN DO:
        IF DICTDB._Sequence._Seq-Incr > 0 THEN
          limit = ( IF DICTDB._Sequence._Seq-Max <> ?
                    THEN STRING(DICTDB._Sequence._Seq-Max)
-                   ELSE (IF large_seq THEN "9223372036854775807" ELSE "2147483647")
+                   ELSE "9223372036854775807"
                  ).
        ELSE
          limit = ( IF DICTDB._Sequence._Seq-Min <> ?
@@ -3759,7 +3757,7 @@ IF doseq THEN DO:
               )
           limit = ( IF DICTDB._Sequence._Seq-Max <> ?
                   THEN STRING(DICTDB._Sequence._Seq-Max)
-                  ELSE (IF large_seq THEN "9223372036854775807" ELSE "2147483647")
+                  ELSE "9223372036854775807"
               ).
 
       /* If the initial value is some how greater than the current value

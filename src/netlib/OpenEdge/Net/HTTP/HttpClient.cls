@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2014-2017, 2019, 2021-2023 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014-2017,2019,2021-2023,2025 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : HttpClient
@@ -410,7 +410,7 @@ implements IHttpClient, ISupportInitialize, ISupportLogging, IAdaptable:
                request timeouts must be handled by the client library */
             moWwwLib:Execute(poRequest, poResponse).
 
-            assign rRequestHash[1] = poRequest:ContentMD5.
+            assign rRequestHash[1] = poRequest:ContentDigest.
 
             /* Check for redirects, auth and friends */
             if ProcessStatusAction(poRequest, poResponse) then

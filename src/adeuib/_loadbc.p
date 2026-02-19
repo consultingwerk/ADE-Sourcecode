@@ -24,8 +24,8 @@ Author: D. Ross Hunter
 Date Created:  1995
 Updated:	1/98 SLK Added new param to _fldinfo.p
 05/31/21 tmasood   Report error when field name is changed
-10/22/24 tmasood Fixed the issue when multiple dbs are connected
-11/05/24 tmasood Skip the error message for additional field(s) of TT
+09/18/24 tmasood Fixed the issue when multiple dbs are connected
+10/24/24 tmasood Skip the error message for additional field(s) of TT
 
 ---------------------------------------------------------------------------- */
 {adeuib/uniwidg.i}             /* UIB Temp-Tables                            */
@@ -77,7 +77,7 @@ IF _BC._DBNAME = "Temp-Tables" THEN DO:
     FIND FIRST _TT WHERE _TT._p-recid = RECID(_P) AND _TT._LIKE-TABLE = _BC._TABLE.
   ASSIGN tmp-db = _TT._LIKE-DB
          tmp-tb = _TT._LIKE-TABLE
-		 cAddnFlds = IF AVAILABLE _TT AND _TT._ADDITIONAL_FIELDS <> "" THEN _TT._ADDITIONAL_FIELDS ELSE "".
+	 cAddnFlds = IF AVAILABLE _TT AND _TT._ADDITIONAL_FIELDS <> "" THEN _TT._ADDITIONAL_FIELDS ELSE "".
 END.  /* Set up for temp-tables */
 ELSE
   ASSIGN tmp-db = _BC._DBNAME

@@ -1,35 +1,35 @@
 /************************************************
 Copyright (c)  2013 by Progress Software Corporation. All rights reserved.
-*************************************************/ 
- /*------------------------------------------------------------------------
-    File        : ClassInfo
-    Purpose     : Stores the information of the class and annotation preceding the class
-    Syntax      : 
-    Description : 
-    Author(s)   : hgarapat
-    Created     : Fri Jul 13 14:51:10 IST 2012
-    Notes       : 
-  ----------------------------------------------------------------------*/
+*************************************************/
+/*------------------------------------------------------------------------
+   File        : ClassInfo
+   Purpose     : Stores the information of the class and annotation preceding the class
+   Syntax      :
+   Description :
+   Author(s)   : hgarapat
+   Created     : Fri Jul 13 14:51:10 IST 2012
+   Notes       :
+ ----------------------------------------------------------------------*/
 
-USING OpenEdge.Core.Collections.Array.
+using OpenEdge.Core.Collections.Array.
 
-CLASS OpenEdge.ABLUnit.Reflection.ClassInfo: 
+class OpenEdge.ABLUnit.Reflection.ClassInfo:
 
-	DEFINE PRIVATE VARIABLE className AS CHARACTER NO-UNDO.
-	DEFINE PUBLIC PROPERTY annotationsInfo AS Array NO-UNDO GET. SET.
-	
-	CONSTRUCTOR PUBLIC ClassInfo (INPUT pcClassName AS CHARACTER, INPUT poAnnotationsInfo AS Array):
-        	className = pcClassName.
-        	THIS-OBJECT:annotationsInfo = poAnnotationsInfo.	
-	END CONSTRUCTOR.
+    define private variable className as character no-undo.
+    define public property annotationsInfo as Array no-undo get. set.
 
-	METHOD PUBLIC CHARACTER getClassName(  ):
-		RETURN className.
-	END METHOD.    
+    constructor public ClassInfo (input pcClassName as character, input poAnnotationsInfo as Array):
+        className = pcClassName.
+        this-object:annotationsInfo = poAnnotationsInfo.
+    end constructor.
+
+    method public character getClassName(  ):
+        return className.
+    end method.
 
 
-    METHOD PUBLIC Array getAnnotations(  ):
-        RETURN annotationsInfo.
-    END METHOD.    
+    method public Array getAnnotations(  ):
+        return annotationsInfo.
+    end method.
 
-END CLASS.
+end class.

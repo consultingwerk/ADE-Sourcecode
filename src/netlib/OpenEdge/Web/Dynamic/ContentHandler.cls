@@ -1,11 +1,6 @@
-/*
- * Copyright (c) 2016, 2021-2022 by Progress Software Corporation.
- * 14 Oak Park Bedford, MA 01730.  All rights reserved.
- *
- * No part of this program or document may be reproduced
- * in  any form or by any means without permission in
- * writing from Progress Software Corporation.
- */
+/************************************************
+Copyright (c) 2016,2021-2022,2024 by Progress Software Corporation. All rights reserved.
+*************************************************/
 
 using OpenEdge.Net.FileTypeRegistry from propath.
 using OpenEdge.Net.HTTP.StatusCodeEnum from propath.
@@ -17,21 +12,21 @@ using OpenEdge.Web.WebResponseWriter from propath.
  * Content handler for Kendo UI Builder.
  * Serves content relative to registered handler path
  */
-class OpenEdge.Web.Dynamic.ContentHandler 
+class OpenEdge.Web.Dynamic.ContentHandler
     inherits WebHandler:
-        
+
     define private temp-table AllowedPath no-undo
         field Prefix as character.
-        
+
     constructor public ContentHandler():
         AddValidPath( "/pub":u ).
         AddValidPath( "/priv":u ).
     end constructor.
 
-    /* 
+    /*
      * Handle GET request.  Returns files from directory.
      */
-    method override protected integer HandleGet( 
+    method override protected integer HandleGet(
         input poRequest as OpenEdge.Web.IWebRequest ):
 
         define variable response      as WebResponse       no-undo.
@@ -39,10 +34,10 @@ class OpenEdge.Web.Dynamic.ContentHandler
         define variable cExt          as character         no-undo.
         define variable cFullPathName as character         no-undo.
         define variable cContentType  as character         no-undo.
-        
+
         cFullPathName = GetFilePathFromRequest( poRequest ).
-         
-        if cFullPathName <> ? and IsValidPath( poRequest ) then 
+
+        if cFullPathName <> ? and IsValidPath( poRequest ) then
         do:
             response = new WebResponse().
             response:StatusCode = 200.
@@ -50,66 +45,68 @@ class OpenEdge.Web.Dynamic.ContentHandler
 
             cExt = GetFileExtension( cFullPathName ).
             cContentType = FileTypeRegistry:Registry:Get( cExt ).
-            if cContentType <> ? then 
+            if cContentType <> ? then
             do:
                 response:ContentType = cContentType.
             end.
 
             writer = new WebResponseWriter( response ).
-            WriteFile( response, writer, cFullPathName ).                
+            WriteFile( response, writer, cFullPathName ).
         end.
-        else 
+        else
         do:
-            return integer( StatusCodeEnum:NotFound ).
+            {&_proparse_ prolint-nowarn(overflow)}
+            return integer(StatusCodeEnum:NotFound:GetValue()).
         end.
-                                
+
         writer:close().
-        
+
         return 0.
     end method.
-    
+
     /*
      * Add a path prefix to the list of allowed paths.
      * Paths are relative to WEB-INF and must start with /
      */
     method public void AddValidPath(
         input cPath as character ):
-            
+
         if cPath <> ? then
         do:
             create AllowedPath.
             AllowedPath.Prefix = cPath.
         end.
     end method.
-    
+
     /*
      * Check a list of path prefixes to see if this request is
      * for a file in a valid directory.
      */
     method protected logical IsValidPath(
         input poRequest as OpenEdge.Web.IWebRequest ):
-            
+
         define variable cPath    as character no-undo.
         define variable lAllowed as logical   no-undo initial false.
-        
+
         cPath = poRequest:PathInfo.
 
+        PATHBLK:
         for each AllowedPath:
             if cPath begins AllowedPath.Prefix then
             do:
                 lAllowed = true.
-                leave.
+                leave PATHBLK.
             end.
         end.
-        
+
         return lAllowed.
-        
+
     end method.
 
     /*
      * Extract from the request the full path to the requested file.
      */
-    method protected character GetFilePathFromRequest( 
+    method protected character GetFilePathFromRequest(
         input poRequest as OpenEdge.Web.IWebRequest ):
 
         define variable cDirectory as character no-undo.
@@ -119,15 +116,15 @@ class OpenEdge.Web.Dynamic.ContentHandler
         cFilePath = GetContentPath( poRequest ).
 
         file-info:file-name = cDirectory + cFilePath.
-        if index(file-info:file-type, "D":u) > 0 then 
+        if index(file-info:file-type, "D":u) > 0 then
         do:
             cFilePath = file-info:full-pathname + "/index.html":u.
             file-info:file-name = cFilePath.
-        end.             
+        end.
 
         return file-info:full-pathname.
     end method.
-    
+
     /*
      * Get the directory for the files served by the handler
      */
@@ -141,7 +138,7 @@ class OpenEdge.Web.Dynamic.ContentHandler
 
         return cDirectory + "/WEB-INF":u.
     end method.
-    
+
     /*
      * Get the path for the file to be served by the handler
      */
@@ -150,17 +147,17 @@ class OpenEdge.Web.Dynamic.ContentHandler
 
         return poRequest:PathInfo.
     end method.
-    
-    /* 
+
+    /*
      * Get the file name extension
-     */         
+     */
     method private character GetFileExtension( cPathName as character ):
         define variable cExt as character no-undo.
         define variable idx  as integer   no-undo.
 
         // Check file extension
         idx = r-index( cPathName, "." ).
-        if idx <> -1 then 
+        if idx <> -1 then
         do:
             cExt = substring( cPathName, idx + 1 ).
         end.
@@ -168,38 +165,38 @@ class OpenEdge.Web.Dynamic.ContentHandler
         return cExt.
     end method.
 
-    /* 
+    /*
      * Write file to the response stream
-     */         
+     */
     method private void WriteFile(
-        response as WebResponse, 
-        writer as WebResponseWriter, 
+        response as WebResponse,
+        writer as WebResponseWriter,
         cFullPathName as character):
 
         define variable mFile       as memptr no-undo.
-        define variable iFileLength as int64  no-undo.        
-        
+        define variable iFileLength as int64  no-undo.
+
         copy-lob file cFullPathName to mFile.
         iFileLength = get-size(mFile).
         {&_proparse_ prolint-nowarn(overflow)}
         response:ContentLength = int64(iFileLength).
-        writer:write(mFile, 1, iFileLength).                
+        writer:write(mFile, 1, iFileLength).
     end method.
 
-    /* 
+    /*
      * Handle methods that are marked as not allowed
      */
-    method override protected integer HandleNotAllowedMethod( 
-        input poRequest as OpenEdge.Web.IWebRequest ):
-        return integer( StatusCodeEnum:MethodNotAllowed ).
+    method override protected integer HandleNotAllowedMethod( input poRequest as OpenEdge.Web.IWebRequest ):
+        {&_proparse_ prolint-nowarn(overflow)}
+        return integer(StatusCodeEnum:MethodNotAllowed:GetValue()).
     end method.
 
-    /* 
+    /*
      * Handle methods that are not implemented
      */
-    method override protected integer HandleNotImplemented( 
-        input poRequest as OpenEdge.Web.IWebRequest ):
-        return integer( StatusCodeEnum:NotImplemented ).
+    method override protected integer HandleNotImplemented( input poRequest as OpenEdge.Web.IWebRequest ):
+        {&_proparse_ prolint-nowarn(overflow)}
+        return integer(StatusCodeEnum:NotImplemented:GetValue()).
     end method.
-                
+
 end class.

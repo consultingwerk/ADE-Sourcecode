@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006-2011,2014 by Progress Software Corporation. All *
+* Copyright (C) 2006-2011,2014,2025 by Progress Software Corporation. All *
 * rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -34,6 +34,7 @@ Date Created: 02/05/92
               02/22/08 fernando Adjust display data type length for Dsrv schemas
               04/15/09 fernando Support for BLOB for MSS
               06/03/09 sgarg    Support for CLOB for MSS
+              08/13/25 fernando Cleanup of is-pre-101b-db
 ----------------------------------------------------------------------------*/
 
 
@@ -189,9 +190,9 @@ ELSE
           s_btn_Fld_Format:HIDDEN IN {&FRAME} = NO.
    
 /* For Progress db's, allow user to change an integer field to int64 by 
-   displaying the button. But only for 10.1B and later dbs.
+   displaying the button.
 */
-IF ispro AND NOT is-pre-101b-db AND b_field._dtype = {&DTYPE_INTEGER} THEN DO:
+IF ispro AND b_field._dtype = {&DTYPE_INTEGER} THEN DO:
 
     ASSIGN s_btn_toint64:HIDDEN IN {&FRAME} = NO
            s_btn_toint64:SENSITIVE IN {&FRAME} = YES.

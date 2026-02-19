@@ -1,12 +1,12 @@
 /************************************************
-Copyright (c) 2014-2018, 2021, 2023 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014-2018,2021,2023,2025 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : Memptr
-    Purpose     : Object representation of an ABL primitive MEMPTR. 
+    Purpose     : Object representation of an ABL primitive MEMPTR.
     Author(s)   : pjudge
     Created     : Wed Apr 02 16:42:15 EDT 2014
-    Notes       : * The constructor with the memptr input is a deep copy/clone 
+    Notes       : * The constructor with the memptr input is a deep copy/clone
                     of the input memptr. The caller is responsible for cleanup
                     of that input memptr. If a shallow copy is desired, then the
                     (size, pointer-value) constructor should be used.
@@ -32,53 +32,53 @@ implements IMemptrHolder
          , IComparable<IMemptrHolder>
          , IHashable
 :
-    
+
     /**  the actual memptr under management here */
     define private variable mmValue as memptr no-undo.
-    
+
     /** Indicates whether the memptr will be destroyed/cleared when this object
         is destroyed. Default is TRUE. */
     define public property AutoDestroy as logical initial true no-undo get. set.
-    
+
     /** indicates whether the memory is being managed by  */
     define public property ExternalAllocation as logical no-undo get. private set.
-    
+
     /** A public representation of the memptr. */
     define final public property Value as memptr no-undo
         get():
             return mmValue.
         end get.
-    
+
     /** The size of the current memptr */
     define final public property Size as int64 no-undo
         get():
-            return get-size(mmValue). 
+            return get-size(mmValue).
         end get.
         set(input piSize as int64):
             if get-size(mmValue) eq 0 then
                 set-size(mmValue) = piSize.
         end set.
-    
+
     /* A pointer to the underlying/wrapped memptr */
     define final public property PointerValue as int64 no-undo
         get():
             return get-pointer-value(mmValue).
         end get.
-            
+
     /** Returns a new, empty/null Memptr */
     define static public property Empty as class Memptr no-undo
         get():
             return new Memptr(0).
         end get.
-    
+
     constructor protected Memptr():
         assign AutoDestroy = true
                ExternalAllocation = false.
     end constructor.
-    
+
     /** Constructor.
-    
-        @param int64 The pointer to memory represented by a memptr (via get-pointer-value). 
+
+        @param int64 The pointer to memory represented by a memptr (via get-pointer-value).
         @param int64 The size of the memptr represented by the pointer value. */
     constructor public Memptr (input piPtr as int64, input piSize as int64):
         /* this-object(piSize). - don't use this constructor, it calls set-size() */
@@ -87,37 +87,48 @@ implements IMemptrHolder
         Assert:IsZeroOrPositive(piSize, 'Size').
         set-pointer-value(mmValue) = piPtr.
         set-size(mmValue) = piSize.
-        
+
         /* this is an externally-managed memptr. Caller is responsible for cleanup. */
         assign ExternalAllocation = true.
     end constructor.
-    
+
     /** Constructor.
-    
+
         @param int64 The size of the memptr to be created. */
     constructor public Memptr (input piSize as int64):
         this-object().
-        
+
         Assert:IsZeroOrPositive(piSize, 'Size').
         set-size(mmValue) = piSize.
     end constructor.
-    
+
     /** Deep copy/clone of the input memptr. Caller is responsible for cleanup. */
     constructor public Memptr (input pmValue as memptr):
         this-object(get-size(pmValue)).
-        
-        if get-size(pmValue) gt 0 then 
+
+        if get-size(pmValue) gt 0 then do:
             put-bytes(mmValue, 1) = pmValue.
+
+            /* This makes sure the byte order is the same since it is just a copy/clone
+               of the input memptr. The byte order is a flag.  It doesn’t affect the
+               copying of the data it self from one memptr to another. The flag is used
+               when reading numeric values for which byte order matters. It doesn’t
+               matter if you set the flag before or after copying the data. Only matters
+               that the flag is set before you start reading data out of the memptr,
+               using get-integer, get-long, etc.
+               */
+            set-byte-order(mmValue) = get-byte-order(pmValue).
+        end.
     end constructor.
-    
+
     /** Deep copy/clone of the input memptr. */
     constructor public Memptr (input prValue as raw):
         this-object(length(prValue)).
-        
+
         if length(prValue) gt 0 then
             put-bytes(mmValue, 1) = prValue.
     end constructor.
-    
+
     destructor public Memptr ():
         if this-object:AutoDestroy then
         do:
@@ -127,16 +138,16 @@ implements IMemptrHolder
                 set-pointer-value(mmValue) = 0.
             if get-size(mmValue) gt 0 then
                 set-size(mmValue) = 0.
-        end.            
+        end.
     end destructor.
-    
+
     /** Returns the pointer value of the current memptr.
-    
-        @param int64 The pointer to memory represented by this memptr */ 
+
+        @param int64 The pointer to memory represented by this memptr */
     method public int64 GetPointerValue ():
         return this-object:PointerValue.
     end method.
-    
+
     /** Clears/resets the current memptr. Clears the memory and resets it to
         its former size. */
     method public void Clear ():
@@ -149,38 +160,49 @@ implements IMemptrHolder
             set-size(mmValue) = iOldSize.
         end.
     end method.
-    
-    /** Returns a hash of the current contents of the memptr. This can be used
-        for comparing memptr values quickly.  
-        
+
+    /** Returns a hash of the current contents of the memptr.
+        Intended for comparing memptr values quickly.
+        Calls GetHash(<HashAlgorithmEnum>) with MD5 by default.
+
         @return raw The hashed value of the memptr. */
     method public raw GetHash ():
         return GetHash(HashAlgorithmEnum:MD5).
     end method.
 
     /** Returns a hash of the current contents of the memptr. This can be used
-        for comparing memptr values quickly.  
-        
+        for comparing memptr values quickly.
+        Note that use of certain hashing algorithms are disallowed while in
+        FIPS mode. To avoid a runtime error, if the algorithm is MD5 or SHA-1
+        in FIPS mode it will be automatically changed to use SHA-256 instead.
+
         @param HashAlgorithmEnum The algorithm to use for the message
         @return raw The hashed value of the memptr. */
     method public raw GetHash (input poAlgorithm as HashAlgorithmEnum):
         Assert:NotNull(poAlgorithm, 'Algorithm').
+
+        // Forces the use of SHA-256 as an alternative for MD5 or SHA-1 when FIPS mode is enabled.
+        // The goal here is to always return a valid hash for identification or equality comparison.
+        if security-policy:fips-mode and (poAlgorithm eq HashAlgorithmEnum:MD5 or poAlgorithm eq HashAlgorithmEnum:SHA-1) then
+            assign poAlgorithm = HashAlgorithmEnum:SHA-256.
+
+        /* hash of the internal memptr */
         return message-digest(string(poAlgorithm), mmValue).
     end method.
-    
+
     /** Returns a byte at the specified position
-        
+
         @param int64 The position at which to return the byte.
         @return integer The byte value at the current position */
-    method public integer GetByte (input piPos as int64):        
+    method public integer GetByte (input piPos as int64):
         Assert:IsPositive(piPos, 'Position').
-        
-        return get-byte(mmValue, piPos).        
+
+        return get-byte(mmValue, piPos).
     end method.
 
     /** Returns a string/character representation from a given start position,
         for the remainder of the data.
-    
+
         @param  int64 The start potision
         @return longchar The character/string data requested     */
     method public longchar GetString (input piStartPos as int64):
@@ -189,33 +211,33 @@ implements IMemptrHolder
 
     /** Returns a string/character representation a particular number of bytes,
         from a given start position.
-    
+
         @param  int64 The start potision
-        @param  int64 The size of the data (in bytes) to return 
+        @param  int64 The size of the data (in bytes) to return
         @return longchar The character/string data requested     */
     method public longchar GetString (input piStartPos as int64,
                                       input piSliceSize as int64):
         return GetString(piStartPos, piSliceSize, session:cpinternal, 'UTF-8':u).
     end method.
-        
+
     /** Returns a string/character representation a particular number of bytes,
         from a given start position.
-        
+
         @param  int64 The start potision
-        @param  int64 The size of the data (in bytes) to return 
+        @param  int64 The size of the data (in bytes) to return
         @param  character The target codepage for the character data
         @return longchar The character/string data requested     */
     method public longchar GetString (input piStartPos as int64,
                                       input piSliceSize as int64,
                                       input pcTargetCodepage as character):
-        return GetString(piStartPos, piSliceSize, session:cpinternal, pcTargetCodepage).                                         
+        return GetString(piStartPos, piSliceSize, session:cpinternal, pcTargetCodepage).
     end method.
-    
+
     /** Returns a string/character representation a particular number of bytes,
         from a given start position.
-    
+
         @param  int64 The start potision
-        @param  int64 The size of the data (in bytes) to return 
+        @param  int64 The size of the data (in bytes) to return
         @param  character The source codepage for the character data
         @param  character The target codepage for the character data
         @return longchar The character/string data requested     */
@@ -229,33 +251,33 @@ implements IMemptrHolder
         Assert:IsZeroOrPositive(piSliceSize, 'Slice size').
         Assert:NotNullOrEmpty(pcSourceCodepage, 'Source codepage').
         Assert:NotNullOrEmpty(pcTargetCodepage, 'Target codepage').
-        
+
         fix-codepage(lcData) = pcTargetCodepage.
-        
+
         if this-object:Size gt 0 then
             copy-lob from mmValue starting at piStartPos for piSliceSize
                      to lcData
                      convert
-                        source codepage pcSourceCodepage 
+                        source codepage pcSourceCodepage
                         target codepage pcTargetCodepage.
-        
-        return lcData.        
+
+        return lcData.
     end method.
-    
+
     /** Returns a Memptr instance containing the specified number of bytes,
         starting at the current Position.
-        
+
         @param int64 The number of bytes to return
         @return Memptr The complete data */
     method public class Memptr GetBytes (input piStartPos as int64):
         Assert:IsPositive(piStartPos, 'Start position').
-        
+
         return GetBytes(piStartPos, this-object:Size - piStartPos).
     end method.
-    
+
     /** Returns a Memptr instance containing the specified number of bytes,
         starting at the specified postition.
-    
+
         @param int64 The starting position
         @param int64 The number of bytes to return
         @return Memptr The complete bucket data */
@@ -263,111 +285,111 @@ implements IMemptrHolder
                                          input piSliceSize as int64):
         define variable mSlice as memptr no-undo.
         define variable oSlice as class Memptr no-undo.
-        
+
         Assert:IsPositive(piStartPos, 'Start position').
         Assert:IsPositive(piSliceSize, 'Slice size').
-        
+
         /* return an empty Memptr */
-        if    this-object:Size eq 0 
+        if    this-object:Size eq 0
            or piSliceSize eq 0 then
             oSlice = new Memptr(0).
         else
         do:
             set-size(mSlice) = piSliceSize.
-            
+
             assign mSlice = get-bytes(mmValue, piStartPos, piSliceSize)
                    oSlice = new Memptr(mSlice).
         end.
-        
+
         return oSlice.
         finally:
             if get-size(mSlice) gt 0 then
                 set-size(mSlice) = 0.
         end finally.
     end method.
-    
+
     /** Copies all of the bytes from a memptr into this memptr. The
         caller is responsible for cleaning up the memptr.
-    
-        @param int64 The pointer to memory represented by a memptr (via get-pointer-value). 
+
+        @param int64 The pointer to memory represented by a memptr (via get-pointer-value).
         @param int64 The size of the memptr represented by the pointer value. */
     method public void PutBytes (input piPointerValue as int64,
                                  input piSize as int64):
         define variable mTemp as memptr no-undo.
-        
+
         Assert:IsZeroOrPositive(piPointerValue, 'Pointer').
         Assert:IsZeroOrPositive(piSize, 'Size').
-        
+
         if this-object:Size eq 0 then
            assign this-object:Size = piSize.
-        else  
+        else
         if piSize gt this-object:Size then
             return error new AppError('Input memptr larger than available size', 0).
-        
-        set-size(mTemp) = 1. 
-        set-size(mTemp) = 0. 
+
+        set-size(mTemp) = 1.
+        set-size(mTemp) = 0.
         set-pointer-value(mTemp) = piPointerValue.
         set-size(mTemp) = piSize.
-        
+
         put-bytes(mmValue, 1) = mTemp.
-        
+
         finally:
             set-pointer-value(mTemp) = 0.
             if get-size(mTemp) gt 0 then
                 set-size(mTemp) = 0.
         end finally.
     end method.
-    
+
     /** Copies all of the bytes from a memptr (primitive) into this bucket. The
-        caller is responsible for cleaning up the memptr. 
-    
+        caller is responsible for cleaning up the memptr.
+
         @param memptr The memptr containing the data. */
     method public void PutBytes (input pmData as memptr):
-        /* jiggery-pokery so we can reuse code without deep-copying 
+        /* jiggery-pokery so we can reuse code without deep-copying
            memptr's all over the show */
         PutBytes(get-pointer-value(pmData), get-size(pmData)).
     end method.
-    
-    /** Copies all of the bytes from a raw into this memptr. 
-        
+
+    /** Copies all of the bytes from a raw into this memptr.
+
         @param raw The raw variable containing the source data */
     method public void PutBytes (input prData as raw):
         define variable mData as memptr no-undo.
-        
+
         set-size(mData) = length(prData).
         put-bytes(mData,1) = prData.
-        
+
         PutBytes(get-pointer-value(mData), get-size(mData)).
-        
+
         finally:
             if get-size(mData) gt 0 then
                 set-size(mData) = 0.
         end finally.
     end method.
-    
-    /** Debug/dump of the contents of this object on a per-byte basic. COPY-LOB 
+
+    /** Debug/dump of the contents of this object on a per-byte basic. COPY-LOB
         can also be used for debug purposes (COPY-LOB objMemptr:Value TO FILE). */
     method public void _Debug ():
         define variable iLoop as int64 no-undo.
         define variable iMax as int64 no-undo.
         define variable iByte as integer no-undo.
         define variable cDumpFile as character no-undo.
-        
+
         assign iMax      = get-size(mmValue)
                cDumpFile = session:temp-directory + this-object:ToString() + '.bin':u.
-        
+
         output to value(cDumpFile).
         do iLoop = 1 to iMax:
             assign iByte = get-byte(mmValue, iLoop).
-            
-            put unformatted 
+
+            put unformatted
                 iByte StringConstant:TAB.
-                
+
             if iByte <> 10 and iByte <> 13 then
                 put unformatted
                     StringConstant:TAB StringConstant:TAB chr(iByte).
-            
-            put unformatted skip. 
+
+            put unformatted skip.
         end.
         output close.
     end method.
@@ -389,12 +411,12 @@ implements IMemptrHolder
     end method.
 
     /* Comparison method, used by SortedSet's default comparer
-        
+
         - If the returned value is less than 0 (zero), then the current object sorts before the object passed in.
         - If the returned value equals 0 (zero) , then the current object occupies the same position in the sort order.
         - If the returned value is greater than 0(zero), then the current object sorts after the object passed in.
         - If either object's Value is the unknown value (?), then that sorts high/early/before
-        
+
         @param IMemptrHolder The object to compare to.
         @return integer  0 = same object
                         +1 = sorts after
@@ -406,7 +428,7 @@ implements IMemptrHolder
         // use SHA-256 to get the hash code and put it in a raw value to compare
         toraw = message-digest("SHA-256", this-object:Value).
         poraw = message-digest("SHA-256", pOther:Value).
-         
+
         if toraw eq poraw then
             return 0.
         else
@@ -421,7 +443,7 @@ implements IMemptrHolder
         or toraw eq ?
         then
             return -1.
-        
+
         // this will raise an error in the Comparer; we should never get here though.
         return ?.
     end method.

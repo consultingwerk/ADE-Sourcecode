@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2008-2014,2020 by Progress Software Corporation.       *
+* Copyright (C) 2008-2014,2020,2025 by Progress Software Corporation.       *
 * All rights reserved.  Prior versions of this work may contain        *
 * portions contributed by participants of Possenet.                    *
 *                                                                      *
@@ -44,6 +44,7 @@ History:
     06/26/08  fernando      Filter out schema tables for encryption
     04/06/20  tmasood       Fix the active toggle box for online added index
     10/29/20  Kberlia       Added argument in _pro_area_list.p to support default area.
+    08/13/25  fernando      Fixing .p call
 ----------------------------------------------------------------------------*/
 
 { prodict/dictvar.i }
@@ -347,7 +348,7 @@ DO:
    do:
        enable areaname with frame idx_top.
           /* PSC00288448 and PSC00288469 - removed check condition " if areaname:SCREEN-VALUE = "N/A" " */ 
-          run prodict/pro/_pro_area_list(recid(_File),{&INVALID_AREAS},areaname:DELIMITER in frame idx_top,"Index", output AreaList).
+          run prodict/pro/_pro_area_list.p(recid(_File),{&INVALID_AREAS},areaname:DELIMITER in frame idx_top,"Index", output AreaList).
           ASSIGN areaname:LIST-ITEMS  IN FRAME idx_top = arealist.
           /* PSC00288453 - on value change of index to global, area is selected by default */
           areaname:SCREEN-VALUE IN FRAME idx_top = areaname:ENTRY(1).
@@ -832,7 +833,7 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
                ASSIGN arealist = ""
                       indexarea = "".  
         else
-            run prodict/pro/_pro_area_list(recid(_File),{&INVALID_AREAS},areaname:DELIMITER in frame idx_top,"Index", output arealist).
+            run prodict/pro/_pro_area_list.p(recid(_File),{&INVALID_AREAS},areaname:DELIMITER in frame idx_top,"Index", output arealist).
 
         if isTablePartitioned then
             ASSIGN areaname:LIST-ITEMS IN FRAME idx_top = "N/A".

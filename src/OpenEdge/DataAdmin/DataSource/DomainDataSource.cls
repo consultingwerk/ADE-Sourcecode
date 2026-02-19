@@ -1,5 +1,5 @@
 /*************************************************************/
- /* Copyright (c) 2011 by progress Software Corporation.      */
+ /* Copyright (c) 2011-2025 by progress Software Corporation. */
  /*                                                           */
  /* all rights reserved.  no part of this program or document */
  /* may be  reproduced in  any form  or by  any means without */
@@ -216,7 +216,7 @@ SystemPath,_PAM-library-path"
                     assign
                         b_domain._Domain-enabled = phBuffer::IsEnabled
                         b_domain._Domain-type = phBuffer::AuthenticationSystemName
-                        b_domain._Domain-description = phBuffer::Description
+                        b_domain._Domain-description = phBuffer::Description when cChanges = "Description" or lookup('Description':u, cChanges) gt 0
                         b_domain._Tenant-name = phBuffer::TenantName when DatabaseInfo:IsMultiTenant
                         b_domain._Auditing-Context = phBuffer::AuditingContext
                         b_domain._PAM-options = phBuffer::SystemOptions

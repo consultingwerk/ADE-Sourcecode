@@ -79,9 +79,9 @@ class OpenEdge.Net.UriEncoder:
     // use logical[128] variables with initial values, because these values are in rcode, and don't need to
     // be calculated even once per session.
 
-    // Default = unreserved    = ALPHA / DIGIT / "-" / "." / "_" / "~"
+    // Default = unreserved = ALPHA / DIGIT / "-" / "." / "_" / "~"
     var private logical[128] mFlags_Default = [ // NUL SOH STX ETX EOT ENQ ACK BEL
-                                                   yes,yes,yes,yes,yes,yes,yes,yes,
+                                                  yes,yes,yes,yes,yes,yes,yes,yes,
                                                // BS  HT  LF  VT  FF  CR  SO  SI
                                                   yes,yes,yes,yes,yes,yes,yes,yes,
                                                // DLE DC1 DC2 DC3 DC4 NAK SYN ETB
@@ -112,6 +112,7 @@ class OpenEdge.Net.UriEncoder:
                                                   no ,no ,no ,no ,no ,no ,no ,no ,
                                                // x   y   z   {   |   }   ~   DEL
                                                   no ,no ,no ,yes,yes,yes,no ,yes ].
+
     // Scheme = ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )
     var private logical[128] mFlags_Scheme = [ // NUL SOH STX ETX EOT ENQ ACK BEL
                                                   yes,yes,yes,yes,yes,yes,yes,yes,
@@ -145,7 +146,8 @@ class OpenEdge.Net.UriEncoder:
                                                   no ,no ,no ,no ,no ,no ,no ,no ,
                                                // x   y   z   {   |   }   ~   DEL
                                                   no ,no ,no ,yes,yes,yes,yes,yes].
-    // UserInfo : userinfo    = *( unreserved / pct-encoded / sub-delims / ":" = 58 )
+
+    // UserInfo : userinfo = *( unreserved / pct-encoded / sub-delims / ":" = 58 )
     var private logical[128] mFlags_Userinfo = [ // NUL SOH STX ETX EOT ENQ ACK BEL
                                                     yes,yes,yes,yes,yes,yes,yes,yes,
                                                  // BS  HT  LF  VT  FF  CR  SO  SI
@@ -178,15 +180,14 @@ class OpenEdge.Net.UriEncoder:
                                                     no ,no ,no ,no ,no ,no ,no ,no ,
                                                  // x   y   z   {   |   }   ~   DEL
                                                     no ,no ,no ,yes,yes,yes,no ,yes].
-    // Host = reg-name      = *( unreserved / pct-encoded / sub-delims )
+
+    // Host = reg-name = *( unreserved / pct-encoded / sub-delims )
     // Also IP addresses allowed
-
-    // host        = IP-literal / IPv4address / reg-name
+    // host       = IP-literal / IPv4address / reg-name
     //IPv4address = dec-octet "." dec-octet "." dec-octet "." dec-octet
-    //IP-literal = "[" ( IPv6address / IPvFuture  ) "]"
-    //IPvFuture  = "v" 1*HEXDIG "." 1*( unreserved / sub-delims / ":" )
+    //IP-literal  = "[" ( IPv6address / IPvFuture  ) "]"
+    //IPvFuture   = "v" 1*HEXDIG "." 1*( unreserved / sub-delims / ":" )
     //reg-name    = *( unreserved / pct-encoded / sub-delims )
-
     var private logical[128] mFlags_Host = [ // NUL SOH STX ETX EOT ENQ ACK BEL
                                                 yes,yes,yes,yes,yes,yes,yes,yes,
                                              // BS  HT  LF  VT  FF  CR  SO  SI
@@ -219,6 +220,7 @@ class OpenEdge.Net.UriEncoder:
                                                 no ,no ,no ,no ,no ,no ,no ,no ,
                                              // x   y   z   {   |   }   ~   DEL
                                                 no ,no ,no ,yes,yes,yes,no ,yes].
+
     // Path : path-abempty  = *( "/" segment )
     //        segment       = *pchar
     var private logical[128] mFlags_Path = [ // NUL SOH STX ETX EOT ENQ ACK BEL
@@ -253,6 +255,7 @@ class OpenEdge.Net.UriEncoder:
                                                 no ,no ,no ,no ,no ,no ,no ,no ,
                                              // x   y   z   {   |   }   ~   DEL
                                                 no ,no ,no ,yes,yes,yes,no ,yes].
+
     // Query    = *( pchar / "/" / "?" )
     var private logical[128] mFlags_Query = [ // NUL SOH STX ETX EOT ENQ ACK BEL
                                                  yes,yes,yes,yes,yes,yes,yes,yes,
@@ -286,6 +289,7 @@ class OpenEdge.Net.UriEncoder:
                                                  no ,no ,no ,no ,no ,no ,no ,no ,
                                               // x   y   z   {   |   }   ~   DEL
                                                  no ,no ,no ,yes,yes,yes,no ,yes].
+
     // Fragment = *( pchar / "/" / "?" )
     var private logical[128] mFlags_Fragment = [ // NUL SOH STX ETX EOT ENQ ACK BEL
                                                     yes,yes,yes,yes,yes,yes,yes,yes,
@@ -319,6 +323,7 @@ class OpenEdge.Net.UriEncoder:
                                                     no ,no ,no ,no ,no ,no ,no ,no ,
                                                  // x   y   z   {   |   }   ~   DEL
                                                     no ,no ,no ,yes,yes,yes,no ,yes].
+
     // Cookie US-ASCII characters excluding CTLs, whitespace (32) DQUOTE (34), comma (44), semicolon (59), and backslash (92)
     // 0-31 and 127+ are control or non-US-ASCII character; 32 is space
     var private logical[128] mFlags_Cookie = [ // NUL SOH STX ETX EOT ENQ ACK BEL
@@ -774,4 +779,5 @@ class OpenEdge.Net.UriEncoder:
         {&_proparse_ prolint-nowarn(overflow)}
         return string(mEncoder_Default:Decode(pEncodedString, pTargetCodepage)).
     end method.
+
 end class.

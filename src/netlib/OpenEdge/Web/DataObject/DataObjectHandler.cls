@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2021, 2023 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2021,2023-2024 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : DataObjectHandler
@@ -219,7 +219,8 @@ class OpenEdge.Web.DataObject.DataObjectHandler
             /* Something went wrong while processing errors */
             Logger:Error('Error handling exceptions: using default status code 500/Internal Server Error', oError).
 
-            return integer(StatusCodeEnum:InternalServerError).
+            {&_proparse_ prolint-nowarn(overflow)}
+            return integer(StatusCodeEnum:InternalServerError:GetValue()).
         end catch.
     end method.
 
@@ -455,6 +456,7 @@ class OpenEdge.Web.DataObject.DataObjectHandler
         assign lValidType = false
                cOperType  = MimeTypeHelper:SplitType(pcContentType)
                .
+        TYPEBLK:
         do iLoop = 1 to iMax while not lValidType:
             assign cReqType = MimeTypeHelper:SplitType(entry(iLoop, cAccept))
                    .
@@ -463,19 +465,19 @@ class OpenEdge.Web.DataObject.DataObjectHandler
                (cReqType[1] eq cOperType[1] and cReqType[2] eq cOperType[2]) then
             do:
                 assign lValidType = true.
-                leave.
+                leave TYPEBLK.
             end.
 
             // unless the request is * (done above) we want a match
             if cReqType[1] ne cOperType[1] then
-                next.
+                next TYPEBLK.
 
             // *-groups and exact matches
             if cReqType[2] eq '*':u or
                cReqType[2] eq cOperType[2] then
             do:
                 assign lValidType = true.
-                leave.
+                leave TYPEBLK.
             end.
         end.
 
@@ -705,7 +707,6 @@ class OpenEdge.Web.DataObject.DataObjectHandler
         return oHandler.
     end method.
 
-    @TODO(txt="needs refactoring out of here").
     /* Lists service names, versions and catalogs for all currently-registered services.
 
        @param MappedOperation The mapped operation
@@ -1079,7 +1080,8 @@ class OpenEdge.Web.DataObject.DataObjectHandler
             when 'ListServices':u then
                 assign iStatusCode = this-object:ListServices(poOperation, poRequest, poMessageBody, poResponse).
             otherwise
-                assign iStatusCode = integer(StatusCodeEnum:MethodNotAllowed).
+                {&_proparse_ prolint-nowarn(overflow)}
+                assign iStatusCode = integer(StatusCodeEnum:MethodNotAllowed:GetValue()).
         end case.
 
         return iStatusCode.
@@ -1660,12 +1662,14 @@ class OpenEdge.Web.DataObject.DataObjectHandler
             /* We have some default behaviour ... which is to return an error code. Use the
                response status for a default */
             if type-of(pEventArgs:OperationError, SendExceptionError) then
-                assign pEventArgs:Response:StatusCode   = integer(cast(pEventArgs:OperationError, SendExceptionError):StatusCode)
+                {&_proparse_ prolint-nowarn(overflow)}
+                assign pEventArgs:Response:StatusCode   = integer(cast(pEventArgs:OperationError, SendExceptionError):StatusCode:GetValue())
                        pEventArgs:Response:StatusReason = cast(pEventArgs:OperationError, SendExceptionError):StatusMessage
                        .
             else
                 // all we know is something horrible happened ...
-                assign pEventArgs:Response:StatusCode   = integer(StatusCodeEnum:InternalServerError)
+                {&_proparse_ prolint-nowarn(overflow)}
+                assign pEventArgs:Response:StatusCode   = integer(StatusCodeEnum:InternalServerError:GetValue())
                        pEventArgs:Response:StatusReason = StatusCodeHelper:GetMessage(StatusCodeEnum:InternalServerError)
                        .
 
@@ -1677,7 +1681,8 @@ class OpenEdge.Web.DataObject.DataObjectHandler
         end.
         else
             // we don't know how to write the error response, so let the webapp handle it
-            assign pEventArgs:ReturnStatusCode = integer(StatusCodeEnum:InternalServerError).
+            {&_proparse_ prolint-nowarn(overflow)}
+            assign pEventArgs:ReturnStatusCode = integer(StatusCodeEnum:InternalServerError:GetValue()).
     end method.
 
     /* Event handler for the event published before the business logic function is called by the handler

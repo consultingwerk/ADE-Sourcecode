@@ -16,7 +16,6 @@ Copyright (c) 2013-2024 by Progress Software Corporation. All rights reserved.
 
 block-level on error undo, throw.
 
-using OpenEdge.ABLUnit.Model.File from propath.
 using OpenEdge.ABLUnit.Model.IRunnableEntity from propath.
 using OpenEdge.ABLUnit.Model.TestCase from propath.
 using OpenEdge.ABLUnit.Model.TestClass from propath.
@@ -53,9 +52,10 @@ using OpenEdge.Logging.ISupportLogging from propath.
 using OpenEdge.Logging.LoggerBuilder from propath.
 
 // This is the full list of expected annotations reserved for the ABLUnit framework. Any others in use will be ingnored.
-&scoped-define ANNOTATIONS "Before,BeforeAll,BeforeEach,After,AfterAll,AfterEach,Ignore,Setup,Teardown,Test,TestSuite"
+&scoped-define ANNOTATIONS "Before,BeforeAll,BeforeEach,After,AfterAll,AfterEach,Ignore,Setup,Teardown,Test,TestSuite" 
 
-class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
+class OpenEdge.ABLUnit.Runner.ABLRunner
+implements ISupportLogging:
 
     define private stream dirlist.
 
@@ -272,12 +272,12 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
                 when "r" then do:
                     /* For these XREF files, we need to restore the original file extension for the type of test. */
                     assign baseName = string(substring(testCase:Value, 1, length(testCase:Value) - 2)).
-                    if pcTestType eq "class" then
+                    if pcTestType eq "class" then 
                     do:
                         candidatePath[1] = baseName + ".cls." + testConfig:xrefExtension. /* PCTCompile Format */
                         candidatePath[2] = baseName + "." + testConfig:xrefExtension. /* PDSOE/Explicit Format */
                     end.
-                    else
+                    else 
                     do:
                         candidatePath[1] = baseName + ".p." + testConfig:xrefExtension. /* PCTCompile Format */
                         candidatePath[2] = baseName + "." + testConfig:xrefExtension. /* PDSOE/Explicit Format */
@@ -316,7 +316,7 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
         if matchedFiles:Size eq 1 then do:
             assign foundFile = matchedFiles:GetValue(1):ToString().
         end. /* Single Match */
-        else
+        else 
         do:
             /**
              * For OCTA-22449 we need to solve a situation of the same test file may exist in different folders,
@@ -576,12 +576,12 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
             return ?.
 
         case pAttrData:GetType(pAttrName):
-            when JsonDataType:NULL   then
+            when JsonDataType:NULL   then 
                 assign attrVal = ?.
-            when JsonDataType:STRING then
+            when JsonDataType:STRING then 
                 assign attrVal = pAttrData:GetCharacter(pAttrName).
             when JsonDataType:ARRAY then do:
-                assign
+                assign 
                     ja  = pAttrData:GetJsonArray(pAttrName)
                     cnt = ja:Length
                     .
@@ -589,29 +589,29 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
                 DATA-LOOP:
                 do loop = 1 to cnt:
                     case ja:GetType(loop):
-                        when JsonDataType:NULL   then
+                        when JsonDataType:NULL   then 
                             assign jsonVal = '?':u.
-                        when JsonDataType:STRING then
+                        when JsonDataType:STRING then 
                             assign jsonVal = ja:GetCharacter(loop).
                         otherwise
                             {&_proparse_ prolint-nowarn(overflow)}
                             assign jsonVal = string(ja:GetJsonText(loop)).
                     end case.
 
-                    assign
+                    assign 
                         attrVal = attrVal + delim + jsonVal
                         delim   = ',':u
                         .
                 end.
             end. // JsonDataType:ARRAY
         end case.
-
+    
         return attrVal.
     end method.
 
     /*------------------------------------------------------------------------------
         Create an Array of AnnotationInfo objects from the JSON data
-
+    
         @param  JsonObject The annotation JSON data
         @return Array      An array of annotation data. Will always be a valid object
     ------------------------------------------------------------------------------*/
@@ -632,16 +632,16 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
         // LONGCHAR arrays don't suffer from certain size constraints
         define variable attribNames     as longchar   extent no-undo.
         define variable val             as character  no-undo.
-
-        assign
+    
+        assign 
             annotationsInfo            = new Array()
             annotationsInfo:AutoExpand = true
             .
 
         if not valid-object(pData) then
             return annotationsInfo.
-
-        assign
+    
+        assign 
             propNames = pData:GetNames()
             cnt       = extent(propNames)
             .
@@ -649,7 +649,7 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
         ANNOBLK:
         do loop = 1 to cnt:
             {&_proparse_ prolint-nowarn(overflow)}
-            assign
+            assign 
                 annoName = propNames[loop]
                 annoCnt  = 0
                 .
@@ -672,7 +672,7 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
                 // eg @Test or @Before/@BeforeAll
                 when JsonDataType:NULL then
                     annotationsInfo:Add(new AnnotationInfo(annoName, '':u, '':u)).
-
+    
                 // eg @Test(expected="AppError") or @TestSuite(classes="foo,bar").
                 when JsonDataType:OBJECT then do:
                     assign arrData = new JsonArray().
@@ -683,7 +683,7 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
                 when JsonDataType:ARRAY then
                     assign arrData = pData:GetJsonArray(annoName).
             end case.
-
+    
             if valid-object(arrData) then
                 assign annoCnt = arrData:Length.
 
@@ -691,12 +691,12 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
             do annoLoop = 1 to annoCnt:
                 if not arrData:GetType(annoLoop) eq JsonDataType:OBJECT then
                     next ANNO-LOOP.
-
-                assign
+    
+                assign 
                     annoData            = arrData:GetJsonObject(annoLoop)
                     extent(attribNames) = ?
                     attribNames         = annoData:GetNames()
-                    attribCnt           = extent(attribNames)
+                    attribCnt           = extent(attribNames)    
                     // the 'main' part of the annotation
                     {&_proparse_ prolint-nowarn(overflow)}
                     attrName            = attribNames[1]
@@ -708,7 +708,7 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
 
                 do attribLoop = 2 to attribCnt:
                     {&_proparse_ prolint-nowarn(overflow)}
-                    assign
+                    assign 
                         attrValue = attrValue + ',':U
                                               + attribNames[attribLoop]
                                               + '=':u
@@ -720,13 +720,13 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
                 annotationsInfo:Add(new AnnotationInfo(annoName, attrName, attrValue)).
             end.
         end. // all annotations
-
+    
         return annotationsInfo.
     end method.
 
     /*------------------------------------------------------------------------------
         Parses the XREF XML file for Test Methods and Procedures
-
+    
         @param  character The XREF data as an XML file
         @return TypeInfo  Unit test type info about the program
     ------------------------------------------------------------------------------*/
@@ -746,8 +746,8 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
         define variable testInfo        as TestInfo         no-undo.
         define variable pos             as integer          no-undo.
         define variable params          as character        no-undo.
-
-        assign
+    
+        assign 
             annoWriter = new AnnotationWriter(xmlDocument)
             fileAnnots = annoWriter:GetAnnotations(?)
             propNames  = fileAnnots:GetNames()
@@ -756,7 +756,7 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
         // if there was a parsing error, then we get a valid JSON object but without any properties
         if extent(propNames) eq ? then
             undo, throw new AppError(substitute('Unable to extract annotations from XML XREF file: "&1"', xmlDocument), 0).
-
+    
         assign
             // the first (and only) child is the test case (suite/class/proc)
             {&_proparse_ prolint-nowarn(overflow)}
@@ -769,7 +769,7 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
             .
 
         if JsonPropertyHelper:HasTypedProperty(fileAnnots, 'program':u, JsonDataType:OBJECT) then do:
-            assign
+            assign 
                 annots          = fileAnnots:GetJsonObject('program':u)
                 annotationsInfo = BuildAnnotationInfo(annots)
                 isSuite         = AnnotationUtil:HasAnnotation(annotationsInfo, 'TestSuite':u)
@@ -783,13 +783,13 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
         end.
         else
             assign annotationsInfo = new Array().
-
+    
         case fileAnnots:GetJsonObject('meta':u):GetCharacter('programType':u):
             when 'CLASS':u then do:
                 assign typeInfo:classInfo = new ClassInfo(testCaseName, annotationsInfo).
                 // now methods
                 if not isSuite and JsonPropertyHelper:HasTypedProperty(fileAnnots, 'method':u, JsonDataType:OBJECT) then do:
-                    assign
+                    assign 
                         extent(propNames) = ?
                         fnData            = fileAnnots:GetJsonObject('method':u)
                         propNames         = fnData:GetNames()
@@ -798,7 +798,7 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
 
                     METHOD-LOOP:
                     do loop = 1 to cnt:
-                        assign
+                        assign 
                             pos          = r-index(propNames[loop], '(':u)
                             testCaseName = substring(propNames[loop], 1, pos - 1)
                             params       = substring(propNames[loop], pos)
@@ -815,7 +815,7 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
 
                         // only consider methods with annotations
                         if valid-object(annotationsInfo) then do:
-                            assign
+                            assign 
                                 testInfo              = new TestInfo(annotationsInfo, annotationsInfo:Size, testCaseName)
                                 typeInfo:methodsCount = typeInfo:methodsCount + 1
                                 testInfo:isStatic     = ?        // we can deprecate this flag
@@ -825,11 +825,11 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
                     end.
                 end.
             end.    // CLASS
-
+    
             when 'PROCEDURE':u then do:
                 // now internal procedures
                 if not isSuite and JsonPropertyHelper:HasTypedProperty(fileAnnots, 'procedure':u, JsonDataType:OBJECT) then do:
-                    assign
+                    assign 
                         extent(propNames) = ?
                         fnData            = fileAnnots:GetJsonObject('procedure':u)
                         propNames         = fnData:GetNames()
@@ -855,12 +855,12 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
                     end.
                 end.
             end. // PROCEDURE
-
+    
             // we don't know how to handle interfaces and other types
             otherwise
                 return ?.
         end case.
-
+    
         // This condition is for testsuites, which has only one annotation preceding the class definition and no methods.
         // Remove the empty method/procedure we added up front
         if isSuite and typeInfo:methodsCount gt 1 then do:
@@ -868,14 +868,14 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
             typeInfo:methods:Remove(1).
             typeInfo:methodsCount = typeInfo:methodsCount - 1.
         end.
-
+    
         return typeInfo.
     end method.
 
     /*------------------------------------------------------------------------------
         Given a testclass and test method, this method will store and run the
         test methods and calls a method which writes the results in the xml file
-
+    
         @param  character  The test class name
         @param  character  The test class method name
         @return TestEntity The entity being run (class/method/suite/root)
@@ -890,78 +890,78 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
         define variable classAnnotInfo as ClassAnnotationInfo  no-undo.
         define variable i              as integer              no-undo.
         define variable testSuiteCount as integer              no-undo init 0.
-        define variable annotationName as character            no-undo.
+        define variable annotationType as character            no-undo.
         define variable ignoreTest     as logical              no-undo.
         {&_proparse_ prolint-nowarn(varusage)}
         define variable testResult  as TestTestResult no-undo.
         define variable typeInfo    as TypeInfo       no-undo.
         define variable isTestClass as logical        no-undo initial no.
         define variable testInfo    as TestInfo       no-undo.
-
+    
         /** for qualified classes input **/
         testClassName = this-object:getRelativePathOfClasses(testClassName).
         typeInfo = this-object:BuildTypeInfo(testClassName, "class").
-
+    
         // May be invalid for interfaces. This does not indicate an error condition
         if not valid-object(typeInfo) then return.
-
+    
         methodInfoList = typeInfo:methods.
         classAnnotInfo = new ClassAnnotationInfo().
-
+    
         // Check whether the test method is ignored
         ignoreTest = AnnotationUtil:HasIgnoreAnnotation(typeInfo:classInfo:annotationsInfo).
-
+    
         // Loop through the parsed method information from xref xml file
         do i = 1 to typeInfo:methodsCount:
             testInfo = cast(methodInfoList:GetValue(i), TestInfo).
-
+    
             define variable annotations      as Array          no-undo.
             define variable annotationsCount as integer        no-undo.
             define variable annotationInfo   as AnnotationInfo no-undo.
             define variable j                as integer        no-undo.
-
+    
             annotations = testInfo:annotations.
             annotationsCount = testInfo:annotationsCount.
-
+    
             TESTBLK:
             do j = 1 to annotationsCount:
                 annotationInfo = cast(annotations:GetValue(j), AnnotationInfo).
-                annotationName = annotationInfo:getAnnotationName().
-
+                annotationType = annotationInfo:GetAnnotationType().
+    
                 // Log a warning that these annotations are deprecated in favor of more user-friendly alternatives.
-                case annotationName:
+                case annotationType:
                     when "Before" then
                         this-object:Logger:Warn(substitute("Test class '&1' method '&2' uses @Before annotation which will be deprecated, please use @BeforeAll.", testClassName, testInfo:testName)).
-
+    
                     when "Setup" then
                         this-object:Logger:Warn(substitute("Test class '&1' method '&2' uses @Setup annotation which will be deprecated, please use @BeforeEach.", testClassName, testInfo:testName)).
-
+    
                     when "TearDown" then
                         this-object:Logger:Warn(substitute("Test class '&1' method '&2' uses @TearDown annotation which will be deprecated, please use @AfterEach.", testClassName, testInfo:testName)).
-
+    
                     when "After" then
                         this-object:Logger:Warn(substitute("Test class '&1' method '&2' uses @After annotation which will be deprecated, please use @AfterAll.", testClassName, testInfo:testName)).
                 end case.
-
+    
                 // Take action as based on the annotation.
-                case annotationName:
+                case annotationType:
                     when "TestSuite" then
                         if not ignoreTest then
                             assign testSuiteCount = testSuiteCount + 1
                                 testSuiteInfo  = testInfo
                                 isTestClass    = true
                                 .
-
+    
                     when "BeforeAll" or
                     when "Before" then
                         // @BeforeAll (legacy: @Before) - Executed once; runs before the tests and methods marked with @BeforeEach (legacy: @Setup).
                         classAnnotInfo:setBeforeClass(testInfo).
-
+    
                     when "BeforeEach" or
                     when "Setup" then
                         // @BeforeEach (legacy: @Setup) - Executed before each test.
                         classAnnotInfo:setBeforeMethod(testInfo).
-
+    
                     when "Test" then do:
                         classAnnotInfo:AddTestMethod(testInfo).
 
@@ -971,27 +971,27 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
                         if testInfo:getTestName() = testMethod then
                             assign testMethodInfo = testInfo.
                     end.
-
+    
                     when "AfterEach" or
                     when "TearDown" then
                         // @AfterEach (legacy: @TearDown) - Executed after each test.
                         classAnnotInfo:setAfterMethod(testInfo).
-
+    
                     when "AfterAll" or
                     when "After" then
                         // @AfterAll (legacy: @After) - Executed once; runs after all tests and methods marked with @AfterEach.
                         classAnnotInfo:setAfterClass(testInfo).
-
+    
                     when "Ignore" then
                         // Any annotation not found above would be skipped anyway, but just make it explicit.
                         next TESTBLK.
                 end case.
             end. // annotationsCount
         end. // typeInfo:methodsCount
-
+    
         if not isTestClass then
             return.
-
+    
         if not testSuiteCount eq 0 then do:
             define variable testSuite as TestSuite no-undo.
             testSuite = new TestSuite(currentID).
@@ -1007,8 +1007,8 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
         end.
         else do:
             define variable testClass as TestClass no-undo.
-
-            assign
+    
+            assign 
                 testClass                = new TestClass(currentID)
                 testClass:Logger         = this-object:Logger
                 currentID                = currentID + 1
@@ -1025,10 +1025,10 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
                 populateTestModelForTestMethod(testClassType, testClassName, classAnnotInfo, testMethodInfo, (testMethod = ""), testClass).
         end.
     end method.
-
+    
     /*------------------------------------------------------------------------------
          Modify properties for ignored test
-
+    
          @param TestTestResult
          @param TestEntity The entity being run (class/method/suite/root)
          @param character
@@ -1040,9 +1040,9 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
                                               input summaryResult as TestTypeResult ):
         assign testResult = new TestTestResult(testName).
         testResult:TestResult = TestResultEnum:StatusIgnored.
-
+    
         testEntity:AddTestResult(testResult).
-
+    
         summaryResult:Add(testResult).
     end method.
 
@@ -1057,16 +1057,16 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
         define variable testInfo   as TestInfo   no-undo.
         define variable j          as integer    no-undo.
         define variable testCount  as integer    no-undo.
-
+    
         assign testCount = classAnnotInfo:Tests:Size.
 
         if(runAllMethods) then
         do j = 1 to testCount:
             testMethod = new TestMethod(currentID).
             currentID = currentID + 1.
-
+    
             testInfo = cast(classAnnotInfo:Tests:Get(j), TestInfo).
-
+    
             testmethod:Name = testInfo:getTestName().
             testmethod:setTestInfo(testInfo).
             testEntity:addTestEntity(testmethod).
@@ -1082,7 +1082,7 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
 
     /*------------------------------------------------------------------------------
          Populate test model for internal procedures
-
+    
          @param handle
          @param character
          @param ProcedureAnnotationInfo
@@ -1101,16 +1101,16 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
         define variable j                      as integer    no-undo.
         define variable internalProcTestEntity as TestMethod no-undo.
         define variable testInfo               as TestInfo   no-undo.
-
+    
         assign testProcsCount = procAnnotInfo:Tests:Size.
 
         if(runAllProcs) then
         do j = 1 to testProcsCount:
             internalProcTestEntity = new TestMethod(currentID).
             currentID = currentID + 1.
-
+    
             testInfo = cast(procAnnotInfo:Tests:Get(j), TestInfo).
-
+    
             internalProcTestEntity:Name = testInfo:getTestName().
             internalProcTestEntity:setTestInfo(testInfo).
             testEntity:addTestEntity(internalProcTestEntity).
@@ -1124,11 +1124,11 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
             testEntity:addTestEntity(internalProcTestEntity).
         end.
     end method.
-
+    
     /*------------------------------------------------------------------------------
         Given a test procedure and test internal procedure, this method will store and
         run the test procedures and calls a method which writes the results in the xml file.
-
+    
         @param character
         @param character
         @param TestEntity The entity being run (class/method/suite/root)
@@ -1143,60 +1143,60 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
         define variable testSuiteList  as TestInfo                no-undo.
         define variable i              as integer                 no-undo.
         define variable testSuiteCount as integer                 no-undo init 0.
-        define variable annotationName as character               no-undo.
+        define variable annotationType as character               no-undo.
         define variable testProcInfo   as TestInfo                no-undo.
         define variable procTestEntity as TestProcedure           no-undo.
         define variable typeInfo       as TypeInfo                no-undo.
         define variable ignoreTest     as logical                 no-undo.
         define variable isTestProc     as logical                 no-undo initial no.
         define variable testInfo       as TestInfo                no-undo.
-
+    
         typeInfo = this-object:BuildTypeInfo(testProcedureName, "proc").
         // May be invalid for interfaces. This does not indicate an error condition
         if not valid-object(typeInfo) then return.
-
+    
         procInfoList = typeInfo:methods.
         procAnnotInfo = new ProcedureAnnotationInfo().
-
+    
         // Loops through the procedure information obtained from xref xml file
         do i = 1 to typeInfo:methodsCount:
             define variable annotations      as Array          no-undo.
             define variable annotationsCount as integer        no-undo.
             define variable annotationInfo   as AnnotationInfo no-undo.
             define variable j                as integer        no-undo.
-
+    
             testInfo = cast(procInfoList:GetValue(i), TestInfo).
             annotations = testInfo:annotations.
             annotationsCount = testInfo:annotationsCount.
-
+    
             do j = 1 to annotationsCount:
                 annotationInfo = cast(annotations:GetValue(j), AnnotationInfo).
-                annotationName = annotationInfo:getAnnotationName().
-
+                annotationType = annotationInfo:GetAnnotationType().
+    
                 // Log a warning that these annotations are deprecated in favor of more user-friendly alternatives.
-                case annotationName:
+                case annotationType:
                     when "Before" then
                         this-object:Logger:Warn(substitute("Test procedure '&1' in '&2' uses @Before annotation which will be deprecated, please use @BeforeAll.", testInfo:testName, testProcedureName)).
-
+    
                     when "Setup" then
                         this-object:Logger:Warn(substitute("Test procedure '&1' in '&2' uses @Setup annotation which will be deprecated, please use @BeforeEach.", testInfo:testName, testProcedureName)).
-
+    
                     when "TearDown" then
                         this-object:Logger:Warn(substitute("Test procedure '&1' in '&2' uses @TearDown annotation which will be deprecated, please use @AfterEach.", testInfo:testName, testProcedureName)).
-
+    
                     when "After" then
                         this-object:Logger:Warn(substitute("Test procedure '&1' in '&2' uses @After annotation which will be deprecated, please use @AfterAll.", testInfo:testName, testProcedureName)).
                 end case.
 
                 // Take action as based on the annotation.
-                case annotationName:
+                case annotationType:
                     when "TestSuite" then
-                        assign
+                        assign 
                             testSuiteCount = testSuiteCount + 1
                             testSuiteList  = testInfo
                             isTestProc     = yes
                             .
-
+    
                     when "BeforeAll" or
                     when "Before" then do:
                         // @BeforeAll (legacy: @Before) - Executed once; runs before the tests and methods marked with @BeforeEach (legacy: @Setup).
@@ -1204,7 +1204,7 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
                         if testInfo:getTestName() = testInternalProcedure then
                             testProcInfo = testInfo.
                     end.
-
+    
                     when "BeforeEach" or
                     when "Setup" then do:
                         // @BeforeEach (legacy: @Setup) - Executed before each test.
@@ -1212,18 +1212,18 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
                         if testInfo:getTestName() = testInternalProcedure then
                             testProcInfo = testInfo.
                     end.
-
+    
                     when "Test" then do:
                         procAnnotInfo:addTestProc(testInfo).
 
                         // if there's one annotated method, this is a test
-                        assign
+                        assign 
                             isTestProc = true.
 
                         if testInfo:getTestName() = testInternalProcedure then
                             testProcInfo = testInfo.
                     end.
-
+    
                     when "AfterEach" or
                     when "TearDown" then do:
                         // @AfterEach (legacy: @TearDown) - Executed after each test.
@@ -1231,7 +1231,7 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
                         if testInfo:getTestName() = testInternalProcedure then
                             testProcInfo = testInfo.
                     end.
-
+    
                     when "AfterAll" or
                     when "After" then do:
                         // @AfterAll (legacy: @After) - Executed once; runs after all tests and methods marked with @AfterEach.
@@ -1239,15 +1239,15 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
                         if testInfo:getTestName() = testInternalProcedure then
                             testProcInfo = testInfo.
                     end.
-
+    
                     when "Ignore" then
                         ignoreTest = true.
                 end case.
             end. // annotationsCount
         end. // typeInfo:methodsCount
-
+    
         if not isTestProc then return.
-
+    
         if not testSuiteCount = 0  then do:
             define variable testProcSuite as TestEntity no-undo.
             testProcSuite = new TestSuite(currentID).
@@ -1266,7 +1266,7 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
                 populateTestModelForTestSuite(testSuiteList, testProcSuite).
         end.
         else if testSuiteCount = 0 then do:
-            assign
+            assign 
                 procTestEntity                = new TestProcedure(currentID)
                 currentID                     = currentID + 1
                 procTestEntity:Logger         = this-object:Logger
@@ -1281,10 +1281,10 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
                 populateTestModelForInternalProcs(procHandle, testProcedureName, procAnnotInfo, testProcInfo, false, procTestEntity).
         end.
     end method.
-
+    
     /*------------------------------------------------------------------------------
         Compiles and call the corresponding method or internal procedure to run the testcase
-
+    
         @param  character
         @param  character
         @return TestEntity The entity being run (class/method/suite/root)
@@ -1305,10 +1305,10 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
                 populateTestModelForProcedureType(testCase, test, testEntity).
         end.
     end method.
-
+    
     /*------------------------------------------------------------------------------
         Runs the corresponding method based on the type of the testcase.
-
+    
         @param  character
         @param  integer
         @return TestEntity The entity being run (class/method/suite/root)
@@ -1318,10 +1318,10 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
         this-object:populateTestModel(testCase, testCount, testModel).
         return testModel.
     end method.
-
+    
     /*------------------------------------------------------------------------------
         Load serialized tree
-
+    
         @param  TestEntity The entity being run (class/method/suite/root)
         @return longchar
     ------------------------------------------------------------------------------*/
@@ -1332,12 +1332,12 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
         define variable serializedtree as longchar   no-undo.
         define variable isTestSuite    as character  no-undo init "false".
         define variable cnt            as integer    no-undo.
-
+    
         // no point in doing this work if it's never going to be written to disk
         if this-object:updateFile eq '' then
             return ''.
-
-        assign
+    
+        assign 
             testEntities = testEntity:getTestEntities()
             cnt          = testEntity:getChildrenSize()
             .
@@ -1346,7 +1346,7 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
             newTestEntity = cast(testEntities:GetValue(i), TestEntity).
             serializedTree = serializedTree + loadSerializedTree(newTestEntity).
         end.
-
+    
         if(type-of (testEntity, TestSuite)) then
             isTestSuite = "true".
 
@@ -1354,11 +1354,11 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
 
         return serializedTree.
     end method.
-
+    
     /*------------------------------------------------------------------------------
         Populates the model based on the test input. looks at all the relevant
         test methods, internal procedures in the test input.
-
+    
         @param character
         @param integer
         @param TestEntity The entity being run (class/method/suite/root)
@@ -1368,7 +1368,7 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
                                             input testEntity as TestEntity ):
         define variable testClass  as character no-undo.
         define variable testMethod as character no-undo.
-
+    
         if testCount = 1 then
             assign
                 testClass  = testCase
@@ -1385,10 +1385,10 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
         else if testClass matches "*~~.cls" or testClass matches "*~~.p" or testClass matches "*~~.r" then
             populateTestModelForTestCase(testClass, testMethod, testEntity).
     end method.
-
+    
     /*------------------------------------------------------------------------------
         Populates the test model for the ABL Unit files inside the testfolder
-
+    
         @param character
         @param TestEntity The entity being run (class/method/suite/root)
     ------------------------------------------------------------------------------*/
@@ -1396,17 +1396,17 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
                                                         input testEnity  as TestEntity ):
         define variable fileN  as character no-undo.
         define variable fCodes as character no-undo.
-
+    
         input stream dirlist from os-dir(testFolder) no-echo.
 
         DIRBLK:
         repeat:
             import stream dirlist fileN ^ fCodes.
-
+    
             if fileN eq "." or
                 fileN eq ".." or
                 fCodes begins "D" then next DIRBLK.
-
+    
                 // only use r-code if xrefs are in use
             if (testConfig:useXref
                 and fileN matches "*~~.r")
@@ -1414,7 +1414,7 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
                 or fileN matches "*~~.p") then
                 populateTestModelForTestCase(testFolder + "~/" + fileN, "", testEnity).
         end.
-
+    
         finally:
             input stream dirList close.
         end finally.
@@ -1422,7 +1422,7 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
 
     /*------------------------------------------------------------------------------
         Iterates through all the test cases in the TestSuite annotations
-
+    
         @param TestInfo
         @param TestEntity The entity being run (class/method/suite/root)
     ------------------------------------------------------------------------------*/
@@ -1440,18 +1440,18 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
         define variable classesIndex     as integer        no-undo.
         define variable procedureSyntax  as character      no-undo init "procedures=".
         define variable classSyntax      as character      no-undo init "classes=".
-
+    
         annotations = testSuiteList:annotations.
         annotationsCount = testSuiteList:annotationsCount.
         ANNOBLK:
         do j = 1 to annotationsCount:
             annotationInfo = cast(annotations:GetValue(j), AnnotationInfo).
-
+    
             if annotationInfo:AnnotationType ne "TestSuite" then
                 next ANNOBLK.
-
+    
             attrName = annotationInfo:getAttributeName().
-
+    
             if attrName eq "classes" then
             do:
                 attrValue = annotationInfo:getAttributeValue().
@@ -1489,10 +1489,10 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
                 message "@TestSuite annotation attribute name should be 'classes' or 'procedures'" view-as alert-box.
         end. // annotationsCount
     end method.
-
+    
     /*------------------------------------------------------------------------------
         Handler for test suite classes
-
+    
         @param  TestEntity
         @return character
     ------------------------------------------------------------------------------*/
@@ -1513,10 +1513,10 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
             end.
         end.
     end method.
-
+    
     /*------------------------------------------------------------------------------
         Returns the relative path of the classes if the input is of qualified type.
-
+    
         @param  character
         @return character
     ------------------------------------------------------------------------------*/
@@ -1525,13 +1525,13 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
             testcase = replace (testCase, ".", "/").
             testcase = testCase + ".cls".
         end.
-
+    
         return testcase.
     end method.
-
+    
     /*------------------------------------------------------------------------------
         Runs a TestEntity and aggregates results
-
+    
         @param TestEntity The entity being run (class/method/suite/root)
         @param character
     ------------------------------------------------------------------------------*/
@@ -1550,10 +1550,10 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
                 this-object:populateTestModel(testCase, 1, testEntity).
         end.
     end method.
-
+    
     /*------------------------------------------------------------------------------
         Processes a test entity's TestResult based on status
-
+    
         @param TestEntity The entity being run (class/method/suite/root)
         @param TestTypeResult The summary to which this result aggregates
     ------------------------------------------------------------------------------*/
@@ -1563,17 +1563,17 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
         define variable cnt      as integer        no-undo.
         define variable loop     as integer        no-undo.
         define variable failType as character      no-undo.
-
+    
         if not valid-object(pEntity) then return.
-
+    
         if valid-object(pSummary) then
             pSummary:Add(pEntity:Summary).
-
+    
         if pEntity:Summary:ignoreCount gt 0 then
             this-object:updateFile(updateFile, "TEST_IGNORED " + STRING(pEntity:Id), false).
         else if pEntity:Summary:errorCount gt 0 or pEntity:Summary:failureCount gt 0 then
         do:
-            assign
+            assign 
                 tr  = pEntity:GetTestResults()
                 cnt = extent(tr)
                 .
@@ -1602,10 +1602,10 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
             // no failures or errors mean success
             this-object:updateFile(updateFile, "TEST_END " + STRING(pEntity:Id) + " " + STRING(pEntity:timeTaken), false).
     end method.
-
+    
     /*------------------------------------------------------------------------------
         Runs a TestEntity and aggregates results
-
+    
         @param  TestEntity The entity being run (class/method/suite/root)
         @param  character The ABLUnit output file (not results.xml)
         @return TestTypeResult  The aggregate result for this test entity
@@ -1619,9 +1619,9 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
         define variable startTime      as datetime        no-undo.
         define variable runnableEntity as IRunnableEntity no-undo.
         define variable tr             as TestTestResult  no-undo.
-
+    
         this-object:updateFile(pUpdateFile, "TEST_START " + STRING(testEntity:Id), false).
-
+    
         assign startTime = now.
 
         /* Suite Class, Suite Procedure, Test Class may have configured with Ignore Annotation.
@@ -1630,37 +1630,37 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
            has an ignored test, we continue; if there's a TestSuite/TestCase/TestProcedure/etc that has the @Ignored
            annotation, we skip running just that test/case/suite. */
 
-        /*Start*/
+        /*Start*/    
         if testEntity:Summary:ignoreCount gt 0 and not type-of(testEntity, TestRootModel) then do:
             this-object:updateFile(pUpdateFile, "TEST_IGNORED " + STRING(testEntity:Id), false).
             assign testEntity:TimeTaken = 0.
             this-object:updateFile(pUpdateFile, "TEST_END " + STRING(testEntity:Id) + " " + STRING(testEntity:TimeTaken) , false).
-
+    
             return testEntity:Summary.
         end.
         /*End*/
-
+    
         children = testEntity:getTestEntities().
         childrenSize = testEntity:getChildrenSize().
-
+    
         if type-of(testEntity, IRunnableEntity) then do:
             assign runnableEntity = cast(testEntity, IRunnableEntity).
-
+    
             runnableEntity:StartEntity().
-
+    
             // Update the updatefile ... but don't add to the numbers
             ProcessTestResult(testEntity, ?).
-
+    
             // if there's an error we want to write TEST_EXCEPTION
             if testEntity:Summary:errorCount gt 0 or testEntity:Summary:failureCount gt 0 then
                 return testEntity:Summary.
         end.
-
+    
         do j = 1 to childrenSize:
             assign  childEntity = cast(children:GetValue(j), TestEntity).
             if type-of(childEntity, TestMethod) and valid-object(runnableEntity) then do:
                 this-object:updateFile(pUpdateFile, "TEST_START " + STRING(childEntity:Id), false).
-
+    
                 runnableEntity:RunChild(childEntity).
                     // for individual tests, always add the count & process the result
                 ProcessTestResult(childEntity, testEntity:Summary).
@@ -1672,23 +1672,23 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
                 testEntity:Summary:Add(childEntity:Summary).
             end.
         end.
-
+    
         if valid-object(runnableEntity) then do:
             runnableEntity:StopEntity().
-
+    
             // Don't add to the counts since we're not _actually_ running a test here ...
             ProcessTestResult(testEntity, ?).
-
+    
             // if there's an error we want to write TEST_EXCEPTION
             if testEntity:Summary:errorCount gt 0 or testEntity:Summary:failureCount gt 0 then
                 return testEntity:Summary.
         end.
-
+    
         assign testEntity:TimeTaken = interval(now, startTime, 'milliseconds':u) / 1000.
         this-object:updateFile(pUpdateFile, "TEST_END " + STRING(testEntity:Id) + " " + STRING(testEntity:TimeTaken) , false).
-
+    
         catch stoi as Progress.Lang.Stop:
-            assign
+            assign 
                 tr      = new TestTestResult(testEntity:name)
                 tr:Stop = stoi
                 .
@@ -1696,7 +1696,7 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
             ProcessTestResult(testEntity, testEntity:Summary).
         end catch.
         catch runErr as Progress.Lang.Error:
-            assign
+            assign 
                 tr       = new TestTestResult(testEntity:name)
                 tr:Error = runErr
                 .
@@ -1710,10 +1710,10 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
             return testEntity:Summary.
         end.
     end method.
-
+    
     /*------------------------------------------------------------------------------
         Updates stack trace with the given error in the given file
-
+    
         @param PLO
         @param character
         @param character
@@ -1727,41 +1727,41 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
             define variable stackTraceLine as character no-undo.
             define variable i              as integer   no-undo.
             define variable numMessages    as integer   no-undo.
-
+    
             output to value(pUpdateFile) append.
-
+    
             if not valid-object(errorResult) then do:
                 put unformatted "STACK_TRACE " id " UNKNOWN ERROR " skip.
                 return.
             end.
-
+    
             stackTrace = errorResult:CallStack.
             numMessages = errorResult:NumMessages.
             do i = 1 to numMessages:
                 put unformatted "STACK_TRACE " id " " errorResult:GetMessage(i) skip.
             end.
-
+    
             if type-of(errorResult, AppError) then do:
                 stackTraceLine = cast(errorResult, AppError):ReturnValue.
                 if not stackTraceLine eq '':u then
                     put unformatted "STACK_TRACE " id " " stackTraceLine skip.
             end.
-
+    
             numMessages = num-entries(stackTrace, StringConstant:LF).
             do i = 1 to numMessages:
                 stackTraceLine = entry(i, stackTrace, StringConstant:LF).
                 put unformatted "STACK_TRACE " id " " stackTraceLine skip.
             end.
-
+    
             finally:
                 output close.
             end finally.
         end.
     end method.
-
+    
     /*------------------------------------------------------------------------------
         Writes a stack trace for a stop condition
-
+    
         @param Progress.Lang.Stop THe stop condition
         @param character The file into which to write
         @param character The ID of the test entity
@@ -1772,18 +1772,18 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
         define variable loop      as integer   no-undo.
         define variable cnt       as integer   no-undo.
         define variable traceLine as character no-undo.
-
+    
         if pUpdateFile eq '':u then return.
-
+    
         output to value(pUpdateFile) append.
-
+    
         if not valid-object(pStop) then do:
             put unformatted "STACK_TRACE " pId " UNKNOWN STOP CONDITION " skip.
             return.
         end.
-
+    
         put unformatted "STACK_TRACE " pId " STOP CONDITION: " pStop:GetClass():TypeName skip.
-
+    
         if type-of(pStop, LockConflict) then do:
             // Device
             assign traceLine = cast(pStop, LockConflict):Device.
@@ -1802,7 +1802,7 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
             if not traceLine eq '':u then
                 put unformatted "STACK_TRACE " pId " User: " traceLine skip.
         end.
-
+    
         assign cnt = num-entries(pStop:CallStack, StringConstant:LF).
         do loop = 1  to cnt:
             assign traceLine = entry(loop, pStop:CallStack, StringConstant:LF).
@@ -1813,11 +1813,11 @@ class OpenEdge.ABLUnit.Runner.ABLRunner implements ISupportLogging:
             output close.
         end finally.
     end method.
-
+    
     /*------------------------------------------------------------------------------
         Writes to the update file the given content.
         If override is true, the file is overwritten.
-
+    
         @param character
         @param longchar
         @param logical

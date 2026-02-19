@@ -26,7 +26,7 @@ implements IInt64Holder
 
     // Note that this holder's Value was not made immutable like Decimal for one reason or another,
     // and should not be changed as it could break usage in any code already utilizing the class.
-    define public property Value as int64 no-undo get. set. 
+    define public property Value as int64 no-undo get. set.
 
     constructor public Integer (input piValue as int64):
         assign this-object:Value = piValue.
@@ -35,10 +35,10 @@ implements IInt64Holder
     constructor public Integer (input piValue as integer):
         assign this-object:Value = piValue.
     end constructor.
-    
+
     method override public logical Equals (input PO as Progress.Lang.Object):
-         define variable ocInt as OpenEdge.Core.Integer no-undo.
-         define variable valCompare as integer no-undo.
+        define variable ocInt as OpenEdge.Core.Integer no-undo.
+        define variable valCompare as integer no-undo.
 
         if super:Equals(PO) then
             return true.
@@ -51,7 +51,7 @@ implements IInt64Holder
         else if type-of(PO, IInt64Holder) then
         do:
             valCompare = dynamic-property(PO, 'Value').
-            If this-object:Value eq valCompare then
+            if this-object:Value eq valCompare then
                 return true.
         end.
 
@@ -61,21 +61,21 @@ implements IInt64Holder
     method override public character ToString ():
         return string(this-object:Value).
     end method.
-    
+
     /* Comparison method, used by SortedSet's default comparer
-    
+
         - If the returned value is less than 0 (zero), then the current object sorts before the object passed in.
         - If the returned value equals 0 (zero) , then the current object occupies the same position in the sort order.
         - If the returned value is greater than 0(zero), then the current object sorts after the object passed in.
         - If either object's Value is the unknown value (?), then that sorts high/early/before
-        
+
         @param IInt64Holder The object to compare to.
         @return integer  0 = same object
                         +1 = sorts after
                         -1 = sorts before   */
     method public integer CompareTo (input pOther as IInt64Holder):
         Assert:NotNull(pOther, 'CompareTo object').
-        
+
         if this-object:Value eq pOther:Value then
             return 0.
 
@@ -89,7 +89,7 @@ implements IInt64Holder
         or this-object:Value eq ?
         then
             return -1.
-        
+
         // this will raise an error in the Comparer; we should never get here though.
         return ?.
     end method.

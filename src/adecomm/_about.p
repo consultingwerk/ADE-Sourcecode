@@ -1,5 +1,5 @@
 /*********************************************************************************
-*Copyright (C) 2005,2010-2013,2014,2015,2017,2020,2021,2023 by Progress Software *
+*Copyright (C) 2005,2010-2013,2014,2015,2017,2020,2021,2023,2025 by Progress Software *
 *Corporation. All rights reserved.  Prior versions of this work may              *
 *contain portions contributed by participants of Possenet.                       *
 **********************************************************************************/
@@ -200,7 +200,7 @@ DO WITH FRAME {&FRAME-NAME}:
   DEFINE VARIABLE cCommercialVer  AS CHAR NO-UNDO.                        
   
   &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
-     cCopyRight = "©". /* According to Legal- 11.5 */
+     cCopyRight = "Â©". /* According to Legal- 11.5 */
   &ELSE
      cCopyRight = "Copyright". /* According to Legal 10/14/2009 */
   &ENDIF
@@ -226,8 +226,8 @@ DO WITH FRAME {&FRAME-NAME}:
 
  IF NOT SESSION:WINDOW-SYSTEM BEGINS "TTY":u THEN
   AboutText2 = AboutText2 +
-        "OpenEdge includes Infragistics Ultimate UI for Windows Forms 2023 Vol. 1. " +  
-        cCopyright + " 2023 Infragistics, Inc. " +  
+        "OpenEdge includes Infragistics Ultimate UI for Windows Forms 2025 Vol. 1. " +  
+        cCopyright + " 2025 Infragistics, Inc. " +  
         "All rights reserved." +
         CHR(10) + CHR(10).
 

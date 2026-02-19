@@ -1,17 +1,40 @@
 /************************************************
-Copyright (c) 2014, 2015, 2017-2018, 2021 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014,2015,2017-2018,2021,2025 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : DigestAuthenticationFilter
-    Purpose     : Sets the credentials for the Digest challenge. These will be
-                  encoded per http://tools.ietf.org/html/rfc2617.
+    Purpose     : Sets the credentials for the Digest challenge. These will
+                  be encoded per http://tools.ietf.org/html/rfc2617 and
+                  slightly updated per http://tools.ietf.org/html/rfc7616
     Author(s)   : pjudge
     Created     : Mon Jul 07 13:30:12 EDT 2014
     Notes       :
-  ----------------------------------------------------------------------*/
+
+    Authentication Scheme
+       challenge         = "Digest" digest-challenge
+
+    Parameters that make up the challenge (key-value pairs):
+       digest-challenge  = 1#( realm | [ domain ] | nonce |
+                           [ opaque ] |[ stale ] | [ algorithm ] |
+                           [ qop-options ] | [auth-param] )
+
+    Parameters, expanded:
+       domain            = "domain" "=" <"> URI ( 1*SP URI ) <">
+       URI               = absoluteURI | abs_path
+       nonce             = "nonce" "=" nonce-value
+       nonce-value       = quoted-string
+       opaque            = "opaque" "=" quoted-string
+       stale             = "stale" "=" ( "true" | "false" )
+       algorithm         = "algorithm" "=" ( "MD5" | "MD5-sess" | "SHA-256" | "SHA-256-sess" | token )
+       qop-options       = "qop" "=" <"> 1#qop-value <">
+       qop-value         = "auth" | "auth-int" | token
+
+    If no algorithm is provided in the challenge then MD5 will be used by default.
+------------------------------------------------------------------------*/
 block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
+using OpenEdge.Core.HashAlgorithmEnum.
 using OpenEdge.Core.StringConstant.
 using OpenEdge.Core.Util.MathUtil.
 using OpenEdge.Net.HTTP.Credentials.
@@ -21,24 +44,25 @@ using OpenEdge.Net.HTTP.IAuthenticatedRequest.
 using OpenEdge.Net.HTTP.IHttpRequest.
 
 class OpenEdge.Net.HTTP.Filter.Auth.DigestAuthenticationFilter inherits AuthenticationRequestFilter:
+
     // Holder for per-nonce counts
     define static private temp-table NonceCount no-undo
         field ParentFilter as int64
         field Nonce as character
         field Count as integer
         index idxPu as primary unique ParentFilter Nonce.
-    
+
     /* Constructor
-       
+
        @param IAuthenticatedRequest The request requiring Digest authentication */
     constructor public DigestAuthenticationFilter ( input poRequest as IAuthenticatedRequest ):
         super(input poRequest).
     end constructor.
-    
+
     /* Destructor */
     destructor DigestAuthenticationFilter():
         define buffer nc for NonceCount.
-        
+
         for each nc where nc.ParentFilter eq int64(this-object):
             delete nc.
         end.
@@ -70,25 +94,7 @@ class OpenEdge.Net.HTTP.Filter.Auth.DigestAuthenticationFilter inherits Authenti
         define variable oRequest as IHttpRequest no-undo.
         define variable pos as integer no-undo.
         define variable paramValue as character no-undo.
-        
-        /* challenge        =  "Digest" digest-challenge
-           
-           digest-challenge  = 1#( realm | [ domain ] | nonce |
-                             [ opaque ] |[ stale ] | [ algorithm ] |
-                              [ qop-options ] | [auth-param] )
 
-          domain            = "domain" "=" <"> URI ( 1*SP URI ) <">
-          URI               = absoluteURI | abs_path
-          nonce             = "nonce" "=" nonce-value
-          nonce-value       = quoted-string
-          opaque            = "opaque" "=" quoted-string
-          stale             = "stale" "=" ( "true" | "false" )
-          algorithm         = "algorithm" "=" ( "MD5" | "MD5-sess" |
-                               token )
-          qop-options       = "qop" "=" <"> 1#qop-value <">
-          qop-value         = "auth" | "auth-int" | token
-          */
-        
         // Init variables top ensure we have can write the response correctly
         assign cRealm               = ?
                cDomain              = ?
@@ -98,7 +104,7 @@ class OpenEdge.Net.HTTP.Filter.Auth.DigestAuthenticationFilter inherits Authenti
                cAlgorithm           = '':u
                cQualityOfProtection = '':u
                lServerSentQoP       = false
-               
+
                /* cast for comfort */
                oRequest   = cast(this-object:Message, IHttpRequest)
                pos        = index(this-object:AuthenticatedRequest:AuthenticationChallenge, StringConstant:SPACE)
@@ -123,88 +129,115 @@ class OpenEdge.Net.HTTP.Filter.Auth.DigestAuthenticationFilter inherits Authenti
                                                 lServerSentQoP       = true.
             end case.
         end.
-        
+
         // We must have a realm and a nonce
         Assert:NotNull(cRealm, 'Realm').
         Assert:NotNull(cNonce, 'Nonce').
-        
+
         assign oCredentials = GetCredentials(cRealm).
         Assert:NotNull(oCredentials, 'Credentials').
-        
+
         assign cClientNonce = hex-encode(generate-uuid)
                nonceCount   = NextNonceCount(cNonce)
                .
         case cAlgorithm:
             when 'MD5-sess':u then
                 {&_proparse_prolint-nowarn(digest)}
-                assign rHash1 = md5-digest(substitute('&1:&2:&3':u,
-                                    {&_proparse_prolint-nowarn(digest)}
-                                    hex-encode(md5-digest(substitute('&1:&2:&3':u,
-                                                    oCredentials:UserName,
-                                                    cRealm,
-                                                    oCredentials:Password))),
-                                    cNonce,
-                                    cClientNonce)).
+                assign rHash1 = message-digest(string(HashAlgorithmEnum:MD5),
+                                               substitute('&1:&2:&3':u,
+                                               {&_proparse_prolint-nowarn(digest)}
+                                               hex-encode(message-digest(string(HashAlgorithmEnum:MD5),
+                                                                         substitute('&1:&2:&3':u,
+                                                                                    oCredentials:UserName,
+                                                                                    cRealm,
+                                                                                    oCredentials:Password))),
+                                               cNonce,
+                                               cClientNonce)).
             when 'MD5':u or
-            when '':u then
+            when '':u then // Case for no algorithm given.
                 {&_proparse_prolint-nowarn(digest)}
-                assign rHash1 = md5-digest(substitute('&1:&2:&3':u,
-                                                    oCredentials:UserName,
-                                                    cRealm,
-                                                    oCredentials:Password)).
+                assign rHash1 = message-digest(string(HashAlgorithmEnum:MD5),
+                                               substitute('&1:&2:&3':u,
+                                                          oCredentials:UserName,
+                                                          cRealm,
+                                                          oCredentials:Password)).
+            when 'SHA-256-sess':u then
+                assign rHash1 = message-digest(string(HashAlgorithmEnum:SHA-256),
+                                               substitute('&1:&2:&3':u,
+                                                          hex-encode(
+                                                          message-digest(string(HashAlgorithmEnum:SHA-256),
+                                                          substitute('&1:&2:&3':u,
+                                                                     oCredentials:UserName,
+                                                                     cRealm,
+                                                                     oCredentials:Password))),
+                                                         cNonce,
+                                                         cClientNonce)).
+            when 'SHA-256':u then
+                assign rHash1 = message-digest(string(HashAlgorithmEnum:SHA-256),
+                                               substitute('&1:&2:&3':u,
+                                                          oCredentials:UserName,
+                                                          cRealm,
+                                                          oCredentials:Password)).
         end case.
         Assert:IsPositive(length(rHash1), 'First hash').
-        
+
         case cQualityOfProtection:
             when '':u then
                 {&_proparse_prolint-nowarn(digest)}
-                assign rHash2    = md5-digest(substitute('&1:&2':u,
-                                                oRequest:Method,
-                                                oRequest:URI:RelativeURI))
+                assign rHash2    = message-digest(string(HashAlgorithmEnum:MD5),
+                                                  substitute('&1:&2':u,
+                                                             oRequest:Method,
+                                                             oRequest:URI:RelativeURI))
                        {&_proparse_prolint-nowarn(digest)}
-                       rResponse = md5-digest(substitute('&1:&2:&3':u,
-                                                hex-encode(rHash1),
-                                                cNonce,
-                                                hex-encode(rHash2) )).
+                       rResponse = message-digest(string(HashAlgorithmEnum:MD5),
+                                                  substitute('&1:&2:&3':u,
+                                                             hex-encode(rHash1),
+                                                             cNonce,
+                                                             hex-encode(rHash2) )).
             when 'auth':u then
                 {&_proparse_prolint-nowarn(digest)}
-                assign rHash2    = md5-digest(substitute('&1:&2':u,
-                                                oRequest:Method,
-                                                oRequest:URI:RelativeURI))
+                assign rHash2    = message-digest(string(HashAlgorithmEnum:MD5),
+                                                  substitute('&1:&2':u,
+                                                             oRequest:Method,
+                                                             oRequest:URI:RelativeURI))
                        {&_proparse_prolint-nowarn(digest)}
-                       rResponse = md5-digest(substitute('&1:&2:&3:&4:&5:&6':u,
-                                                hex-encode(rHash1),
-                                                cNonce,
-                                                MathUtil:IntToHex(nonceCount, 8),
-                                                cClientNonce,
-                                                cQualityOfProtection,
-                                                hex-encode(rHash2))).
+                       rResponse = message-digest(string(HashAlgorithmEnum:MD5),
+                                                  substitute('&1:&2:&3:&4:&5:&6':u,
+                                                             hex-encode(rHash1),
+                                                             cNonce,
+                                                             MathUtil:IntToHex(nonceCount, 8),
+                                                             cClientNonce,
+                                                             cQualityOfProtection,
+                                                             hex-encode(rHash2))).
             when 'auth-int':u then
             do:
                 {&_proparse_prolint-nowarn(digest)}
-                assign rHash2    = md5-digest(substitute('&1:&2:&3':u,
-                                                oRequest:Method,
-                                                oRequest:URI:RelativeURI,
-                                                oRequest:ContentMD5  ))
+                assign rHash2    = message-digest(string(HashAlgorithmEnum:MD5),
+                                                  substitute('&1:&2:&3':u,
+                                                             oRequest:Method,
+                                                             oRequest:URI:RelativeURI,
+                                                             oRequest:ContentDigest))
                        {&_proparse_prolint-nowarn(digest)}
-                       rResponse = md5-digest(substitute('&1:&2:&3:&4:&5:&6':u,
-                                                hex-encode(rHash1),
-                                                cNonce,
-                                                MathUtil:IntToHex(nonceCount, 8),
-                                                cClientNonce,
-                                                cQualityOfProtection,
-                                                hex-encode(rHash2))).
+                       rResponse = message-digest(string(HashAlgorithmEnum:MD5),
+                                                  substitute('&1:&2:&3:&4:&5:&6':u,
+                                                             hex-encode(rHash1),
+                                                             cNonce,
+                                                             MathUtil:IntToHex(nonceCount, 8),
+                                                             cClientNonce,
+                                                             cQualityOfProtection,
+                                                             hex-encode(rHash2))).
             end.
         end case.
+
         Assert:IsPositive(length(rHash2),    'Second hash').
         Assert:IsPositive(length(rResponse), 'Response hash').
-        
-        /*  credentials      = "Digest" digest-response
-            digest-response  = 1#( username | realm | nonce | digest-uri
+
+        /* credentials      = "Digest" digest-response
+           digest-response  = 1#( username | realm | nonce | digest-uri
                                 | response | [ algorithm ] | [cnonce] |
                                 [opaque] | [message-qop] |
                                 [nonce-count]  | [auth-param] )
-           
+
            username         = "username" "=" username-value
            username-value   = quoted-string
            digest-uri       = "uri" "=" digest-uri-value
@@ -215,45 +248,45 @@ class OpenEdge.Net.HTTP.Filter.Auth.DigestAuthenticationFilter inherits Authenti
            nonce-count      = "nc" "=" nc-value
            nc-value         = 8LHEX
            response         = "response" "=" request-digest
-           request-digest = <"> 32LHEX <">
+           request-digest   = <"> 32LHEX <">
            LHEX             =  "0" | "1" | "2" | "3" |
                                "4" | "5" | "6" | "7" |
                                "8" | "9" | "a" | "b" |
                                "c" | "d" | "e" | "f"           */
         assign cCredentials = substitute('Digest username="&1",realm="&2",nonce="&3",uri="&4",response="&5"':u,
-                                    oCredentials:UserName,
-                                    cRealm,
-                                    cNonce,
-                                    oRequest:URI:RelativeURI,
-                                    hex-encode(rResponse)    ) .
-        
+                                         oCredentials:UserName,
+                                         cRealm,
+                                         cNonce,
+                                         oRequest:URI:RelativeURI,
+                                         hex-encode(rResponse)    ) .
+
         if cAlgorithm ne '':u then
             assign cCredentials = substitute('&1,algorithm=&2':u,
-                                        cCredentials,
-                                        cAlgorithm).
-        
+                                             cCredentials,
+                                             cAlgorithm).
+
         if cOpaque ne ? then
             assign cCredentials = substitute('&1,opaque="&2"':u,
-                                        cCredentials,
-                                        cOpaque).
-        
+                                             cCredentials,
+                                             cOpaque).
+
         if lServerSentQoP then
             assign cCredentials = substitute('&1,cnonce="&2",nc=&3,qop="&4"':u,
-                                        cCredentials,
-                                        cClientNonce,
-                                        MathUtil:IntToHex(nonceCount, 8),
-                                        cQualityOfProtection).
-        
+                                             cCredentials,
+                                             cClientNonce,
+                                             MathUtil:IntToHex(nonceCount, 8),
+                                             cQualityOfProtection).
+
         oRequest:SetHeader(HttpHeaderBuilder:Build('Authorization':u):Value(cCredentials):Header).
     end method.
-    
+
     /* Returns the next nonce-count for a given nonce.
-       
+
        @param character The nonce for whcih to return acount
        @return integer The nonce count  */
     method private integer NextNonceCount(input pNonce as character):
         define buffer nc for NonceCount.
-        
+
         if can-find(nc where
                     nc.ParentFilter eq int64(this-object) and
                     nc.Nonce        eq pNonce) then
@@ -268,10 +301,10 @@ class OpenEdge.Net.HTTP.Filter.Auth.DigestAuthenticationFilter inherits Authenti
                    nc.Nonce        = pNonce
                    nc.Count        = 0.
         end.
-        
+
         assign nc.Count = nc.Count + 1.
-        
+
         return nc.Count.
     end method.
-    
+
 end class.

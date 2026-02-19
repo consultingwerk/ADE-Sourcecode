@@ -20,6 +20,7 @@ using OpenEdge.Core.Collections.IIterable.
 using Progress.Lang.Object.
 
 interface OpenEdge.Core.Collections.ICollection inherits IIterable:
+
     /** Returns the number of elements in this list. */
     define public property Size as integer no-undo get.
 
@@ -61,14 +62,14 @@ interface OpenEdge.Core.Collections.ICollection inherits IIterable:
 
         @param ICollection The collection of obejcts to check
         @return logical True if all the elements match */
-   method public logical ContainsAll(input poCollection as ICollection).
+    method public logical ContainsAll(input poCollection as ICollection).
 
-   /** Indicates whether this collection has any elements.
+    /** Indicates whether this collection has any elements.
 
-       @return logical True if the collection is empty. */
-   method public logical IsEmpty().
+        @return logical True if the collection is empty. */
+    method public logical IsEmpty().
 
-   /** Removes the first occurrence in this list of the specified element
+    /** Removes the first occurrence in this list of the specified element
 
         @param Object The
         @return logical True if the operation succeded. */

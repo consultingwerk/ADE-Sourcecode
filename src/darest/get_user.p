@@ -11,7 +11,7 @@
     Syntax      :
     Description : Fetch the user & granted roles
     Author(s)   : tmasood
-    Created     : Tue Aug 13 15:29:10 IST 2024
+    Created     : Wed Jan 24 15:29:10 IST 2024
     Notes       :
   ----------------------------------------------------------------------*/
 

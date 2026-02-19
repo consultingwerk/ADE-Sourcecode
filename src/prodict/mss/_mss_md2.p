@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000-2025 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -8,6 +8,7 @@
 /*
    History:  D. McMann 03/04/99 Added assignment of connect parameters
              D. McMann 06/18/01 Added assignment of _Db-Misc1[1]
+             tmasood   12/11/25 Encrypt the clear-text password
    
 */   
 
@@ -24,8 +25,13 @@ IF NOT AVAILABLE DICTDB._Db THEN DO TRANSACTION:
 
   IF mss_username <> ? AND mss_username <> "" THEN
     ASSIGN c = "-U " + mss_username.
-  IF mss_password <> ? AND mss_password <> "" THEN
-    ASSIGN c = c + " -P " + mss_password.
+  IF mss_password <> ? AND mss_password <> "" THEN DO:
+    /* Encrypt the clear-text password otherwise save it as is */
+    IF INDEX(mss_password, "::") = 6 THEN
+        ASSIGN c = c + " -P " + mss_password.
+    ELSE
+        ASSIGN c = c + " -P " + SECURITY-POLICY:ENCODE-PASSWORD(mss_password, "ae2h1").
+  END.
   ASSIGN c = c + " " + mss_conparms.
   
   CREATE DICTDB._Db.
