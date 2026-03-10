@@ -1,5 +1,5 @@
 /************************************************
-  Copyright (c) 2016-2021 by Progress Software Corporation. All rights reserved.
+  Copyright (c) 2016-2021,2025 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : Principal
@@ -180,7 +180,18 @@ class OpenEdge.Security.Principal :
         create client-principal hCP.
         hCP:import-principal (prCP).
         
-        return new Principal(hCP, true).
+        if hCP:Login-state = "INITIAL":u then do:
+            /* An Initialized state CP means that it is
+               still open to editing, so we have to
+               clone it as the export/import operations
+               lock out Property changes. */
+            return new Principal(Clone(hCP), true).
+        end. else do:
+            /* A post-initial state cp means that a clone is
+               the exact copy of the original CP. */
+            return new Principal(hCP, true).
+        end.
+
     end method.
 
     /* Creates a new Principal from BASE64 data
@@ -275,5 +286,70 @@ class OpenEdge.Security.Principal :
         assign rCP = pmCP.
         return Principal:Import(rCP).
     end method.
-    
+
+    /* Clones a Client-Principal handle, creating a deep copy of all attributes and properties.
+
+       @param handle The source Client-Principal handle to clone.
+       @return handle A new Principal with copied attributes and properties. */
+    method public static handle Clone(input phSource as handle):
+        define variable hClone as handle no-undo.
+        define variable cPropNames as character no-undo.
+        define variable cPropName as character no-undo.
+        define variable i as integer no-undo.
+        define variable iPropCount as integer no-undo.
+
+        if not valid-handle(phSource) or phSource:type ne "CLIENT-PRINCIPAL":u then
+            return ?.
+
+        /* Create a new Client-Principal instance */
+        create client-principal hClone.
+        if phSource:Login-state <> "INITIAL":u then do:
+            /* In not in the INITIALIZED state, the Client-Principal
+               is write-locked, so a clone preserves its current
+               read-only data  */
+            hClone:import-principal(phSource:export-principal()).
+        end. else do:
+
+            /* Create a clean Client-Principal [PAM handle] with
+               the minimum required fields.  Ensure passing no
+               password because the Policy is NOT a login operation
+               so ensure it cannot work.  */
+            hClone:Initialize(
+                phSource:Qualified-User-Id,
+                phSource:Session-id,
+                phSource:Login-expiration-timestamp,
+                ""
+            ).
+
+            /* Copy the source Client-Principal IF an attribute
+               has a value.  Otherwise leave the Client-Principal's
+               PAM handle item open for the Policy to fill in. */
+            /* Copy attributes if not already present */
+            if phSource:roles <> "" then hClone:roles = phSource:roles.
+            if phSource:client-tty <> "" then hClone:client-tty = phSource:client-tty.
+            if phSource:Client-workstation <> "" then hClone:Client-workstation = phSource:Client-workstation.
+            if phSource:Domain-description <> "" then hClone:Domain-description = phSource:Domain-description.
+            if phSource:Domain-type <> "" then hClone:Domain-type = phSource:Domain-type.
+            if phSource:Login-host <> "" then hClone:Login-host = phSource:Login-host.
+
+            /* Copy all source Client-Principal properties (if any).
+               Because we are cloning the source into a new handle
+               it allows the Policy provider to add properties that
+               are blocked off during input-principal/export-principal
+               operations. */
+            cPropNames = phSource:List-Property-Names().
+            iPropCount = num-entries(cPropNames, ",").
+
+            do i = 1 to iPropCount:
+                cPropName = entry(i, cPropNames, ",").
+                hClone:Set-Property(cPropName, phSource:get-property(cPropName)).
+            end.
+
+        end.
+
+        // Now return the clean cloned C-P for use by the caller.
+        return hClone.
+
+    end method.
+
 end class.

@@ -62,7 +62,8 @@
    tmasood     02/22/21 Display a message when inactive index added to an existing table
    tmasood     03/03/21 Abort the load when selected section missing from df file
    tmasood     03/10/22 Fixed the error 16621 while loading encryption details of new Index
-   tmasood     07/24/23 Added support for loading DDM schema     
+   tmasood     07/24/23 Added support for loading DDM schema  
+   tmasood     12/08/25 Fixed the error 91 when load df has some warnings
 */
 
 USING Progress.Database.*. 
@@ -1474,6 +1475,7 @@ REPEAT ON ERROR UNDO,RETRY ON ENDKEY UNDO, LEAVE:
            lEndOffline      = FALSE
            lBeginDDMSection = FALSE
            lEndDDMSection   = FALSE
+	   xwarn            = FALSE
            ierror           = 0
            ilin             = ?.    
     
@@ -3355,7 +3357,15 @@ REPEAT ON ERROR UNDO,RETRY ON ENDKEY UNDO, LEAVE:
                   MESSAGE msg2 VIEW-AS ALERT-BOX ERROR.
                   IF user_env[6] = "f" OR user_env[6] = "b" THEN
                     MESSAGE msg3 dbload-e msg4 VIEW-AS ALERT-BOX INFORMATION.
-              END.      
+              END.
+	      ELSE IF xwarn THEN DO:
+                  MESSAGE msg3 dbload-e msg4 VIEW-AS ALERT-BOX INFORMATION.
+                  IF lEndOffline OR lEndDDMSection OR (NOT loadBySection) THEN DO:
+                    HIDE MESSAGE no-pause.
+                    RUN adecomm/_setcurs.p ("").
+                    LEAVE section_loop.
+                  END.
+              END.
           END.
           ELSE
           DO:
@@ -3368,6 +3378,9 @@ REPEAT ON ERROR UNDO,RETRY ON ENDKEY UNDO, LEAVE:
              MESSAGE msg3 dbload-e msg4.
     
              PAUSE.
+	     /* when warnings occur and load is completed, leave the loop gracefully */
+             IF xwarn AND (lEndOffline OR lEndDDMSection OR (NOT loadBySection)) THEN
+                LEAVE section_loop.
           END.
       END.  /* TERMINAL <> "" and not dictloader */
       /* batch or dictloader avoid undo if force commit */ 

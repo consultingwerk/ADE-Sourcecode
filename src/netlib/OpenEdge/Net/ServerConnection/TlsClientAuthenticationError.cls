@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2021, 2023, 2024 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2021, 2023, 2024-2025 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : TlsClientAuthenticationError
@@ -128,7 +128,6 @@ serializable:
        @param PLError The error raised. SysError 9318 is parsed for the error code */
     constructor public TlsClientAuthenticationError (input pURI as URI,
                                                      input pInnerError as Progress.Lang.Error):
-        var character cFlag.
         var integer ix.
 
         super(pInnerError).

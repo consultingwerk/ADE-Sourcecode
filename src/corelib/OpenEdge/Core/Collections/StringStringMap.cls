@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2014, 2019-2021, 2023 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014,2019-2021,2023,2025 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : StringStringMap
@@ -51,11 +51,11 @@ implements IStringStringMap:
         return this-object:mBackingHashMap:Count.
     end.
 
-    /* A collection (OE.Core.Set) of only the values in the Map, ordered by key */
+    /* A collection (OE.Core.Collections.List) of only the values in the Map, as ordered by key */
     define public property Values as ICollection no-undo
     get():
         var Progress.Collections.IIterator<ILongcharHolder> iter.
-        var ICollection mapValues = new Set().
+        var ICollection oMapValues = new OpenEdge.Core.Collections.List().
         var Object oVal.
 
         // Iterate over the key List, returning a ILongcharHolder to look up the HashMap value.
@@ -65,48 +65,48 @@ implements IStringStringMap:
                 // Add the object (or unknown value) directly to the new set of values.
                 oVal = this-object:mBackingHashMap:GetValue(iter:Current).
                 if valid-object(oVal) then
-                    mapValues:Add(oVal).
+                    oMapValues:Add(oVal).
                 else
-                    mapValues:AddNull(). // Purposefully add an unknown value to the Set.
+                    oMapValues:AddNull(). // Purposefully add an unknown value to the Set.
         end.
 
-        return mapValues.
+        return oMapValues.
     end.
 
     /* A set (OE.Core.Set) of only the keys (in order of entry) from the Map */
     define public property KeySet as ISet no-undo
     get():
         var Progress.Collections.IIterator<ILongcharHolder> iter.
-        var ISet mapKeys = new Set().
+        var ISet oMapKeys = new Set().
 
         // Iterate over the key List, returning a single ILongcharHolder for each entry.
         iter = this-object:mKeyList:GetIterator().
         repeat while iter:MoveNext():
             // Keys should always be a valid object, but let's just make 100% sure.
             if valid-object(iter:Current) then
-                mapKeys:Add(iter:Current).
+                oMapKeys:Add(iter:Current).
             else
-                mapKeys:Add(new String(StringConstant:UNKNOWN)).
+                oMapKeys:Add(new String(StringConstant:UNKNOWN)).
         end.
 
-        return mapKeys.
+        return oMapKeys.
     end.
 
     /* A set (OE.Core.Set) of key-value pairs (in order of entry) from the Map */
     define public property EntrySet as ISet no-undo
     get():
         var Progress.Collections.IIterator<ILongcharHolder> iter.
-        var ISet entrySet = new Set().
+        var ISet oEntrySet = new Set().
 
         // Iterate over the key List, returning a single ILongcharHolder for each entry.
         iter = this-object:mKeyList:GetIterator().
         repeat while iter:MoveNext():
             // Create a new MapEntry which points back to this StringStringMap object and a specific key object.
             // When a value is needed, it will use the Get() on the parent StringStringMap object by this Key.
-            entrySet:Add(new MapEntry(this-object, iter:Current)).
+            oEntrySet:Add(new MapEntry(this-object, iter:Current)).
         end.
 
-        return entrySet.
+        return oEntrySet.
     end.
 
     /* Destructor */
@@ -199,24 +199,23 @@ implements IStringStringMap:
     end method.
 
     /* Allows checking for either a valid object or a null value as present in this map. */
-    method private logical ContainsValueOrNull (input pValue as Object):
+    method private logical ContainsValueOrNull (input pValue as ILongcharHolder):
         var Progress.Collections.IIterator<KeyValuePair<ILongcharHolder, ILongcharHolder>> iter.
-        var Object hValue.
+        var ILongcharHolder hValue. // Values will always be an ILongcharHolder for this class.
 
         // Iterate over the backing HashMap itself, returning true if we find a match.
         iter = this-object:mBackingHashMap:GetIterator().
         repeat while iter:MoveNext():
-            // Note that values may be unknown or any Object.
+            // Note that values should always be some form of ILongcharHolder object.
             if valid-object(iter:Current) then do:
                 assign hValue = iter:Current:Value.
-
                 if valid-object(pValue) then do:
-                    // Search value is an object, so use the Equals comparator.
-                    if pValue:Equals(hValue) then return true.
-                end.
-                else do:
-                    // Search value is unknown, so return true if we find such a value.
-                    if hValue eq ? then return true.
+                    if valid-object(hValue) then
+                        // Search value and current value are both ILongcharHolder, so compare their native Value properties.
+                        if pValue:Value eq hValue:Value then return true.
+                    else
+                        // Current value is unknown, so only return true if searching for the same.
+                        if pValue:Value eq ? then return true.
                 end.
             end.
         end.
@@ -231,10 +230,10 @@ implements IStringStringMap:
     method public logical ContainsValue (input pValue as Object):
         if valid-object(pValue) then do:
             Assert:IsType(pValue, get-class(ILongcharHolder)). // Any object Value should be an ILongcharHolder.
-            return this-object:ContainsValueOrNull(pValue).
+            return this-object:ContainsValueOrNull(cast(pValue, ILongcharHolder)).
         end.
         else
-            return this-object:ContainsValueOrNull(?).
+            return this-object:ContainsValueOrNull(String:Unknown()).
     end method.
 
     /* Returns TRUS if there's at least one value in the map that equals the input value.
@@ -245,7 +244,7 @@ implements IStringStringMap:
         if valid-object(pValue) then
             return this-object:ContainsValueOrNull(pValue).
         else
-            return this-object:ContainsValueOrNull(?).
+            return this-object:ContainsValueOrNull(String:Unknown()).
     end method.
 
     /* Indicates whether there is at least one value represented
@@ -258,7 +257,7 @@ implements IStringStringMap:
             // If not unknown, create a new String object with the character value.
             return this-object:ContainsValueOrNull(new String(pValue)).
         else
-            return this-object:ContainsValueOrNull(?).
+            return this-object:ContainsValueOrNull(String:Unknown()).
     end method.
 
     /* Returns true if this map maps one or more keys to the specified value.
@@ -385,10 +384,10 @@ implements IStringStringMap:
 
        @param Object The key for the map entry. Must be a valid value and must be of type OpenEdge.Core.String, but may have an empty or unknown value. Is unique in the map.
        @param Object The value for the key. If it is a valid value, it must be of type OpenEdge.Core.String, but may have an empty or unknown value.
-       @return String The previous value, or unknown if none. If a valid value, will be of type OpenEdge.Core.String. Unknown is a valid value too. */
+       @return String The previous value, or unknown if none. If a valid value, will be of type OpenEdge.Core.String. */
     method public Object Put (input pKey as Object,
                               input pValue as Object):
-        Assert:IsType(pKey, get-class(ILongcharHolder)). // We accept an Object as Key, but it must be an ILongcharHolder.
+        Assert:IsType(pKey, get-class(String)). // We accept an Object as Key, but it must be a String.
 
         if valid-object(pValue) then
             Assert:IsType(pValue, get-class(String)).
@@ -410,36 +409,11 @@ implements IStringStringMap:
     /* Adds a value and/or key to the map.
 
        @param character The key for the map entry. May be empty or unknown. Is unique in the map.
-       @param character The value for the key. May be empty or unknown.
-       @return character The previous value, or unknown if none. Unknown is a valid value too. */
-    method public character Put (input pcKey as character,
-                                 input pcValue as character):
-        var String oldValue.
-
-        if pcValue ne ? then
-            oldValue = this-object:PutStringOrNull(new String(pcKey), new String(pcValue)).
-        else
-            oldValue = this-object:PutStringOrNull(new String(pcKey), ?).
-
-        if valid-object(oldValue) then
-            return string(oldValue:Value). // Return as a character (not longchar).
-        else
-            return ?.
-    end method.
-
-    /* Adds a value and/or key to the map.
-
-       @param character The key for the map entry. May be empty or unknown. Is unique in the map.
        @param longchar The value for the key. May be empty or unknown.
-       @return character The previous value, or unknown if none. Unknown is a valid value too. */
+       @return character The previous value, or unknown if none. */
     method public longchar Put (input pcKey as character,
                                 input pcValue as longchar):
-        var String oldValue.
-
-        if pcValue ne ? then
-            oldValue = this-object:PutStringOrNull(new String(pcKey), new String(pcValue)).
-        else
-            oldValue = this-object:PutStringOrNull(new String(pcKey), ?).
+        var String oldValue = this-object:PutStringOrNull(new String(pcKey), new String(pcValue)).
 
         if valid-object(oldValue) then
             return oldValue:Value.
