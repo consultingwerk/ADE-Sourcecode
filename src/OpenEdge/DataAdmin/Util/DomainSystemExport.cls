@@ -1,5 +1,5 @@
 /************************************************
-  Copyright (c) 2016 by Progress Software Corporation. All rights reserved.
+  Copyright (c) 2016-2025 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : DomainSystemExport
@@ -387,7 +387,9 @@ class OpenEdge.DataAdmin.Util.DomainSystemExport:
                     cDAC = "". /* leave blank alone */               
                 END.
                 ELSE DO:
-                    cDAC = substitute('oech1::&1':u, oDomain:AccessCode).
+                    /* Do not dump domain & access code with prefix oech1 */
+                    LogMessage(substitute('Domain &1 has access code with oech1 encoding. Hence skipping dump of domain and access code.', quoter(cDomainName)), LogLevelEnum:WARN).
+                    NEXT.
                 END.
                 
                 export stream strKeys delimiter ',':u

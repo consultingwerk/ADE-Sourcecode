@@ -2,7 +2,7 @@
 &Scoped-define FRAME-NAME chgid-frame
 /*------------------------------------------------------------------------
 /*************************************************************/
-/* Copyright (c) 1984-2005,2012 by Progress Software Corporation  */
+/* Copyright (c) 1984-2005,2012,2025 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -38,7 +38,8 @@
                            into RAW 20050620-031.
     kmcintos Oct  26, 2005 Assigning hex-decode output to temp var before 
                            comparison 20050928-003.
-    rkmaboj  05/02/2012    fixed unknown record creation, when creating record first time.                       
+    rkmaboj  05/02/2012    fixed unknown record creation, when creating record first time.
+    tmasood  09/17/2025    Added new argument in ENCRYPT-AUDIT-MAC-KEY method                   
 ------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress AppBuilder.       */
 /*----------------------------------------------------------------------*/
@@ -270,6 +271,8 @@ ON END-ERROR OF FRAME {&FRAME-NAME}
 ON GO OF FRAME {&FRAME-NAME} DO:
   DEFINE VARIABLE tmpRaw AS RAW.
   DEFINE VARIABLE rawBI  AS RAW.
+  DEFINE VARIABLE cMacKey AS CHARACTER.
+  DEFINE VARIABLE cOldMacKey AS CHARACTER.
   
   IF NOT tbBlank:CHECKED AND
      glMacMod AND
@@ -288,8 +291,8 @@ ON GO OF FRAME {&FRAME-NAME} DO:
   phDbDetail:BUFFER-CREATE().
   IF NOT phOldBuff:AVAILABLE THEN
   DO:
-      tmpRaw = HEX-DECODE(AUDIT-POLICY:ENCRYPT-AUDIT-MAC-KEY("_db-id-mnt_initial_")).
-      ASSIGN phDbDetail::_db-mac-key = tmpRaw
+      cMacKey = AUDIT-POLICY:ENCRYPT-AUDIT-MAC-KEY("_db-id-mnt_initial_", "ae2h6").
+      ASSIGN PUT-STRING(phDbDetail::_db-mac-key, 1, LENGTH(cMacKey)) = cMacKey
              phDbDetail::_db-description = "PROGRESSST"
              phDbDetail::_db-custom-detail = "".
   END.      
@@ -310,10 +313,12 @@ ON GO OF FRAME {&FRAME-NAME} DO:
         phDbDetail::_db-mac-key = tmpRaw.
     END.
     ELSE DO:
-      tmpRaw = HEX-DECODE(AUDIT-POLICY:ENCRYPT-AUDIT-MAC-KEY(fiMacKey:SCREEN-VALUE)).
-      
-      IF phOldBuff:AVAILABLE AND tmpRaw NE phOldBuff::_db-mac-key THEN
-        phDbDetail::_db-mac-key = tmpRaw.
+      IF phOldBuff:AVAILABLE THEN DO:
+          cOldMacKey = GET-STRING(phOldBuff::_db-mac-key, 1).
+          cMacKey = AUDIT-POLICY:ENCRYPT-AUDIT-MAC-KEY(fiMacKey:SCREEN-VALUE, "ae2h6").
+          IF cOldMacKey <> cMacKey THEN
+            PUT-STRING(phDbDetail::_db-mac-key, 1, LENGTH(cMacKey)) = cMacKey.
+      END.
     END.
   END.
   ELSE IF tbBlank:CHECKED        EQ FALSE  AND
