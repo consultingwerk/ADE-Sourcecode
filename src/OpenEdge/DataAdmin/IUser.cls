@@ -1,6 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2011,2015,2024 by Progress Software Corporation  */
-/*                                                           */
+/* Copyright (c) 2011,2015,2024,2026 by Progress Software Corporation  */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
 /* permission in writing from progress Software Corporation. */
@@ -32,6 +31,9 @@ interface OpenEdge.DataAdmin.IUser inherits IDataAdminElement:
      
      /** The Tenant of the user (as defined by the Domain) */
      define public property Tenant        as ITenant   no-undo get.   
+       
+     /** User Name */
+     define public property UserName   as character no-undo get. set.
        
      /** An optional description of the user. */
      define public property Description   as character no-undo get. set.    

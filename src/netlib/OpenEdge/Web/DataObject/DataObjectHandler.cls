@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2021, 2023 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2021,2023-2024,2026 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : DataObjectHandler
@@ -18,7 +18,6 @@ using OpenEdge.Core.ISupportInitialize.
 using OpenEdge.Core.LogicalValue.
 using OpenEdge.Core.Memptr.
 using OpenEdge.Core.Session.
-using OpenEdge.Core.String.
 using OpenEdge.Core.StringConstant.
 using OpenEdge.Core.WidgetHandle.
 using OpenEdge.Logging.ILogWriter.
@@ -154,6 +153,20 @@ class OpenEdge.Web.DataObject.DataObjectHandler
         Destroy().
     end destructor.
 
+    /* Retrieves the current user Principal for authorization checks.
+       Can be overridden in subclasses for testing or custom authentication.
+
+       @return Principal The current authenticated user, or unknown if not authenticated */
+    method protected Principal GetCurrentPrincipal():
+        define variable curUser as Principal no-undo.
+
+        assign curUser = Principal:Import().
+        if not valid-object(curUser) then
+            assign curUser = Principal:Import(session:current-request-info).
+
+        return curUser.
+    end method.
+
     /* Handles an exception that has been raised while dealing with the request.
        The OE default is to return a status code; to customise, subscribe to the
        OperationError event  and change the ReturnStatusCode value.
@@ -219,7 +232,8 @@ class OpenEdge.Web.DataObject.DataObjectHandler
             /* Something went wrong while processing errors */
             Logger:Error('Error handling exceptions: using default status code 500/Internal Server Error', oError).
 
-            return integer(StatusCodeEnum:InternalServerError).
+            {&_proparse_ prolint-nowarn(overflow)}
+            return integer(StatusCodeEnum:InternalServerError:GetValue()).
         end catch.
     end method.
 
@@ -455,6 +469,7 @@ class OpenEdge.Web.DataObject.DataObjectHandler
         assign lValidType = false
                cOperType  = MimeTypeHelper:SplitType(pcContentType)
                .
+        TYPEBLK:
         do iLoop = 1 to iMax while not lValidType:
             assign cReqType = MimeTypeHelper:SplitType(entry(iLoop, cAccept))
                    .
@@ -463,19 +478,19 @@ class OpenEdge.Web.DataObject.DataObjectHandler
                (cReqType[1] eq cOperType[1] and cReqType[2] eq cOperType[2]) then
             do:
                 assign lValidType = true.
-                leave.
+                leave TYPEBLK.
             end.
 
             // unless the request is * (done above) we want a match
             if cReqType[1] ne cOperType[1] then
-                next.
+                next TYPEBLK.
 
             // *-groups and exact matches
             if cReqType[2] eq '*':u or
                cReqType[2] eq cOperType[2] then
             do:
                 assign lValidType = true.
-                leave.
+                leave TYPEBLK.
             end.
         end.
 
@@ -492,26 +507,58 @@ class OpenEdge.Web.DataObject.DataObjectHandler
            or valid-object(pEventArgs:Error)
            or extent(pEventArgs:Operation:AccessControl) eq ?
         then
+        do:
+            // Log when no ACL is configured for this operation
+            if extent(pEventArgs:Operation:AccessControl) eq ? then
+                Logger:Debug(substitute('No ACL check required for operation "&1:&2": AccessControl not configured',
+                                        pEventArgs:Operation:TargetName,
+                                        pEventArgs:Operation:TargetFunction)).
             return.
+        end.
 
         Logger:Trace(substitute('Operation target "&1:&2" requires one of ACL roles ["&3"]',
                                 pEventArgs:Operation:TargetName,
                                 pEventArgs:Operation:TargetFunction,
-                                String:Join(pEventArgs:Operation:AccessControl, '","':u) )).
+                                OpenEdge.Core.String:Join(pEventArgs:Operation:AccessControl, '","':u) )).
 
         // The fact that there are ACLs set for this operation means that we should report on the fact that the
         // user isn't set, and throw an error.
         if not valid-object(pEventArgs:User) then
+        do:
             Logger:Warn(substitute('Unable to authorize operation "&1:&2": no user asserted. One of ACL roles required ["&3"]',
                                    pEventArgs:Operation:TargetName,
                                    pEventArgs:Operation:TargetFunction,
-                                   String:Join(pEventArgs:Operation:AccessControl, '","':u) )).
-        else
+                                   OpenEdge.Core.String:Join(pEventArgs:Operation:AccessControl, '","':u) )).
+            undo, throw new SendExceptionError(StatusCodeEnum:Unauthorized).
+        end.
+
+        // Log user information at DEBUG level
+        Logger:Debug(substitute('Checking ACL authorization for user "&1" with roles ["&2"] against operation "&3:&4" requiring one of ["&5"]',
+                                (if valid-handle(pEventArgs:User:Token) then pEventArgs:User:Token:user-id else '?':u),
+                                (if valid-handle(pEventArgs:User:Token) then pEventArgs:User:Token:roles else '?':u),
+                                pEventArgs:Operation:TargetName,
+                                pEventArgs:Operation:TargetFunction,
+                                OpenEdge.Core.String:Join(pEventArgs:Operation:AccessControl, '","':u) )).
+
         // user passes muster
         if pEventArgs:User:AuthorizeOne(pEventArgs:Operation:AccessControl) then
+        do:
+            Logger:Debug(substitute('ACL authorization SUCCEEDED for user "&1" with roles ["&2"] for operation "&3:&4"',
+                                    (if valid-handle(pEventArgs:User:Token) then pEventArgs:User:Token:user-id else '?':u),
+                                    (if valid-handle(pEventArgs:User:Token) then pEventArgs:User:Token:roles else '?':u),
+                                    pEventArgs:Operation:TargetName,
+                                    pEventArgs:Operation:TargetFunction)).
             return.
+        end.
 
         // there is a user, and the Authorization failed
+        Logger:Debug(substitute('ACL authorization FAILED for user "&1": user has roles ["&2"], operation "&3:&4" requires one of ["&5"]',
+                                (if valid-handle(pEventArgs:User:Token) then pEventArgs:User:Token:user-id else '?':u),
+                                (if valid-handle(pEventArgs:User:Token) then pEventArgs:User:Token:roles else '?':u),
+                                pEventArgs:Operation:TargetName,
+                                pEventArgs:Operation:TargetFunction,
+                                OpenEdge.Core.String:Join(pEventArgs:Operation:AccessControl, '","':u) )).
+
         undo, throw new SendExceptionError(StatusCodeEnum:Unauthorized).
     end method.
 
@@ -545,9 +592,7 @@ class OpenEdge.Web.DataObject.DataObjectHandler
 
         // Before anything, authorize the operation
         // get the currently-asserted user
-        assign curUser = Principal:Import().
-        if not valid-object(curUser) then
-            assign curUser = Principal:Import(session:current-request-info).
+        assign curUser = this-object:GetCurrentPrincipal().
 
         assign authzArgs          = new AuthorizeOperationEventArgs(poRequest,
                                                                     pService,
@@ -705,7 +750,6 @@ class OpenEdge.Web.DataObject.DataObjectHandler
         return oHandler.
     end method.
 
-    @TODO(txt="needs refactoring out of here").
     /* Lists service names, versions and catalogs for all currently-registered services.
 
        @param MappedOperation The mapped operation
@@ -1079,7 +1123,8 @@ class OpenEdge.Web.DataObject.DataObjectHandler
             when 'ListServices':u then
                 assign iStatusCode = this-object:ListServices(poOperation, poRequest, poMessageBody, poResponse).
             otherwise
-                assign iStatusCode = integer(StatusCodeEnum:MethodNotAllowed).
+                {&_proparse_ prolint-nowarn(overflow)}
+                assign iStatusCode = integer(StatusCodeEnum:MethodNotAllowed:GetValue()).
         end case.
 
         return iStatusCode.
@@ -1660,12 +1705,14 @@ class OpenEdge.Web.DataObject.DataObjectHandler
             /* We have some default behaviour ... which is to return an error code. Use the
                response status for a default */
             if type-of(pEventArgs:OperationError, SendExceptionError) then
-                assign pEventArgs:Response:StatusCode   = integer(cast(pEventArgs:OperationError, SendExceptionError):StatusCode)
+                {&_proparse_ prolint-nowarn(overflow)}
+                assign pEventArgs:Response:StatusCode   = integer(cast(pEventArgs:OperationError, SendExceptionError):StatusCode:GetValue())
                        pEventArgs:Response:StatusReason = cast(pEventArgs:OperationError, SendExceptionError):StatusMessage
                        .
             else
                 // all we know is something horrible happened ...
-                assign pEventArgs:Response:StatusCode   = integer(StatusCodeEnum:InternalServerError)
+                {&_proparse_ prolint-nowarn(overflow)}
+                assign pEventArgs:Response:StatusCode   = integer(StatusCodeEnum:InternalServerError:GetValue())
                        pEventArgs:Response:StatusReason = StatusCodeHelper:GetMessage(StatusCodeEnum:InternalServerError)
                        .
 
@@ -1677,7 +1724,8 @@ class OpenEdge.Web.DataObject.DataObjectHandler
         end.
         else
             // we don't know how to write the error response, so let the webapp handle it
-            assign pEventArgs:ReturnStatusCode = integer(StatusCodeEnum:InternalServerError).
+            {&_proparse_ prolint-nowarn(overflow)}
+            assign pEventArgs:ReturnStatusCode = integer(StatusCodeEnum:InternalServerError:GetValue()).
     end method.
 
     /* Event handler for the event published before the business logic function is called by the handler

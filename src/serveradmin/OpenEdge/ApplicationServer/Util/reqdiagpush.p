@@ -1,10 +1,10 @@
 /* *************************************************************************************************************************
-Copyright (c) 2018, 2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2018,2021,2026 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
-    File        : reqdiagpush.p
-    Purpose     : 
-    Description : 
+    File        : OpenEdge/ApplicationServer/Util/reqdiagpush.p
+    Purpose     : Push profiler data to an eternal endpoint or local file
+    Description :
     Author(s)   : mbanks
     Created     : Thu Feb 22 13:14:25 EST 2018
     Notes       :
@@ -12,13 +12,15 @@ Copyright (c) 2018, 2021 by Progress Software Corporation and/or one of its subs
 
 block-level on error undo, throw.
 
+using OpenEdge.Logging.ILogWriter.
+using OpenEdge.Logging.LoggerBuilder.
 using OpenEdge.Net.HTTP.ClientBuilder.
 using OpenEdge.Net.HTTP.IHttpRequest.
 using OpenEdge.Net.HTTP.IHttpResponse.
 using OpenEdge.Net.HTTP.IHttpClient.
 using OpenEdge.Net.HTTP.RequestBuilder.
 using OpenEdge.Net.URI.
-using Progress.Json.ObjectModel.JsonObject. 
+using Progress.Json.ObjectModel.JsonObject.
 
 define variable oRequest  as IHttpRequest  no-undo.
 define variable oResponse as IHttpResponse no-undo.
@@ -34,7 +36,10 @@ define input parameter Transport     as character no-undo.
 define input parameter APIEntryPt    as character no-undo.
 define input parameter TestRun       as character no-undo.
 define input parameter PerfData      as longchar  no-undo.
-                 
+
+define variable oLogger as ILogWriter no-undo.
+assign oLogger = LoggerBuilder:GetLogger("ReqDiagPush":u).
+
 define variable requestJson as JsonObject no-undo.
 
 assign requestJson = new JsonObject().
@@ -49,16 +54,16 @@ requestJson:Add( 'TestRun', TestRun ).
 requestJson:Add( 'PerfData', PerfData ).
 
 oRequest = RequestBuilder:Post( HttpUrl, requestJson )
-    :ContentType( 'application/json' )
-    :AcceptJson()
-    :Request.
+                         :ContentType( 'application/json' )
+                         :AcceptJson()
+                         :Request.
 
 /* For Fiddler (proxy):
     def var oClient as IHttpClient no-undo.
     oClient = new OpenEdge.Net.HTTP.ProxyHttpClient(
-        ClientBuilder:Build():Client,
-        URI:Parse('http://localhost:8888')
-        ). 
+                        ClientBuilder:Build():Client,
+                        URI:Parse('http://localhost:8888')
+                    ).
     oResponse = oClient:Execute(oRequest).
 */
 
@@ -69,13 +74,15 @@ oResponse = ClientBuilder:Build():Client:Execute(oRequest).
  * If it is not then write the message in the agent log.
  */
 
-if oResponse:StatusCode NE 201 then 
+if oResponse:StatusCode ne 201 then
 do:
-    message "Unable to access the Diagnostic Server".
-    message "Server returned status code - " + String(oResponse:StatusCode).
+    oLogger:Info("Unable to access the Diagnostic Server").
+    oLogger:Info(substitute("Server returned status code - &1", oResponse:StatusCode)).
 end.
 
 
-catch e as Progress.Lang.Error :
-    message e:GetMessage(1). 
+catch err as Progress.Lang.Error:
+    // Errors should be caught and reported, but not interrupt operations.
+    oLogger:Error("Pulse (LiveDiag) Error":u, err).
 end catch.
+/* EOF */

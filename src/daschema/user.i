@@ -1,6 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2010-2012,2015,2019,2024 by Progress Software Corporation. */  
-/*                                                           */
+/* Copyright (c) 2010-2012,2015,2019,2024,2026 by Progress Software Corporation. */  
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
 /* permission in writing from Progress Software Corporation. */
@@ -24,6 +23,7 @@ define  temp-table ttUser no-undo  serialize-name "users" {1} before-table ttUse
        to be removed if a better mechansim is used to pass preferences */
     field PreEncodePassword as logical init false   serialize-hidden   
     field Id            as character      serialize-name "id" format "x(30)"
+    field UserName      as character      serialize-name "username" format "x(15)"
     field Description   as character      serialize-name "description"
     field IsSqlOnly     as logical        serialize-name "isSqlOnly"  
     field Number        as integer        serialize-name "number"

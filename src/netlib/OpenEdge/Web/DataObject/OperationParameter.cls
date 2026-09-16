@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2018, 2021, 2023 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2018,2021,2023,2026 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : OperationParameter
@@ -51,6 +51,9 @@ class OpenEdge.Web.DataObject.OperationParameter:
 
     /* (optional) Name of the ABL paramater - usually for info */
     define public property ABLName as character no-undo get. set.
+
+    /* (optional) A description of this parameter */
+    define public property Description as character no-undo get. set.
 
     /* (mandatory) Name of the ABL datatype parameter */
     define public property ABLType as character no-undo get. private set.

@@ -549,6 +549,10 @@
       var fieldObj = eval('formObj.elements["' + cField + '"]');
     }
       
+    if (fieldObj == null || fieldObj == undefined) {
+      return null;
+    }
+      
     switch(cAttribute) {
       case "object":
         return fieldObj;
@@ -613,7 +617,7 @@
     var newPage;
     var oldValue = 0;
     
-    if (cString == "") {
+    if (cString === "" || cString === null || cString === undefined) {
       alert("The Editor is empty.");
       return;
     }
@@ -627,7 +631,7 @@
     }
     else if (isNav4up) {
       /* Convert text area to an array,  prefixing line numbers. */
-      cArray = cString.split(String.fromCharCode(10));
+      cArray = cString ? cString.split(String.fromCharCode(10)) : [];
       for (ix = 0; ix < cArray.length; ix++) {
         cCounter = new String(ix + 1);
         cSpaces  = "";
@@ -664,15 +668,17 @@
       oldValue = iPointer;
       iPointer = cString.indexOf(String.fromCharCode(13), iPointer) + 1;
       
-      if (iPointer >= (cString.length - 3)) {
+      if (iPointer === null || iPointer === undefined || iPointer >= (cString ? cString.length - 3 : 0)) {
         iPointer = oldValue;
         break forLoop;
       }
       oldValue = iPointer;
     }
     parent.WS_edit.form1.txt.focus();
-    textObj.move("character", iPointer - Math.max(0, (ix - 2)));
-    textObj.select();
+    if (textObj) {
+      textObj.move("character", iPointer - Math.max(0, (ix - 2)));
+      textObj.select();
+    }
   }
   
   function hideAll(e) {
@@ -1208,4 +1214,3 @@
     -------------------------------------------------------------------------*/
     window.routeEvent(evt);
   }
-  

@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000-2026 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -27,6 +27,7 @@ History:
     sgarg        06/03/10   BLOB/CLOB support in Stored Proc
     musingh      07/01/11   Map varchar(n) to char, where 1<=n<=8000
     sgarg        03/07/12   Error handling for unsupported LOBs
+    tmasood      07/06/26   Prevent corrupt metaschema when pulling CLOB/BLOB array fields
 
 --------------------------------------------------------------------*/
 
@@ -138,6 +139,13 @@ END.
          END.
      END.
   END.
+
+/* CLOB/BLOB fields cannot have extents.
+   Warn the user and skip to prevent corrupt metaschema. */
+IF (ntyp = "CLOB" OR ntyp = "BLOB") AND {&extent} > 0 THEN DO:
+    RUN error_handling(11, fnam, s_ttb_tbl.ds_name).
+    NEXT.
+END.
 
 CREATE s_ttb_fld.
 

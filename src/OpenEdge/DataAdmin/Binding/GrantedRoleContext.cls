@@ -1,5 +1,5 @@
 /************************************************
-  Copyright (c) 2016-2024 by Progress Software Corporation. All rights reserved.
+  Copyright (c) 2016-2024,2026 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : GrantedRoleContext
@@ -194,6 +194,13 @@ class OpenEdge.DataAdmin.Binding.GrantedRoleContext inherits DataAdminContext :
 		
         InitRowValues().
 	end method.
+
+        /** Called by ReadRow after all JSON fields have been applied to the buffer.
+        Ensures InitRowValues() runs during import so a blank Id gets a GUID,
+        preventing unique-index collisions when multiple grants are posted without ids. */
+        method protected override void ValidateBuffer(hBuffer as handle):
+           InitRowValues().
+        end method.
 	
 	method public void CreateRow(input poRole as IGrantedRole):
 	    define variable validateError as DataContextError no-undo.

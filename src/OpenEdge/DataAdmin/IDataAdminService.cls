@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2014-2016,2019,2023 by Progress Software Corporation  */
+/* Copyright (c) 2014-2016,2019,2023,2026 by Progress Software Corporation  */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -242,6 +242,11 @@ interface OpenEdge.DataAdmin.IDataAdminService :
         @param character The ID of the granted role to delete
         @throws NotFoundError if role does not exist */
     method public logical DeleteGrantedRole(input pcGrantId as character).
+
+    /** Delete a collection of granted roles in a single transaction
+        @param IGrantedRoleSet The set of granted roles to delete
+        @throws NotFoundError if any granted role record is not found */
+    method public logical DeleteGrantedRoles(input poGrants as IGrantedRoleSet).
     
     /** Delete domain  
         @param domainName name of domain to delete 

@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2017-2021,2024-2025 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2017-2021,2024,2026 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : DataObjectService
@@ -94,11 +94,22 @@ class OpenEdge.Web.DataObject.DataObjectService
         get.
         private set.
 
+    /* (optional) A description of this service */
+    define public property Description as character no-undo get. set.
+
     /* (optional) Options for this service. */
     define public property Options as ServiceOptions no-undo get. set.
 
     /* (optional) A Data Service Catalog associated with the service */
     define public property Catalog as JsonObject no-undo get. set.
+
+    /**
+     * (optional) JSON Schema definitions from the operation map file.
+     * Only contains schemas defined using JSON Schema format (with "type", "properties", etc.).
+     * Temp-table and dataset schemas are not stored here - they exist as handles in DataSchema.
+     * Used by OpenAPI writer to document JsonArray/JsonObject response types.
+     */
+    define public property JsonSchemas as JsonObject no-undo get. set.
 
     /* (optional) A collection of ArgumentValueWriter types for this service that provide custom writing */
     define public property ArgumentWriters as BuilderRegistry no-undo
@@ -209,7 +220,7 @@ class OpenEdge.Web.DataObject.DataObjectService
 
         define buffer lbOperation for Operation.
 
-        Assert:NotNull(pServiceURI , 'Service URI').
+        Assert:NotNull(pServiceURI, 'Service URI').
         Assert:NotNull(pMethod, 'Operation method').
 
         if Logger:LogLevel eq LogLevelEnum:Trace then

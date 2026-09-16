@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2018, 2020-2021, 2023 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2018,2020-2021,2023,2026 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : MappedOperation
@@ -82,6 +82,12 @@ class OpenEdge.Web.DataObject.MappedOperation:
 
     /* (optional) An easy/human-readable name for this operation */
     define public property Name as character no-undo get. set.
+
+    /* (optional) A description of what this operation does (a high-level summary) */
+    define public property Description as character no-undo get. set.
+
+    /* (optional) A description of what the entity does or returns in the response */
+    define public property EntityDescription as character no-undo get. set.
 
     /* (optional) A collection of HTTP cookies to set for this operation. */
     define public property Cookies as CookieCollection no-undo

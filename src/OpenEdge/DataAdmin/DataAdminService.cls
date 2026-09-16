@@ -1,5 +1,5 @@
 /***********************************************************************************
-Copyright (c) 2011-2017,2019,2023 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2011-2017,2019,2023,2026 by Progress Software Corporation. All rights reserved.
 ***********************************************************************************/
 /** 
    Purpose     : Data Admin Service with crud methods for 
@@ -11,6 +11,7 @@ Copyright (c) 2011-2017,2019,2023 by Progress Software Corporation. All rights r
    Created     : Sat Jul 10 23:27:42 EDT 2010
    Notes       : 
    Patches     : OCTA-55313 12.8 Added the methods to set/reset the mask value & authorization tag for DDM Enabled user. 
+                 OCTA-89041 13.1 Added new method to delete set of granted roles for a user.
    */
 
 block-level on error undo, throw.
@@ -404,6 +405,54 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
             undo, throw new NotFoundError("Granted Role " + quoter(pcGrantId) + " not found").  
         
         return DeleteElement(pcGrantId, inst, ContextFactory:GrantedRoleContext).    
+    end method.
+
+    /** Delete a collection of granted roles in a single transaction.
+        Marks all records for deletion in the shared context, then calls
+        SaveData once — mirroring the batch create pattern of CreateGrantedRoles.
+        @param IGrantedRoleSet The set of granted roles to delete
+        @throws NotFoundError if any granted role record is not found in the context */
+    method public logical DeleteGrantedRoles(input poGrants as IGrantedRoleSet):
+        define variable cntxt    as IDataAdminModel no-undo.
+        define variable iter     as IIterator       no-undo.
+        define variable oGrant   as IGrantedRole    no-undo.
+        define variable oFetched as IGrantedRole    no-undo.
+        define variable rowinfo  as IRow            no-undo.
+        define variable lok      as logical         no-undo.
+
+        cntxt = ContextFactory:GrantedRoleContext.
+        iter  = poGrants:Iterator().
+
+        /* Pass 1: mark every record for deletion in the context — no DB write yet */
+        do while iter:HasNext():
+            oGrant   = cast(iter:Next(), IGrantedRole).
+            /* Re-fetch from main GrantedRoleContext so AssertUpdate sees the correct ContextId.
+               Grants in poGrants may come from a FilteredContext or a local NewGrantedRoles()
+               collection whose ContextId does not match ContextFactory:GrantedRoleContext. */
+            oFetched = GetGrantedRole(oGrant:Id).
+            if not valid-object(oFetched) then
+                undo, throw new NotFoundError("Granted Role " + quoter(oGrant:Id) + " not found").
+            AssertUpdate(oFetched, cntxt).
+            rowinfo = GetRowInfo(oFetched, cntxt).
+            if num-entries(rowinfo:KeyFields) = 1 then
+                lok = cntxt:Delete(rowinfo:KeyValues[1]).
+            else
+                lok = cntxt:Delete(rowinfo:KeyValues).
+            if not lok then
+                undo, throw new NotFoundError("Granted Role " + quoter(oFetched:Id) + " not found in context").
+        end.
+
+        /* Pass 2: single SaveData call commits all accumulated deletes atomically */
+        return UpdateContext(cntxt).
+
+        catch e as Progress.Lang.Error:
+            ErrorHandler(e).
+            return false.
+        end catch.
+        finally:
+            define variable i as integer no-undo.
+            i = i no-error.
+        end finally.
     end method.
 
     method public logical DeleteDomain(domainName as character):

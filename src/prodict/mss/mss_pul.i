@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2007-2011 by Progress Software Corporation. All      *
+* Copyright (C) 2007-2011,2026 by Progress Software Corporation. All      *
 * rights reserved. Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -43,6 +43,7 @@ History:
    sgarg      06/03/10 _Fld-Misc1[7] to store flag for TEXTPTR_LOB_TYPES
    musingh    03/30/11 Added logic to set the flag TEXTPTR_LOB_TYPES only for 
                        actual Legacy Server LOB types(text, ntext and image).
+   tmasood    07/06/26 Prevent corrupt metaschema when pulling CLOB/BLOB array fields
 --------------------------------------------------------------------*/
 
 DEFINE VARIABLE my_typ_unicode AS LOGICAL.
@@ -225,6 +226,13 @@ IF l_init <> ? THEN DO:
               ASSIGN l_init = ?.
       END.
   END.
+END.
+
+/* CLOB/BLOB fields cannot have extents. 
+   Warn the user and skip to prevent corrupt metaschema. */
+IF (ntyp = "CLOB" OR ntyp = "BLOB") AND {&extent} > 0 THEN DO:
+    RUN error_handling(11, fnam, s_ttb_tbl.ds_name).
+    NEXT.
 END.
 
 CREATE s_ttb_fld.

@@ -54,7 +54,7 @@
     else if (isNav4up)
       var numObj = document.form1.elements["lineNum"];
     
-    if (e.id == "btnOk" || e.name == "btnOk") {
+    if (numObj && (e.id == "btnOk" || e.name == "btnOk")) {
       if (isNaN(numObj.value) || (numObj.value < 0) || (numObj.value == "-0")) {
         cURL = "../webutil/_webmsgs.w?type=warning&title=Warning" +
                "&context=goToLine" +

@@ -1,6 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2011,2015,2024 by Progress Software Corporation  */
-/*                                                           */
+/* Copyright (c) 2011,2015,2024,2026 by Progress Software Corporation  */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
 /* permission in writing from progress Software Corporation. */
@@ -85,7 +84,24 @@ class OpenEdge.DataAdmin.User inherits Entity implements IUser:
                      then "@" + cDomain
                      else "".
          end.
-   
+
+    /** User Name. */
+    define public property UserName as character no-undo     
+        get():
+            if valid-handle(mBuffer) then
+                return mBuffer::UserName.
+            else
+                return UserName. 
+        end.
+        set(pUserName as character):
+            if valid-handle(mBuffer) then
+            do:
+                mDefaultBuffer:find-by-rowid(mBuffer:rowid).  
+                mdefaultbuffer::UserName = pUserName.
+            end.
+            UserName = pUserName.
+        end.
+
      /** An optional description of the user. */
     define public property Description as character no-undo     
         get():

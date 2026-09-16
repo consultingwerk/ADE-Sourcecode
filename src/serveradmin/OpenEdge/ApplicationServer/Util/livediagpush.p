@@ -1,10 +1,10 @@
 /* *************************************************************************************************************************
-Copyright (c) 2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2021,2026 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : OpenEdge/ApplicationServer/Util/livediagpush.p
-    Purpose     :
-    Author(s)   :
+    Purpose     : Push "livediag" data to an eternal endpoint or local file
+    Author(s)   : dugrau
     Created     :
     Notes       : * If the 'url' is unknown, empty or "append" then the pulse data will
                     be written to a file.
@@ -18,8 +18,11 @@ Copyright (c) 2021 by Progress Software Corporation and/or one of its subsidiari
                     If a different status code is received, a message is logged in the agent log
                   * Any errors raised are written to the agent log, but are not rethrown
   ----------------------------------------------------------------------*/
+
 block-level on error undo, throw.
 
+using OpenEdge.Logging.ILogWriter.
+using OpenEdge.Logging.LoggerBuilder.
 using OpenEdge.Net.HTTP.ClientBuilder.
 using OpenEdge.Net.HTTP.IHttpRequest.
 using OpenEdge.Net.HTTP.IHttpResponse.
@@ -39,6 +42,9 @@ define variable pulseJson  as JsonObject    no-undo.
 define variable pulseData  as JsonObject    no-undo.
 define variable pulseArray as JsonArray     no-undo.
 
+define variable oLogger as ILogWriter no-undo.
+assign oLogger = LoggerBuilder:GetLogger("LiveDiagPush":u).
+
 /* HttpUrl is nil, unknown, or set to 'Append' then don't
  * push the request data; write it to a file
  */
@@ -48,60 +54,65 @@ case HttpUrl:
     or when ?
     then
     do:
-        oFilename = "./pulse_"
-                  + string(agentPid) + "_"
+        oFilename = "./pulse_":u
+                  + string(agentPid) + "_":u
                   + replace(iso-date(now), ":", ".")
                   + ".json":u.
         copy-lob requestPulse to file oFilename.
     end.    // per-pulse file
-    
+
     /* Append to an existing file, if present */
     when 'Append':u then
     do:
         // needs  "./" in case "." isn't in PROPATH
         assign pulseJson = cast(new ObjectModelParser():Parse(requestPulse), JsonObject)
-               oFilename = "./pulse_"
-                         + string(agentPid) + "_"
+               oFilename = "./pulse_":u
+                         + string(agentPid) + "_":u
                          + replace(substring(iso-date(now),1,10), ":", ".")
-                         + ".json"
+                         + ".json":u
                file-info:file-name = oFilename
                .
         if file-info:full-pathname eq ? then
         do:
-            assign pulseData  = new JsonObject()
-                   pulseArray = new JsonArray()
-                   .
+            assign
+                pulseData  = new JsonObject()
+                pulseArray = new JsonArray()
+                .
             pulseData:Add('pulses':u, pulseArray).
         end.
         else
-            assign pulseData  = cast(new ObjectModelParser():ParseFile(file-info:full-pathname), JsonObject)
-                   pulseArray = pulseData:GetJsonArray('pulses':u)
-                   .
+            assign
+                pulseData  = cast(new ObjectModelParser():ParseFile(file-info:full-pathname), JsonObject)
+                pulseArray = pulseData:GetJsonArray('pulses':u)
+                .
         pulseArray:Add(pulseJson).
         pulseData:WriteFile(oFilename).
     end.    // append to file
-    
+
     // "write" to URL
     otherwise
     do:
         assign pulseData = new JsonObject().
-        pulseData:Add( 'requestData', requestPulse).
-        
+        pulseData:Add( 'requestData', requestPulse ).
+
         oRequest = RequestBuilder:Post( HttpUrl, pulseData )
-            :ContentType( 'application/json' )
-            :Request.
+                                 :ContentType( 'application/json' )
+                                 :Request.
         oResponse = ClientBuilder:Build():Client:Execute(oRequest).
-        
-        /* Verify that the request to the diagnostic server is successful.
-        If it is not then write the message in the agent log */
-        if oResponse:StatusCode < 200
-        or oResponse:StatusCode > 202
+
+        /**
+         * Verify that the request to the diagnostic server is successful.
+         * If it is not then write the message in the agent log.
+         */
+        if oResponse:StatusCode lt 200
+        or oResponse:StatusCode gt 202
         then
-            message "Unable to access Server: status code - " + string(oResponse:StatusCode).
+            oLogger:Info(substitute("Unable to access Server: status code - &1", oResponse:StatusCode)).
     end.    // POST()
 end case.   // HttpUrl
 
-catch e as Progress.Lang.Error :
-    message 'Pulse error: ' + e:GetMessage(1).
+catch err as Progress.Lang.Error:
+    // Errors should be caught and reported, but not interrupt operations.
+    oLogger:Error("Pulse (LiveDiag) Error":u, err).
 end catch.
 /* EOF */

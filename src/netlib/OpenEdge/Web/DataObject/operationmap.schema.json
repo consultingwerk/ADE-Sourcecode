@@ -1,16 +1,16 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
-  "description": "Schema for Progress Data Object Operation Map, v. 1.0.0",
+  "description": "Schema for Progress Data Object Operation Map, v. 1.1.0",
   "definitions": {
     "proDataset": {
       "type": "object",
-      "description": "A complete prodataset",
+      "description": "A complete ProDataset",
       "minItems": 1,
       "uniqueItems": true,
       "properties": {
         "attr": {
           "type": "object",
-          "description": "Attributes for the dataset",
+          "description": "Attributes for the ProDataset",
           "properties": {
             "serializeHidden": {"type": "boolean"},
             "serializeName": {"type": "string"},
@@ -24,12 +24,13 @@
                         "fields": {
                             "type":"array",
                             "items":{
-                            "type": "object",
-                            "properties": {
-                                "parentField": {"type": "string"},
-                                "childField": {"type": "string"}
-                            },
-                            "required": ["parentField", "childField"]
+                                "type": "object",
+                                "properties": {
+                                    "parentField": {"type": "string"},
+                                    "childField": {"type": "string"}
+                                },
+                                "required": ["parentField", "childField"]
+                            }
                         },
                         "name": {"type": "string"},
                         "nested": {"type": "boolean"},
@@ -48,7 +49,7 @@
     },
     "tempTable": {
       "type": "object",
-      "description": "A complete temp-table",
+      "description": "A complete Temp-Table",
       "properties": {
         "trackChanges": {"type": "boolean"},
         "serializeHidden": {"type": "boolean"},
@@ -97,6 +98,10 @@
       "description": "A single field in a temp-table",
       "properties": {
         "name": {"type": "string"},
+        "description": {
+          "type": "string",
+          "description": "An optional description of this field for documentation purposes"
+        },
         "ablType": {
           "type": "string",
           "enum": [
@@ -126,6 +131,94 @@
         "name",
         "ablType"
       ]
+    },
+    "jsonSchemaProperty": {
+      "type": "object",
+      "description": "A property definition for JSON Schema objects",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["object", "array", "string", "number", "integer", "boolean", "null"],
+          "description": "The JSON Schema type for this property"
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable description of this property"
+        },
+        "format": {
+          "type": "string",
+          "description": "Format hint for validation (e.g., date, date-time, int32, int64, binary)"
+        },
+        "properties": {
+          "type": "object",
+          "description": "For type=object: defines nested object properties",
+          "patternProperties": {
+            "^[A-Za-z$0-9-_]+*$": {
+              "$ref": "#/definitions/jsonSchemaProperty"
+            }
+          }
+        },
+        "items": {
+          "description": "For type=array: defines the schema of array elements",
+          "$ref": "#/definitions/jsonSchemaProperty"
+        },
+        "required": {
+          "type": "array",
+          "description": "List of required property names",
+          "items": {"type": "string"}
+        },
+        "nullable": {
+          "type": "boolean",
+          "description": "Whether this property can be null"
+        },
+        "enum": {
+          "type": "array",
+          "description": "Enumerated values for this property"
+        },
+        "additionalProperties": {
+          "type": "boolean",
+          "description": "Whether additional properties are allowed (for objects)"
+        }
+      },
+      "required": ["type"]
+    },
+    "jsonSchema": {
+      "type": "object",
+      "description": "A standard JSON Schema definition for JSON objects and arrays",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["object", "array"],
+          "description": "The JSON Schema type (object or array)"
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable description of this schema"
+        },
+        "properties": {
+          "type": "object",
+          "description": "For type=object: defines the object's properties",
+          "patternProperties": {
+            "^[A-Za-z$0-9-_]+*$": {
+              "$ref": "#/definitions/jsonSchemaProperty"
+            }
+          }
+        },
+        "items": {
+          "description": "For type=array: defines the schema of array elements",
+          "$ref": "#/definitions/jsonSchemaProperty"
+        },
+        "required": {
+          "type": "array",
+          "description": "List of required property names (for objects)",
+          "items": {"type": "string"}
+        },
+        "additionalProperties": {
+          "type": "boolean",
+          "description": "Whether additional properties are allowed (for objects)"
+        }
+      },
+      "required": ["type"]
     },
     "mimeType": {
       "type": "string",
@@ -277,6 +370,10 @@
               "type": "string",
               "format": "^[0-9]+(.[0-9]+)+$"
             },
+            "description": {
+              "type": "string",
+              "description": "An optional description of this service"
+            },
             "options": {"$ref": "#/definitions/serviceOptions"},
             "operations": {
               "type": "object",
@@ -298,7 +395,8 @@
                 "^[A-Za-z$0-9-/&#%.]+*$": {
                   "anyOf": [
                     {"$ref": "#/definitions/tempTable"},
-                    {"$ref": "#/definitions/proDataset"}
+                    {"$ref": "#/definitions/proDataset"},
+                    {"$ref": "#/definitions/jsonSchema"}
                   ]
                 }
               }
@@ -335,6 +433,10 @@
           "type": "string",
           "description": "An optional name for this operation"
         },
+        "description": {
+          "type": "string",
+          "description": "An optional high-level summary describing what this operation does"
+        },
         "contentType": {
           "$ref": "#/definitions/mimeType",
           "description": "The content-type of the response payload, if any"
@@ -352,7 +454,7 @@
           "multipleOf": 1,
           "description": "The HTTP status code to return"
         },
-        "acl": {
+        "accessControl": {
             "type": ["array", "null"],
             "description": "An array of roles that are required to allow access to this operation.",
             "items": [
@@ -371,7 +473,13 @@
         "entity": {
           "type": "object",
           "properties": {
-            "name": {"type": "string"},
+            "name": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string",
+              "description": "An optional description focusing on what this entity does and/or what it returns in the response"
+            },
             "type": {
               "type": "string",
               "enum": [
@@ -395,6 +503,10 @@
                     "ablName": {
                       "type": "string",
                       "description": "The (optional) name of the ABL parameter. Blank for return"
+                    },
+                    "description": {
+                      "type": "string",
+                      "description": "An optional description of this ABL parameter"
                     },
                     "ablType": {
                       "type": "string",

@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2024 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2024,2026 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : ServiceRegistryLoader
@@ -228,6 +228,7 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
                .
 
         // Load schemas first since when we create the operation, we'd like to create any schema holders
+        // Note: LoadSchemas will populate svc:JsonSchemas with JSON Schema definitions for recall later
         if valid-object(poSchemas) then
             assign numSchemas = LoadSchemas(svc, poSchemas).
 
@@ -259,26 +260,36 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
        @param DataObjectService The service
        @param JsonObject The set of schema
        @return integer The number of schemas loaded */
-    method private integer LoadSchemas(input pService as DataObjectService,
+    method private integer LoadSchemas(input pService  as DataObjectService,
                                        input poSchemas as JsonObject):
-        define variable iSchemaLoop as integer           no-undo.
-        define variable iSchemaMax  as integer           no-undo.
-        define variable cSchemaName as longchar   extent no-undo.
-        define variable schemaName  as character         no-undo.
-        define variable iInnerLoop  as integer           no-undo.
-        define variable iInnerMax   as integer           no-undo.
-        define variable cTTName     as character  extent no-undo.
-        define variable hSchema     as handle            no-undo.
-        define variable hTempTable  as handle            no-undo.
-        define variable oSchema     as JsonObject        no-undo.
-        define variable oTable      as JsonObject        no-undo.
-        define variable attribs     as JsonObject        no-undo.
+        define variable iSchemaLoop       as integer           no-undo.
+        define variable iSchemaMax        as integer           no-undo.
+        define variable iLoadedCount      as integer           no-undo.
+        define variable cSchemaName       as longchar   extent no-undo.
+        define variable schemaName        as character         no-undo.
+        define variable iInnerLoop        as integer           no-undo.
+        define variable iInnerMax         as integer           no-undo.
+        define variable cTTName           as character  extent no-undo.
+        define variable hSchema           as handle            no-undo.
+        define variable hTempTable        as handle            no-undo.
+        define variable oSchema           as JsonObject        no-undo.
+        define variable oTable            as JsonObject        no-undo.
+        define variable oFieldDef         as JsonObject        no-undo.
+        define variable oFieldArray       as JsonArray         no-undo.
+        define variable oAttributes       as JsonObject        no-undo.
+        define variable isTempTable       as logical           no-undo.
+        define variable isDatasetSchema   as logical           no-undo.
+        define variable lHasDatasetTables as logical           no-undo.
+        define variable iFieldLoop        as integer           no-undo.
+        define variable iFieldMax         as integer           no-undo.
+        define variable cSchemaTypeReason as character         no-undo.
 
         Assert:NotNull(poSchemas, 'Schemas').
 
-        assign cSchemaName = poSchemas:GetNames()
-               iSchemaMax  = extent(cSchemaName)
-               .
+        assign
+            cSchemaName = poSchemas:GetNames()
+            iSchemaMax  = extent(cSchemaName)
+            .
         if iSchemaMax eq ? then
             return 0.
 
@@ -287,56 +298,225 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
             /* Ignore warnings about possible overflows, as schema names should not exceed 32KB. */
             {&_proparse_ prolint-nowarn(overflow)}
             assign schemaName = string(cSchemaName[iSchemaLoop]).
-            if not poSchemas:GetType(schemaName) eq JsonDataType:OBJECT then
+            if not poSchemas:GetType(schemaName) eq JsonDataType:OBJECT then do:
+                // Provide a useable message to help identify potential issues with the service mapping definition.
+                Logger:Error(substitute('Unable to load schema "&1" for service "&2": expected JsonObject but found &3',
+                                        schemaName,
+                                        pService:Name,
+                                        string(JsonDataTypeEnum:GetEnum(poSchemas:GetType(schemaName))))).
                 next SCHEMABLK.
+            end.
 
-            assign oSchema = poSchemas:GetJsonObject(schemaName).
-            if oSchema:Has(string(ServiceMappingFileSchemaEnum:fields)) then
-                assign hSchema = CreateTempTable(schemaName, oSchema).
-            else
-            do:
-                create dataset hSchema.
-                assign hSchema:name    = schemaName
-                       extent(cTTName) = ?
-                       cTTName         = oSchema:GetNames()
-                       iInnerMax       = extent(cTTName)
-                       attribs         = ?
-                       .
+            // Dedicated block for detection of the schema type and inclusion into the registry.
+            do on error undo, throw:
+                assign
+                    oSchema           = poSchemas:GetJsonObject(schemaName)
+                    isTempTable       = false
+                    isDatasetSchema   = false
+                    cSchemaTypeReason = '':u
+                    hSchema           = ?
+                    oAttributes       = ?
+                    .
 
-                INNERBLK:
-                do iInnerLoop = 1 to iInnerMax:
-                    if cTTName[iInnerLoop] eq string(ServiceMappingFileSchemaEnum:attr) then
-                    do:
-                        if JsonPropertyHelper:HasTypedProperty(oSchema, string(ServiceMappingFileSchemaEnum:attr), JsonDataType:OBJECT) then
-                            assign attribs = oSchema:GetJsonObject(string(ServiceMappingFileSchemaEnum:attr)).
+                /**
+                 * Strict temp-table schema check: must have a top-level "fields" array where every
+                 * field entry is an object containing both a string "name" and a string "ablType".
+                 */
+                if JsonPropertyHelper:HasTypedProperty(oSchema, string(ServiceMappingFileSchemaEnum:fields), JsonDataType:ARRAY) then do:
+                    assign
+                        isTempTable = true
+                        oFieldArray = oSchema:GetJsonArray(string(ServiceMappingFileSchemaEnum:fields))
+                        iFieldMax   = oFieldArray:Length
+                        .
 
-                        next INNERBLK.
+                    do iFieldLoop = 1 to iFieldMax while isTempTable:
+                        if not oFieldArray:GetType(iFieldLoop) eq JsonDataType:OBJECT then do:
+                            assign isTempTable = false.
+                            leave.
+                        end.
+
+                        assign oFieldDef = oFieldArray:GetJsonObject(iFieldLoop).
+                        if not JsonPropertyHelper:HasTypedProperty(oFieldDef, string(ServiceMappingFileSchemaEnum:name), JsonDataType:STRING) or
+                           not JsonPropertyHelper:HasTypedProperty(oFieldDef, string(ServiceMappingFileSchemaEnum:ablType), JsonDataType:STRING)
+                        then
+                            assign isTempTable = false.
+                    end.
+                end. // strict temp-table schema check
+
+                /**
+                 * Strict ProDataset schema check: must have one or more table objects (plus optional "attr" object),
+                 * and each table must satisfy the same strict temp-table field definition expectations as above.
+                 */
+                if not isTempTable then do:
+                    assign
+                        extent(cTTName)   = ?
+                        cTTName           = oSchema:GetNames() // Obtains the names of all properties at the root of this object.
+                        iInnerMax         = extent(cTTName)
+                        isDatasetSchema   = iInnerMax ne ?
+                        lHasDatasetTables = false
+                        .
+
+                    if not isDatasetSchema then
+                        assign cSchemaTypeReason = 'Schema object has no properties':u.
+
+                    INNERCHK:
+                    do iInnerLoop = 1 to iInnerMax while isDatasetSchema:
+                        if cTTName[iInnerLoop] eq string(ServiceMappingFileSchemaEnum:attr) then do:
+                            if not JsonPropertyHelper:HasTypedProperty(oSchema, string(ServiceMappingFileSchemaEnum:attr), JsonDataType:OBJECT) then do:
+                                assign
+                                    isDatasetSchema   = false
+                                    cSchemaTypeReason = 'Dataset expects property "attr" must be a JsonObject when present':u
+                                    .
+                                leave INNERCHK.
+                            end.
+                            next INNERCHK.
+                        end.
+
+                        if not oSchema:GetType(cTTName[iInnerLoop]) eq JsonDataType:OBJECT then do:
+                            assign
+                                isDatasetSchema   = false
+                                cSchemaTypeReason = substitute('Dataset expects child property "&1" must be a JsonObject but was &2':u,
+                                                               cTTName[iInnerLoop],
+                                                               string(JsonDataTypeEnum:GetEnum(oSchema:GetType(cTTName[iInnerLoop]))))
+                                .
+                            leave INNERCHK.
+                        end.
+
+                        assign
+                            oTable            = oSchema:GetJsonObject(cTTName[iInnerLoop])
+                            lHasDatasetTables = true
+                            .
+
+                        if not JsonPropertyHelper:HasTypedProperty(oTable, string(ServiceMappingFileSchemaEnum:fields), JsonDataType:ARRAY) then do:
+                            assign
+                                isDatasetSchema   = false
+                                cSchemaTypeReason = substitute('Dataset expected a table "&1" which is missing required fields array':u, cTTName[iInnerLoop])
+                                .
+                            leave INNERCHK.
+                        end.
+
+                        assign
+                            oFieldArray = oTable:GetJsonArray(string(ServiceMappingFileSchemaEnum:fields))
+                            iFieldMax   = oFieldArray:Length
+                            .
+
+                        do iFieldLoop = 1 to iFieldMax while isDatasetSchema:
+                            if not oFieldArray:GetType(iFieldLoop) eq JsonDataType:OBJECT then do:
+                                assign
+                                    isDatasetSchema   = false
+                                    cSchemaTypeReason = substitute('Dataset expected a table "&1" which has a non-object field definition':u, cTTName[iInnerLoop])
+                                    .
+                                leave INNERCHK.
+                            end.
+
+                            assign oFieldDef = oFieldArray:GetJsonObject(iFieldLoop).
+                            if not JsonPropertyHelper:HasTypedProperty(oFieldDef, string(ServiceMappingFileSchemaEnum:name), JsonDataType:STRING) or
+                               not JsonPropertyHelper:HasTypedProperty(oFieldDef, string(ServiceMappingFileSchemaEnum:ablType), JsonDataType:STRING)
+                            then do:
+                                assign
+                                    isDatasetSchema   = false
+                                    cSchemaTypeReason = substitute('Dataset expected a table "&1" which has a field definition missing string name/ablType':u, cTTName[iInnerLoop])
+                                    .
+                                leave INNERCHK.
+                            end.
+                        end.
                     end.
 
-                    assign oTable     = oSchema:GetJsonObject(cTTName[iInnerLoop])
-                           hTempTable = CreateTempTable(cTTName[iInnerLoop], oTable)
-                           .
+                    if isDatasetSchema and not lHasDatasetTables then
+                        assign
+                            isDatasetSchema   = false
+                            cSchemaTypeReason = 'Dataset schema requires at least one valid temp-table definition':u
+                            .
+                end. // strict dataset schema check
 
-                    hSchema:add-buffer(hTempTable:default-buffer-handle).
-                end.
+                if isTempTable then do:
+                    // We definitively have a temp-table schema, so create it and add to the registry.
+                    assign hSchema = CreateTempTable(schemaName, oSchema).
+                    pService:PutSchema(schemaName, hSchema).
+                    assign iLoadedCount = iLoadedCount + 1.
+                    next SCHEMABLK.
+                end. // isTempTable
 
-                if valid-object(attribs) then
-                do:
-                    if JsonPropertyHelper:HasTypedProperty(attribs, string(ServiceMappingFileSchemaEnum:serializeHidden), JsonDataType:BOOLEAN) then
-                        assign hSchema:serialize-hidden = attribs:GetLogical(string(ServiceMappingFileSchemaEnum:serializeHidden)).
+                if isDatasetSchema then do:
+                    // We definitively have a dataset schema, so create it and add to the registry.
+                    create dataset hSchema.
+                    assign
+                        hSchema:name    = schemaName
+                        extent(cTTName) = ?
+                        cTTName         = oSchema:GetNames()
+                        iInnerMax       = extent(cTTName)
+                        oAttributes     = ?
+                        .
 
-                    if JsonPropertyHelper:HasTypedProperty(attribs, string(ServiceMappingFileSchemaEnum:serializeName), JsonDataType:STRING) then
-                        assign hSchema:serialize-name = attribs:GetCharacter(string(ServiceMappingFileSchemaEnum:serializeName)).
+                    INNERBLK:
+                    do iInnerLoop = 1 to iInnerMax:
+                        if cTTName[iInnerLoop] eq string(ServiceMappingFileSchemaEnum:attr) then do:
+                            if JsonPropertyHelper:HasTypedProperty(oSchema, string(ServiceMappingFileSchemaEnum:attr), JsonDataType:OBJECT) then
+                                assign oAttributes = oSchema:GetJsonObject(string(ServiceMappingFileSchemaEnum:attr)).
 
-                    if JsonPropertyHelper:HasTypedProperty(attribs, string(ServiceMappingFileSchemaEnum:relations), JsonDataType:ARRAY) then
-                        AddRelations(hSchema, attribs:GetJsonArray(string(ServiceMappingFileSchemaEnum:relations))).
-                end.
-            end. //datasets
+                            next INNERBLK.
+                        end.
 
-            pService:PutSchema(schemaName, hSchema).
+                        assign
+                            oTable     = oSchema:GetJsonObject(cTTName[iInnerLoop])
+                            hTempTable = CreateTempTable(cTTName[iInnerLoop], oTable)
+                            .
+
+                        hSchema:add-buffer(hTempTable:default-buffer-handle).
+                    end.
+
+                    if valid-object(oAttributes) then do:
+                        if JsonPropertyHelper:HasTypedProperty(oAttributes, string(ServiceMappingFileSchemaEnum:serializeHidden), JsonDataType:BOOLEAN) then
+                            assign hSchema:serialize-hidden = oAttributes:GetLogical(string(ServiceMappingFileSchemaEnum:serializeHidden)).
+
+                        if JsonPropertyHelper:HasTypedProperty(oAttributes, string(ServiceMappingFileSchemaEnum:serializeName), JsonDataType:STRING) then
+                            assign hSchema:serialize-name = oAttributes:GetCharacter(string(ServiceMappingFileSchemaEnum:serializeName)).
+
+                        if JsonPropertyHelper:HasTypedProperty(oAttributes, string(ServiceMappingFileSchemaEnum:relations), JsonDataType:ARRAY) then
+                            AddRelations(hSchema, oAttributes:GetJsonArray(string(ServiceMappingFileSchemaEnum:relations))).
+                    end.
+
+                    pService:PutSchema(schemaName, hSchema).
+                    assign iLoadedCount = iLoadedCount + 1.
+                    next SCHEMABLK.
+                end. // isDatasetSchema
+
+                /**
+                 * If neither Progress schema types matched, treat it as JSON Schema.
+                 * JSON Schemas are intentionally flexible and are retained as-is for
+                 * downstream consumers (for example OpenAPI generation).
+                 */
+                if not (isTempTable or isDatasetSchema) then do:
+                    if (cSchemaTypeReason gt "") eq true then do:
+                        // Ensure that if there was a distinct reason for rejecting the schema, report it to the logger for easier troubleshooting.
+                        Logger:Debug(substitute('Schema "&1" for service "&2" did not match strict schema checks; treating as JSON Schema.',
+                                                schemaName, pService:Name)).
+                        Logger:Debug(substitute('|-Reason: &1', cSchemaTypeReason)).
+                    end.
+
+                    // Create JsonSchemas object on first JSON schema encountered
+                    if not valid-object(pService:JsonSchemas) then
+                        assign pService:JsonSchemas = new JsonObject().
+
+                    // Store only the JSON Schema definition (skip if already exists)
+                    if not pService:JsonSchemas:Has(schemaName) then
+                        pService:JsonSchemas:Add(schemaName, oSchema).
+
+                    assign iLoadedCount = iLoadedCount + 1.
+                    next SCHEMABLK.
+                end. // JSON schema
+
+                catch err as Progress.Lang.Error:
+                    // This catch block is important! It ensures that any errors with schem does not
+                    // cause the entire read of the service mapping to potentially fail prematurely.
+                    Logger:Error(substitute('Unable to load schema "&1" for service "&2": &3',
+                                            schemaName, pService:Name, err:GetMessage(1)), err).
+                    next SCHEMABLK.
+                end catch.
+            end.
         end.
 
-        return iSchemaMax.
+        return iLoadedCount.
     end method.
 
     /* Adds relations between TTs in a dataset
@@ -426,7 +606,7 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
             end.
 
             // make sure we have some fields
-            if String:IsNullOrEmpty(fldPairs) then
+            if OpenEdge.Core.String:IsNullOrEmpty(fldPairs) then
             do:
                 Logger:Warn(substitute('Data-relation field pairs for dataset &1', pDataset:name)).
                 next LOOPBLK.
@@ -538,6 +718,7 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
             // We can only flag fields later so not which (potentially) need updates
             if    oField:Has(string(ServiceMappingFileSchemaEnum:serializeName))
                or oField:Has(string(ServiceMappingFileSchemaEnum:serializeHidden))
+               or oField:Has(string(ServiceMappingFileSchemaEnum:description))
             then
                 assign attrIdx                = attrIdx + 1
                        fieldWithAttr[attrIdx] = iFieldLoop
@@ -606,11 +787,15 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
             assign oField  = oFieldList:GetJsonObject(fieldWithAttr[iFieldLoop])
                    hField  = hBuffer:buffer-field(oField:GetCharacter(string(ServiceMappingFileSchemaEnum:name)))
                    .
+
             if JsonPropertyHelper:HasTypedProperty(oField, string(ServiceMappingFileSchemaEnum:serializeHidden), JsonDataType:BOOLEAN) then
                 assign hField:serialize-hidden = oField:GetLogical(string(ServiceMappingFileSchemaEnum:serializeHidden)).
 
             if JsonPropertyHelper:HasTypedProperty(oField, string(ServiceMappingFileSchemaEnum:serializeName), JsonDataType:STRING) then
                 assign hField:serialize-name = oField:GetCharacter(string(ServiceMappingFileSchemaEnum:serializeName)).
+
+            if JsonPropertyHelper:HasTypedProperty(oField, string(ServiceMappingFileSchemaEnum:description), JsonDataType:STRING) then
+                assign hField:help = oField:GetCharacter(string(ServiceMappingFileSchemaEnum:description)).
         end.
 
         return hTable.
@@ -757,11 +942,43 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
                             next VERB-LOOP.
                         end.
 
+                        // Load the operation description, if defined
+                        if JsonPropertyHelper:HasTypedProperty(oVerb, string(ServiceMappingFileSchemaEnum:description), JsonDataType:STRING) then
+                            assign oMappedOperation:Description = oVerb:GetCharacter(string(ServiceMappingFileSchemaEnum:description)).
+
+                        // Load the entity description, if defined
+                        if JsonPropertyHelper:HasTypedProperty(oEntity, string(ServiceMappingFileSchemaEnum:description), JsonDataType:STRING) then
+                            assign oMappedOperation:EntityDescription = oEntity:GetCharacter(string(ServiceMappingFileSchemaEnum:description)).
+
                         // Load the ACLs, if defined
                         if JsonPropertyHelper:HasTypedProperty(oVerb, string(ServiceMappingFileSchemaEnum:accessControl), JsonDataType:ARRAY) then
+                        do:
                             assign propArray                      = oVerb:GetJsonArray(string(ServiceMappingFileSchemaEnum:accessControl))
                                    oMappedOperation:AccessControl = propArray:GetCharacter(1, propArray:Length)
                                    .
+                            Logger:Debug(substitute('ACL loaded for operation "&1 &2" in service "&3": roles ["&4"]',
+                                                    string(oMethod),
+                                                    propertyName,
+                                                    pService:Name,
+                                                    OpenEdge.Core.String:Join(oMappedOperation:AccessControl, '","':u) )).
+                        end.
+                        else
+                        do:
+                            // Log diagnostic info about why ACL wasn't loaded
+                            if oVerb:Has(string(ServiceMappingFileSchemaEnum:accessControl)) then
+                            do:
+                                Logger:Warn(substitute('ACL property found for operation "&1 &2" in service "&3" but has wrong data type: expected ARRAY, found &4',
+                                                       string(oMethod),
+                                                       propertyName,
+                                                       pService:Name,
+                                                       string(oVerb:GetType(string(ServiceMappingFileSchemaEnum:accessControl))) )).
+                            end.
+                            else
+                                Logger:Debug(substitute('No ACL defined for operation "&1 &2" in service "&3": operation accessible to all users',
+                                                        string(oMethod),
+                                                        propertyName,
+                                                        pService:Name)).
+                        end.
 
                         ARGS-LOOP:
                         do iArgLoop = 1 to iArgMax:
@@ -792,6 +1009,10 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
                             assign ioModeName = oOperationArg:GetCharacter(string(ServiceMappingFileSchemaEnum:ioMode)).
 
                             assign oParam = new OperationParameter(IOModeEnum:GetEnum(ioModeName), ablType, ablName).
+
+                            // Load the parameter description, if defined
+                            if JsonPropertyHelper:HasTypedProperty(oOperationArg, string(ServiceMappingFileSchemaEnum:description), JsonDataType:STRING) then
+                                assign oParam:Description = oOperationArg:GetCharacter(string(ServiceMappingFileSchemaEnum:description)).
 
                             if oParam:IOMode:IsFlagSet(IOModeEnum:Return) then
                                 assign oMappedOperation:ReturnValue = oParam.
@@ -1180,9 +1401,16 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
         define variable semVer as SemanticVersion no-undo.
         define variable svc as DataObjectService no-undo.
 
-        // Service Info
-        if JsonPropertyHelper:HasTypedProperty(pService, string(ServiceMappingFileSchemaEnum:version), JsonDataType:STRING) then
-            assign semVer = SemanticVersion:Parse(pService:GetCharacter(string(ServiceMappingFileSchemaEnum:version))).
+        // Service Info - Begins with a semantic version for the mapping data, which if not parsed should fall back to empty.
+        if JsonPropertyHelper:HasTypedProperty(pService, string(ServiceMappingFileSchemaEnum:version), JsonDataType:STRING) then do:
+            assign semVer = SemanticVersion:Parse(pService:GetCharacter(string(ServiceMappingFileSchemaEnum:version))) no-error.
+            if error-status:error then do:
+                Logger:Warn(substitute('Invalid semantic version "&1" for service "&2". Using empty version instead.',
+                                       pService:GetCharacter(string(ServiceMappingFileSchemaEnum:version)),
+                                       pServiceName)).
+                assign semVer = new SemanticVersion().
+            end.
+        end.
         else
             assign semVer = new SemanticVersion().
 
@@ -1212,6 +1440,10 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
                                      oOperations,
                                      oCatalog,
                                      oSchemas).
+
+        // Load the service description, if defined
+        if JsonPropertyHelper:HasTypedProperty(pService, string(ServiceMappingFileSchemaEnum:description), JsonDataType:STRING) then
+            assign svc:Description = pService:GetCharacter(string(ServiceMappingFileSchemaEnum:description)).
 
         if JsonPropertyHelper:HasTypedProperty(pService, string(ServiceMappingFileSchemaEnum:options), JsonDataType:OBJECT) then
             LoadServiceOptions(svc, pService:GetJsonObject(string(ServiceMappingFileSchemaEnum:options))).
@@ -1259,8 +1491,19 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
             then
             case entry(2, cService, '.':u):
                 when 'gen':u or when 'map':u then
+                do:
                     /* will register if it can */
-                    this-object:RegisterFromFile(pcFolder + '/':u + cService).
+                    do on error undo, throw:
+                        this-object:RegisterFromFile(pcFolder + '/':u + cService).
+
+                        catch oError as Progress.Lang.Error:
+                            Logger:Error(substitute('Unable to register services from map file "&1": &2',
+                                                    pcFolder + '/':u + cService,
+                                                    oError:GetMessage(1)),
+                                         oError).
+                        end catch.
+                    end.
+                end.
             end case.
         end.
 

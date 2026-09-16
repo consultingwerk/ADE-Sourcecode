@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2007-2015 by Progress Software Corporation. All rights *
+* Copyright (C) 2007-2015,2026 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -46,6 +46,7 @@ Modified    :
     12/7/93  RPR      Added combo box
     10/24/11 rkamboj  Replaced http://www.progress.com/services/techsupport link 
                       with "http://progresslink.progress.com/supportlink"
+    07/22/26 tmasood  Removed the reference of dynamics
 ----------------------------------------------------------------------------*/
 /* ===================================================================== */
 /*                      PREPROCESSOR DEFINITIONS                         */
@@ -149,9 +150,8 @@ function getContext returns char extent ( ) forward.
 function getOpenDialogHwnd returns integer ( ) in hOEIDEService. 
 function findWidgetName return character (WidgetParentrecId as recid) forward.    
 
-/* Establish if Dynamics is running */
-ASSIGN _DynamicsIsRunning = DYNAMIC-FUNCTION("IsICFRunning":U) NO-ERROR.
-IF _DynamicsIsRunning = ? THEN _DynamicsIsRunning = NO.
+/* Dynamics removed in OE 13.1 */
+ASSIGN _DynamicsIsRunning = NO.
 /** Contains definitions for dynamics design-time temp-tables. **/
 {destdefi.i}
 

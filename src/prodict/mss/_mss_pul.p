@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006,2012,2022 by Progress Software Corporation. All *
+* Copyright (C) 2006,2012,2022,2026 by Progress Software Corporation. All *
 * rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -66,6 +66,7 @@ History:
     06/21/11 kmayur    added support for constraint pull - OE00195067    
     02/27/13 sdash     Implementation of independent Batch Pull.
     06/20/22 vmaganti  Making always generated fields part of unupdatable list 
+	07/06/26 tmasood   Prevent corrupt metaschema when pulling CLOB/BLOB array fields
 */
 
 &SCOPED-DEFINE xxDS_DEBUG                   DEBUG /**/
@@ -284,7 +285,7 @@ define INPUT PARAMETER error-nr         as INTEGER.
 define INPUT PARAMETER param1           as CHARACTER.
 define INPUT PARAMETER param2           as CHARACTER.
 
-define       variable  err-msg as character extent 10 initial [
+define       variable  err-msg as character extent 11 initial [
 /*  1 */ "WARNING: Column &1 is hidden; it cannot be an index component",
 /*  2 */ "ERROR: Table &1 has unsupported data types.",
 /*  3 */ "       Skipping this table...",
@@ -294,7 +295,8 @@ define       variable  err-msg as character extent 10 initial [
 /*  7 */ "WARNING: Table &1 has Unicode data type, which is supported only with MS SQL Server 2005 and up",
 /*  8 */ "WARNING: Table &1 has Unicode data types and the schema holder's codepage is not utf-8.",
 /*  9 */ "It is recommended that you set the codepage to utf-8 in this case to avoid data loss!",
-/* 10 */ " "
+/* 10 */ " ",
+/* 11 */ "WARNING: Column &1 of table &2 is a CLOB/BLOB array field. Neither BLOB nor CLOB fields may have extents. Skipping this column."
     ].
 
     if param1 = ? then assign param1 = "".

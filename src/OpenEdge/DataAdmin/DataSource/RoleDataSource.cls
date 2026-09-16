@@ -1,5 +1,5 @@
 /**************************************************************************
-Copyright (c) 2016,2023 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2016,2023,2026 by Progress Software Corporation. All rights reserved.
 **************************************************************************/
 /*------------------------------------------------------------------------
     File        : RoleDataSource
@@ -121,12 +121,17 @@ CustomDetail,_Custom-role-detail"
                 // An AVM error will be raised if attempting to delete a built-in role, or if the role is still granted.
                 // Use of no-error prevents throwing of errors if the record cannot be found (we check for availability anyway).
                 find dictdb._sec-role where dictdb._sec-role._role-name eq hBeforeBuff::name exclusive-lock no-wait no-error.
-
-                if available(dictdb._sec-role) then
+                
+                if available(dictdb._sec-role) then 
                     delete dictdb._sec-role.
+                else do:
+                    if locked(dictdb._sec-role) then
+                      undo, throw new DataAccessError(new DataMapper("Role,dictdb._sec-role":u, mMapping),
+                                                      new AppError(substitute("Role &1 is locked by another user", quoter(hBeforeBuff::name)), 0)).
+                end.
 
-                // Reset the error-status flag as we don't care at this point.
-                if error-status:error then error-status:error = false.
+                // Do not reset the flag as we wanted to return the error message to the calling API
+               // if error-status:error then error-status:error = false. 
             end.
             else do:
                 phBuffer:find-by-rowid (hBeforeBuff:after-rowid).
@@ -142,9 +147,19 @@ CustomDetail,_Custom-role-detail"
                            .
                 end.
                 else
+                do:
                     find b_role where
                          b_role._role-name eq hBeforeBuff::name
-                         exclusive-lock no-wait.
+                         exclusive-lock no-wait no-error.
+                    if not available(b_role) then do:
+                        if locked(b_role) then
+                          undo, throw new DataAccessError(new DataMapper("Role,b_role":u, mMapping),
+                                                          new AppError(substitute("Role &1 is locked by another user", quoter(hBeforeBuff::name)), 0)).
+                        else
+                          undo, throw new DataAccessError(new DataMapper("Role,b_role":u, mMapping),
+                                                          new AppError(substitute("Role &1 not found", quoter(hBeforeBuff::name)), 0)).
+                    end.
+                end.
 
                 /* Value field assignments */
                 assign
@@ -205,6 +220,7 @@ CustomDetail,_Custom-role-detail"
     method public void AfterRoleRow(dataset-handle hds):
         define variable hbuffer as handle no-undo.
         define variable iSource as integer no-undo.
+                
         assign
             hBuffer             = hds:get-buffer-handle("ttRole":u)
             hBuffer::url        = substitute('&1/roles/&2':u,

@@ -1,5 +1,5 @@
 /**************************************************************************
-Copyright (c) 2011,2012,2015,2023,2024 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2011,2012,2015,2023,2024,2025,2026 by Progress Software Corporation. All rights reserved.
 **************************************************************************/
 /*------------------------------------------------------------------------
     File        : UserDataSource
@@ -28,10 +28,11 @@ class OpenEdge.DataAdmin.DataSource.UserDataSource inherits DataSource :
     define buffer b_tenant for dictdb._tenant.
     define private property TenantURL  as character no-undo get. set.
     define protected variable mBuffer as handle no-undo.
-    define private variable mMapping as char
+	define private variable mMapping as char
 	   init
 "Name,_Userid,~
 Description,_description,~
+UserName,_User-Name,~
 Number,_User_number,~
 TenantId,_user._tenantid,~
 IsSqlOnly,_sql-only-user,~
@@ -187,6 +188,7 @@ Lastlogin,_last_login"
                 assign
                     dictdb._user._domain = phBuffer::DomainName
                     dictdb._user._description  = phBuffer::description
+                    dictdb._user._user-name = phBuffer::UserName
                     dictdb._user._given_name = phBuffer::GivenName
                     dictdb._user._middle_initial = phBuffer::MiddleInitial
                     dictdb._user._surname = phBuffer::SurName
@@ -265,8 +267,9 @@ Lastlogin,_last_login"
             mBuffer::url = url + "/users/" + WebUtil:UrlEncode(mBuffer::Id) when url > ''
             mBuffer::UserPermissionUrl = url + "/userpermissions/" + WebUtil:UrlEncode(mBuffer::Id) when url > ''
              .
-	run prodict/_dctadmn.p ( input mbuffer::Id, output lIsAdmin ).
-        mBuffer::IsSecAdmin = lIsAdmin.	 
+			 
+	    run prodict/_dctadmn.p ( input mbuffer::Id, output lIsAdmin ).
+            mBuffer::IsSecAdmin = lIsAdmin.	 
 
         if mBuffer::TenantName > "" and url > '' then
             mBuffer::TenantUrl  = TenantURL + WebUtil:UrlEncode(mBuffer::TenantName).
